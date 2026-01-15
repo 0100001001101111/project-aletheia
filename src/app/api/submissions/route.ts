@@ -1,0 +1,192 @@
+/**
+ * Submissions API Route
+ * Handle creation and listing of investigation submissions
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient as createServerClient } from '@/lib/supabase-server';
+import { validateData } from '@/schemas';
+import { calculateTriageScore } from '@/lib/triage';
+import type { InvestigationType, TriageStatus } from '@/types/database';
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createServerClient();
+
+    // Check authentication
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { type, title, raw_data, triage_score, triage_status } = body as {
+      type: InvestigationType;
+      title: string;
+      raw_data: Record<string, unknown>;
+      triage_score?: number;
+      triage_status?: TriageStatus;
+    };
+
+    // Validate required fields
+    if (!type || !title || !raw_data) {
+      return NextResponse.json(
+        { error: 'Missing required fields: type, title, raw_data' },
+        { status: 400 }
+      );
+    }
+
+    // Validate investigation type
+    const validTypes: InvestigationType[] = [
+      'nde',
+      'ganzfeld',
+      'crisis_apparition',
+      'stargate',
+      'geophysical',
+    ];
+    if (!validTypes.includes(type)) {
+      return NextResponse.json(
+        { error: `Invalid investigation type. Must be one of: ${validTypes.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate data against schema
+    const validation = validateData(type, raw_data);
+    if (!validation.success) {
+      // Allow submission with validation errors, but log them
+      console.warn('Submission has validation errors:', validation.errors);
+    }
+
+    // Calculate triage score if not provided
+    let finalTriageScore = triage_score;
+    let finalTriageStatus = triage_status;
+    if (finalTriageScore === undefined) {
+      const triage = calculateTriageScore(raw_data, type);
+      finalTriageScore = triage.overall;
+      finalTriageStatus = triage.status;
+    }
+
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('aletheia_users')
+      .select('id')
+      .eq('auth_id', user.id)
+      .single() as { data: { id: string } | null };
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // Create investigation record
+    const { data: investigation, error: insertError } = await (supabase
+      .from('aletheia_investigations') as ReturnType<typeof supabase.from>)
+      .insert({
+        title,
+        type,
+        raw_data,
+        triage_score: finalTriageScore,
+        triage_status: finalTriageStatus || 'pending',
+        submitted_by: profile.id,
+      } as never)
+      .select()
+      .single() as { data: { id: string } | null; error: { message?: string } | null };
+
+    if (insertError) {
+      console.error('Insert error:', insertError);
+      return NextResponse.json(
+        { error: `Failed to create submission: ${insertError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Create contribution record
+    await (supabase.from('aletheia_contributions') as ReturnType<typeof supabase.from>)
+      .insert({
+        user_id: profile.id,
+        investigation_id: investigation?.id,
+        contribution_type: 'submission',
+        details: {
+          title,
+          type,
+          triage_score: finalTriageScore,
+        },
+      } as never);
+
+    return NextResponse.json({
+      success: true,
+      id: investigation?.id,
+      triage_score: finalTriageScore,
+      triage_status: finalTriageStatus,
+    });
+  } catch (error) {
+    console.error('Submissions API error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const supabase = await createServerClient();
+    const { searchParams } = new URL(request.url);
+
+    // Parse query params
+    const type = searchParams.get('type') as InvestigationType | null;
+    const status = searchParams.get('status') as TriageStatus | null;
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const sortBy = searchParams.get('sort') || 'created_at';
+    const sortOrder = searchParams.get('order') || 'desc';
+
+    // Build query
+    let query = supabase
+      .from('aletheia_investigations')
+      .select('id, title, type, triage_score, triage_status, created_at, submitted_by', { count: 'exact' });
+
+    // Apply filters
+    if (type) {
+      query = query.eq('type', type);
+    }
+    if (status) {
+      query = query.eq('triage_status', status);
+    }
+
+    // Apply sorting
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: investigations, error, count } = await query;
+
+    if (error) {
+      console.error('Query error:', error);
+      return NextResponse.json(
+        { error: `Failed to fetch submissions: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      data: investigations,
+      total: count,
+      limit,
+      offset,
+    });
+  } catch (error) {
+    console.error('Submissions API error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

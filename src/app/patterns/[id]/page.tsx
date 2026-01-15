@@ -1,0 +1,217 @@
+/**
+ * Pattern Detail Page
+ */
+
+import { createClient } from '@/lib/supabase-server';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { SCHEMA_METADATA } from '@/schemas';
+import type { InvestigationType } from '@/types/database';
+
+interface Correlation {
+  domain: InvestigationType;
+  correlation: number;
+  pValue: number;
+  sampleSize: number;
+  direction: 'positive' | 'negative' | 'none';
+}
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+interface PatternData {
+  id: string;
+  variable?: string;
+  pattern_description?: string;
+  description?: string;
+  confidence_score?: number;
+  prevalence_score?: number;
+  prevalence?: number;
+  reliability_score?: number;
+  reliability?: number;
+  volatility_score?: number;
+  volatility?: number;
+  sample_size?: number;
+  domains_matched?: string[];
+  domains?: string[];
+  correlations?: Correlation[];
+  detected_at?: string;
+  created_at?: string;
+}
+
+export default async function PatternDetailPage({ params }: PageProps) {
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: pattern, error } = await supabase
+    .from('aletheia_pattern_matches')
+    .select('*')
+    .eq('id', id)
+    .single() as { data: PatternData | null; error: { code?: string } | null };
+
+  if (error || !pattern) {
+    notFound();
+  }
+
+  const confidencePercent = ((pattern.confidence_score || 0) * 100).toFixed(1);
+  const domains = (pattern.domains_matched || pattern.domains || []) as InvestigationType[];
+  const correlations = (pattern.correlations || []) as Correlation[];
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Header */}
+      <header className="border-b border-zinc-800 bg-zinc-900/50">
+        <div className="mx-auto max-w-4xl px-4 py-6">
+          <Link
+            href="/patterns"
+            className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-200 mb-4"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Patterns
+          </Link>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-zinc-100">
+                {pattern.pattern_description || pattern.description}
+              </h1>
+              {pattern.variable && (
+                <p className="mt-2 text-sm text-zinc-400">
+                  Variable: <code className="text-violet-400">{pattern.variable}</code>
+                </p>
+              )}
+            </div>
+            <div className="text-right shrink-0">
+              <div className="text-3xl font-bold text-violet-400">{confidencePercent}%</div>
+              <div className="text-sm text-zinc-500">Confidence</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="mx-auto max-w-4xl px-4 py-8 space-y-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+            <div className="text-2xl font-bold text-emerald-400">
+              {((pattern.prevalence_score || pattern.prevalence || 0) * 100).toFixed(0)}%
+            </div>
+            <div className="text-sm text-zinc-500">Prevalence</div>
+          </div>
+          <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+            <div className="text-2xl font-bold text-blue-400">
+              {((pattern.reliability_score || pattern.reliability || 0) * 100).toFixed(0)}%
+            </div>
+            <div className="text-sm text-zinc-500">Reliability</div>
+          </div>
+          <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+            <div className="text-2xl font-bold text-amber-400">
+              {((pattern.volatility_score || pattern.volatility || 0) * 100).toFixed(0)}%
+            </div>
+            <div className="text-sm text-zinc-500">Stability</div>
+          </div>
+          <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+            <div className="text-2xl font-bold text-zinc-300">{pattern.sample_size || 0}</div>
+            <div className="text-sm text-zinc-500">Sample Size</div>
+          </div>
+        </div>
+
+        {/* Domains */}
+        {domains.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-200 mb-3">Domains Matched</h2>
+            <div className="flex flex-wrap gap-2">
+              {domains.map((domain) => {
+                const meta = SCHEMA_METADATA[domain];
+                return (
+                  <span
+                    key={domain}
+                    className={`flex items-center gap-2 rounded-full bg-zinc-800 px-4 py-2 ${meta?.color || 'text-zinc-300'}`}
+                  >
+                    <span className="text-lg">{meta?.icon || '?'}</span>
+                    <span>{meta?.name || domain}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Correlations */}
+        {correlations.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-zinc-200 mb-3">Correlations by Domain</h2>
+            <div className="space-y-3">
+              {correlations.map((corr) => {
+                const meta = SCHEMA_METADATA[corr.domain];
+                const isPositive = corr.correlation > 0;
+                const barWidth = Math.abs(corr.correlation) * 100;
+
+                return (
+                  <div key={corr.domain} className="rounded-xl bg-zinc-800/50 p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`flex items-center gap-2 ${meta?.color || 'text-zinc-300'}`}>
+                        <span>{meta?.icon || '?'}</span>
+                        <span className="font-medium">{meta?.name || corr.domain}</span>
+                      </div>
+                      <div className="text-right text-sm">
+                        <span className="text-zinc-400">n = {corr.sampleSize}</span>
+                      </div>
+                    </div>
+                    <div className="relative h-6 bg-zinc-700 rounded overflow-hidden">
+                      <div
+                        className={`absolute h-full transition-all ${
+                          isPositive ? 'bg-emerald-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${barWidth}%` }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center text-sm text-white font-medium">
+                        r = {corr.correlation.toFixed(3)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex justify-between text-xs text-zinc-500">
+                      <span className={corr.pValue < 0.05 ? 'text-emerald-400' : ''}>
+                        p = {corr.pValue.toFixed(4)}
+                        {corr.pValue < 0.05 && ' (significant)'}
+                      </span>
+                      <span className={isPositive ? 'text-emerald-400' : 'text-red-400'}>
+                        {corr.direction}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Metadata */}
+        <div className="border-t border-zinc-800 pt-6">
+          <div className="grid grid-cols-2 gap-4 text-sm text-zinc-500">
+            <div>
+              <span className="text-zinc-600">Detected:</span>{' '}
+              {new Date(pattern.detected_at || pattern.created_at || Date.now()).toLocaleDateString()}
+            </div>
+            <div>
+              <span className="text-zinc-600">Pattern ID:</span>{' '}
+              <code className="text-zinc-400">{pattern.id}</code>
+            </div>
+          </div>
+        </div>
+
+        {/* Related Predictions Link */}
+        <div className="rounded-xl border border-violet-500/30 bg-violet-500/10 p-4">
+          <p className="text-sm text-violet-300">
+            This pattern may have generated testable predictions.{' '}
+            <Link href="/predictions" className="underline hover:text-violet-200">
+              View predictions
+            </Link>
+          </p>
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -1,0 +1,355 @@
+'use client';
+
+/**
+ * Patterns Visualization Page
+ * Network graph and list view of cross-domain patterns
+ */
+
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { PatternGraph } from '@/components/patterns/PatternGraph';
+import { PatternList } from '@/components/patterns/PatternList';
+import { SCHEMA_METADATA } from '@/schemas';
+import type { DetectedPattern } from '@/lib/pattern-matcher';
+import type { InvestigationType } from '@/types/database';
+
+type ViewMode = 'graph' | 'list';
+
+export default function PatternsPage() {
+  const router = useRouter();
+  const [patterns, setPatterns] = useState<DetectedPattern[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('graph');
+  const [selectedDomain, setSelectedDomain] = useState<InvestigationType | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+
+  useEffect(() => {
+    async function fetchPatterns() {
+      try {
+        const response = await fetch('/api/patterns?limit=100');
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch patterns');
+        }
+
+        // Transform API response to DetectedPattern format
+        const transformedPatterns: DetectedPattern[] = (data.data || []).map((p: Record<string, unknown>) => ({
+          id: p.id,
+          variable: p.variable,
+          description: p.pattern_description || p.description,
+          domains: p.domains_matched || p.domains || [],
+          correlations: p.correlations || [],
+          prevalence: p.prevalence_score || p.prevalence || 0,
+          reliability: p.reliability_score || p.reliability || 0,
+          volatility: p.volatility_score || p.volatility || 0,
+          confidenceScore: p.confidence_score || 0,
+          sampleSize: p.sample_size || 0,
+          detectedAt: p.detected_at || p.created_at,
+        }));
+
+        setPatterns(transformedPatterns);
+      } catch (err) {
+        console.error('Fetch error:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load patterns');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchPatterns();
+  }, []);
+
+  const handleScanPatterns = useCallback(async () => {
+    setIsScanning(true);
+    try {
+      const response = await fetch('/api/patterns/scan', {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to run pattern scan');
+      }
+
+      // Refresh patterns
+      const refreshResponse = await fetch('/api/patterns?limit=100');
+      const refreshData = await refreshResponse.json();
+
+      if (refreshResponse.ok && refreshData.data) {
+        const transformedPatterns: DetectedPattern[] = refreshData.data.map((p: Record<string, unknown>) => ({
+          id: p.id,
+          variable: p.variable,
+          description: p.description,
+          domains: p.domains,
+          correlations: p.correlations || [],
+          prevalence: p.prevalence || 0,
+          reliability: p.reliability || 0,
+          volatility: p.volatility || 0,
+          confidenceScore: p.confidence_score || 0,
+          sampleSize: p.sample_size || 0,
+          detectedAt: p.detected_at || p.created_at,
+        }));
+        setPatterns(transformedPatterns);
+      }
+
+      alert(`Scan complete!\nNew patterns found: ${data.new_patterns_found}\nPredictions generated: ${data.predictions_generated}`);
+    } catch (err) {
+      console.error('Scan error:', err);
+      alert(err instanceof Error ? err.message : 'Scan failed');
+    } finally {
+      setIsScanning(false);
+    }
+  }, []);
+
+  const handleNodeClick = useCallback((domain: InvestigationType) => {
+    setSelectedDomain(domain === selectedDomain ? null : domain);
+  }, [selectedDomain]);
+
+  const handlePatternClick = useCallback((pattern: DetectedPattern) => {
+    if (pattern.id) {
+      router.push(`/patterns/${pattern.id}`);
+    }
+  }, [router]);
+
+  // Filter patterns by selected domain
+  const displayedPatterns = selectedDomain
+    ? patterns.filter((p) => p.domains.includes(selectedDomain))
+    : patterns;
+
+  // Calculate domain stats
+  const domainStats = patterns.reduce((acc, pattern) => {
+    pattern.domains.forEach((domain) => {
+      acc[domain] = (acc[domain] || 0) + 1;
+    });
+    return acc;
+  }, {} as Record<InvestigationType, number>);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" />
+          <p className="mt-4 text-zinc-400">Loading patterns...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
+        <div className="max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-8 text-center">
+          <h2 className="text-xl font-bold text-red-400">Error Loading Patterns</h2>
+          <p className="mt-2 text-red-300/80">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-lg bg-red-600/20 px-4 py-2 text-red-400 hover:bg-red-600/30"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Header */}
+      <header className="border-b border-zinc-800 bg-zinc-900/50">
+        <div className="mx-auto max-w-7xl px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-zinc-100">Pattern Discovery</h1>
+              <p className="mt-1 text-zinc-400">
+                Cross-domain correlations detected across {patterns.length} patterns
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleScanPatterns}
+                disabled={isScanning}
+                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
+              >
+                {isScanning ? (
+                  <>
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Scanning...
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Run Pattern Scan
+                  </>
+                )}
+              </button>
+              <a
+                href="/predictions"
+                className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
+              >
+                View Predictions →
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Domain stats bar */}
+      <div className="border-b border-zinc-800 bg-zinc-900/30">
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-zinc-500">Domains:</span>
+            {Object.entries(SCHEMA_METADATA).map(([domain, meta]) => {
+              const count = domainStats[domain as InvestigationType] || 0;
+              const isActive = selectedDomain === domain;
+
+              return (
+                <button
+                  key={domain}
+                  onClick={() => handleNodeClick(domain as InvestigationType)}
+                  className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                    isActive
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'
+                  }`}
+                >
+                  <span>{meta.icon}</span>
+                  <span className="hidden md:inline">{meta.name.split(' ')[0]}</span>
+                  <span className={`rounded-full px-1.5 py-0.5 text-xs ${
+                    isActive ? 'bg-white/20' : 'bg-zinc-700'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+            {selectedDomain && (
+              <button
+                onClick={() => setSelectedDomain(null)}
+                className="text-sm text-zinc-500 hover:text-zinc-300"
+              >
+                Clear filter
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* View mode toggle */}
+      <div className="border-b border-zinc-800">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="flex">
+            <button
+              onClick={() => setViewMode('graph')}
+              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                viewMode === 'graph'
+                  ? 'border-violet-500 text-violet-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Network Graph
+              </span>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                viewMode === 'list'
+                  ? 'border-violet-500 text-violet-400'
+                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                List View
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <main className="mx-auto max-w-7xl px-4 py-8">
+        {viewMode === 'graph' ? (
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Graph visualization */}
+            <div className="lg:col-span-2">
+              <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
+                <h2 className="mb-4 text-lg font-semibold text-zinc-100">Domain Connections</h2>
+                <PatternGraph
+                  patterns={displayedPatterns}
+                  onNodeClick={handleNodeClick}
+                  onEdgeClick={handlePatternClick}
+                />
+              </div>
+            </div>
+
+            {/* Side panel */}
+            <div className="space-y-4">
+              <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
+                <h3 className="mb-3 text-sm font-medium text-zinc-300">
+                  {selectedDomain
+                    ? `${SCHEMA_METADATA[selectedDomain].name} Patterns`
+                    : 'All Patterns'}
+                </h3>
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {displayedPatterns.slice(0, 10).map((pattern) => (
+                    <div
+                      key={`${pattern.variable}-${pattern.domains.join('-')}`}
+                      onClick={() => handlePatternClick(pattern)}
+                      className="cursor-pointer rounded-lg border border-zinc-700 bg-zinc-800/50 p-3 transition-colors hover:border-violet-500/50"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm text-zinc-200 line-clamp-2">
+                          {pattern.description}
+                        </p>
+                        <span className="shrink-0 text-xs font-medium text-violet-400">
+                          {(pattern.confidenceScore * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="mt-2 flex gap-1">
+                        {pattern.domains.map((domain) => (
+                          <span key={domain} className="text-sm" title={SCHEMA_METADATA[domain].name}>
+                            {SCHEMA_METADATA[domain].icon}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {displayedPatterns.length > 10 && (
+                    <button
+                      onClick={() => setViewMode('list')}
+                      className="w-full rounded-lg bg-zinc-800/50 py-2 text-sm text-violet-400 hover:bg-zinc-800"
+                    >
+                      View all {displayedPatterns.length} patterns →
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Info card */}
+              <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
+                <h3 className="mb-2 text-sm font-medium text-zinc-300">How It Works</h3>
+                <p className="text-xs text-zinc-500">
+                  The pattern matcher scans all verified investigations to find variables that
+                  correlate with success across multiple domains. When a pattern exceeds 85%
+                  confidence, it automatically generates a testable prediction.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <PatternList patterns={displayedPatterns} onPatternClick={handlePatternClick} />
+        )}
+      </main>
+    </div>
+  );
+}
