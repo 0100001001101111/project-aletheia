@@ -2,14 +2,14 @@
 
 /**
  * PatternList
- * List view of detected patterns
+ * Table view of detected patterns with plain English explanations
  */
 
 import { useState, useMemo } from 'react';
 import type { InvestigationType } from '@/types/database';
 import type { DetectedPattern } from '@/lib/pattern-matcher';
 import { SCHEMA_METADATA } from '@/schemas';
-import { PatternCard } from './PatternCard';
+import { getConfidenceLevel } from '@/lib/pattern-matcher';
 
 interface PatternListProps {
   patterns: DetectedPattern[];
@@ -17,6 +17,36 @@ interface PatternListProps {
 }
 
 type SortField = 'confidence' | 'prevalence' | 'reliability' | 'sampleSize' | 'date';
+
+/**
+ * Generate a plain English explanation of what the pattern means
+ */
+function getWhatItMeans(pattern: DetectedPattern): string {
+  const domainCount = pattern.domains.length;
+  const confidence = pattern.confidenceScore;
+  const domainNames = pattern.domains.map(d => SCHEMA_METADATA[d]?.name?.split(' ')[0] || d).join(', ');
+
+  // Build explanation based on pattern characteristics
+  if (confidence >= 0.9) {
+    return `Strong evidence: This pattern reliably predicts outcomes across ${domainCount} research areas (${domainNames}). High priority for testing.`;
+  } else if (confidence >= 0.75) {
+    return `Promising signal: This variable shows consistent behavior in ${domainNames} research. Worth investigating further.`;
+  } else if (confidence >= 0.5) {
+    return `Emerging pattern: Early data suggests a connection between ${domainNames}, but more samples needed to confirm.`;
+  } else {
+    return `Preliminary finding: Possible link detected in ${domainNames}. Requires additional verification.`;
+  }
+}
+
+/**
+ * Get confidence badge styling
+ */
+function getConfidenceBadge(score: number): { bg: string; text: string; label: string } {
+  if (score >= 0.9) return { bg: 'bg-emerald-500/20', text: 'text-emerald-400', label: 'Very High' };
+  if (score >= 0.75) return { bg: 'bg-green-500/20', text: 'text-green-400', label: 'High' };
+  if (score >= 0.5) return { bg: 'bg-yellow-500/20', text: 'text-yellow-400', label: 'Moderate' };
+  return { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Low' };
+}
 
 export function PatternList({ patterns, onPatternClick }: PatternListProps) {
   const [filterDomain, setFilterDomain] = useState<InvestigationType | 'all'>('all');
@@ -178,16 +208,96 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
         )}
       </div>
 
-      {/* Pattern cards */}
+      {/* Pattern table */}
       {filteredPatterns.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {filteredPatterns.map((pattern) => (
-            <PatternCard
-              key={`${pattern.variable}-${pattern.domains.join('-')}`}
-              pattern={pattern}
-              onClick={onPatternClick ? () => onPatternClick(pattern) : undefined}
-            />
-          ))}
+        <div className="overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900/50">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-zinc-700 bg-zinc-800/50">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                    Pattern
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                    Domains
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium uppercase tracking-wider text-zinc-400">
+                    Confidence
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                    What It Means
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-700/50">
+                {filteredPatterns.map((pattern) => {
+                  const confidenceBadge = getConfidenceBadge(pattern.confidenceScore);
+
+                  return (
+                    <tr
+                      key={`${pattern.variable}-${pattern.domains.join('-')}`}
+                      onClick={onPatternClick ? () => onPatternClick(pattern) : undefined}
+                      className={`transition-colors ${
+                        onPatternClick
+                          ? 'cursor-pointer hover:bg-zinc-800/50'
+                          : ''
+                      }`}
+                    >
+                      {/* Pattern column */}
+                      <td className="px-4 py-4">
+                        <div className="max-w-xs">
+                          <p className="font-medium text-zinc-100 line-clamp-2">
+                            {pattern.description}
+                          </p>
+                          <p className="mt-1 text-xs text-zinc-500">
+                            <code className="text-violet-400/80">{pattern.variable}</code>
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* Domains column */}
+                      <td className="px-4 py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {pattern.domains.map((domain) => {
+                            const meta = SCHEMA_METADATA[domain];
+                            return (
+                              <span
+                                key={domain}
+                                className={`flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs ${meta.color}`}
+                                title={meta.name}
+                              >
+                                <span>{meta.icon}</span>
+                                <span className="hidden sm:inline">{meta.name.split(' ')[0]}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </td>
+
+                      {/* Confidence column */}
+                      <td className="px-4 py-4 text-center">
+                        <div className="inline-flex flex-col items-center">
+                          <span className={`rounded-full px-2.5 py-1 text-sm font-semibold ${confidenceBadge.bg} ${confidenceBadge.text}`}>
+                            {(pattern.confidenceScore * 100).toFixed(0)}%
+                          </span>
+                          <span className={`mt-1 text-xs ${confidenceBadge.text}`}>
+                            {confidenceBadge.label}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* What It Means column */}
+                      <td className="px-4 py-4">
+                        <p className="max-w-sm text-sm text-zinc-300 leading-relaxed">
+                          {getWhatItMeans(pattern)}
+                        </p>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-12 text-center">

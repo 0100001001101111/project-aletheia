@@ -21,7 +21,7 @@ export default function PatternsPage() {
   const [patterns, setPatterns] = useState<DetectedPattern[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('graph');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedDomain, setSelectedDomain] = useState<InvestigationType | null>(null);
   const [isScanning, setIsScanning] = useState(false);
 
@@ -235,24 +235,20 @@ export default function PatternsPage() {
         </div>
       </div>
 
-      {/* View mode toggle */}
+      {/* Intro text */}
+      <div className="py-6 border-b border-dark-border -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl">
+          <p className="text-zinc-300 leading-relaxed">
+            When the same variable predicts success across completely different research areas,
+            it&apos;s unlikely to be coincidence. These are the patterns our system has detected
+            across <span className="font-semibold text-violet-400">{patterns.length} cross-domain correlations</span>.
+          </p>
+        </div>
+      </div>
+
+      {/* View mode toggle - List View first */}
       <div className="border-b border-dark-border -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
         <div className="flex">
-          <button
-            onClick={() => setViewMode('graph')}
-            className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-              viewMode === 'graph'
-                ? 'border-brand-500 text-brand-400'
-                : 'border-transparent text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Network Graph
-            </span>
-          </button>
           <button
             onClick={() => setViewMode('list')}
             className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
@@ -266,6 +262,21 @@ export default function PatternsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
               </svg>
               List View
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode('graph')}
+            className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+              viewMode === 'graph'
+                ? 'border-brand-500 text-brand-400'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Network Graph
             </span>
           </button>
         </div>
@@ -306,12 +317,23 @@ export default function PatternsPage() {
             )}
           </div>
         ) : viewMode === 'graph' ? (
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Graph visualization */}
-            <div className="lg:col-span-2">
-              <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
-                <h2 className="mb-4 text-lg font-semibold text-zinc-100">Domain Connections</h2>
-                <PatternGraph
+          <div className="space-y-6">
+            {/* Graph intro text */}
+            <div className="rounded-lg border border-zinc-700/50 bg-zinc-800/30 p-4">
+              <p className="text-sm text-zinc-300 leading-relaxed">
+                This map shows which research areas share patterns. <strong className="text-zinc-100">Each node</strong> represents
+                a domain (NDE, Ganzfeld, etc.). <strong className="text-zinc-100">Lines between nodes</strong> indicate patterns
+                that appear in both domains. <strong className="text-zinc-100">Thicker lines</strong> = more shared patterns.
+                Click a node to filter by domain, or click a line to see the connecting pattern.
+              </p>
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-3">
+              {/* Graph visualization */}
+              <div className="lg:col-span-2">
+                <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
+                  <h2 className="mb-4 text-lg font-semibold text-zinc-100">Domain Connections</h2>
+                  <PatternGraph
                   patterns={displayedPatterns}
                   onNodeClick={handleNodeClick}
                   onEdgeClick={handlePatternClick}
@@ -373,6 +395,7 @@ export default function PatternsPage() {
               </div>
             </div>
           </div>
+        </div>
         ) : (
           <PatternList patterns={displayedPatterns} onPatternClick={handlePatternClick} />
         )}
