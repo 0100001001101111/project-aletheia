@@ -17,6 +17,7 @@ type PredictionStatus = 'open' | 'pending' | 'testing' | 'confirmed' | 'refuted'
 interface Prediction {
   id: string;
   hypothesis: string;
+  explainer?: string | null;
   domains_involved?: InvestigationType[];
   domains?: InvestigationType[];
   confidence_score: number;
@@ -174,6 +175,18 @@ export default function PredictionsPage() {
         </Link>
       }
     >
+      {/* Intro */}
+      <div className="mb-8 rounded-xl border border-violet-500/20 bg-violet-500/5 p-6">
+        <h2 className="text-lg font-semibold text-violet-300 mb-2">What are Predictions?</h2>
+        <p className="text-sm text-zinc-400 leading-relaxed">
+          Predictions are testable hypotheses generated when our pattern matcher detects correlations across multiple research domains.
+          Each prediction connects findings from NDEs, Ganzfeld experiments, crisis apparitions, remote viewing, and geophysical phenomena
+          to propose specific, falsifiable claims. When a pattern achieves high confidence (&gt;85%), the system generates predictions
+          that researchers can test. Results are tracked here—confirmed predictions strengthen the underlying pattern, while refuted
+          predictions help refine our models.
+        </p>
+      </div>
+
       {/* Search */}
       <div className="mb-6">
         <div className="relative max-w-md">

@@ -111,20 +111,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize auth state
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
 
+        if (!isMounted) return;
+
         if (session?.user) {
           const aletheiaUser = await fetchUserProfile(session.user);
-          setUser(aletheiaUser);
+          if (isMounted) setUser(aletheiaUser);
         }
       } catch (error) {
+        // Ignore AbortError - happens during navigation
+        if (error instanceof Error && error.name === 'AbortError') return;
         console.error('Auth initialization error:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -134,18 +140,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const aletheiaUser = await fetchUserProfile(session.user);
-        setUser(aletheiaUser);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        const aletheiaUser = await fetchUserProfile(session.user);
-        setUser(aletheiaUser);
+      if (!isMounted) return;
+
+      try {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const aletheiaUser = await fetchUserProfile(session.user);
+          if (isMounted) setUser(aletheiaUser);
+        } else if (event === 'SIGNED_OUT') {
+          if (isMounted) setUser(null);
+        } else if (event === 'USER_UPDATED' && session?.user) {
+          const aletheiaUser = await fetchUserProfile(session.user);
+          if (isMounted) setUser(aletheiaUser);
+        }
+      } catch (error) {
+        // Ignore AbortError
+        if (error instanceof Error && error.name === 'AbortError') return;
+        console.error('Auth state change error:', error);
       }
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [supabase, fetchUserProfile]);

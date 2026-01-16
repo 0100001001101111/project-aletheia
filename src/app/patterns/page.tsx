@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { PatternGraph } from '@/components/patterns/PatternGraph';
 import { PatternList } from '@/components/patterns/PatternList';
+import { PageWrapper } from '@/components/layout/PageWrapper';
 import { SCHEMA_METADATA } from '@/schemas';
 import type { DetectedPattern } from '@/lib/pattern-matcher';
 import type { InvestigationType } from '@/types/database';
@@ -128,78 +129,74 @@ export default function PatternsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" />
-          <p className="mt-4 text-zinc-400">Loading patterns...</p>
+      <PageWrapper>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="h-10 w-10 mx-auto animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+            <p className="mt-4 text-zinc-400">Loading patterns...</p>
+          </div>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-8 text-center">
-          <h2 className="text-xl font-bold text-red-400">Error Loading Patterns</h2>
-          <p className="mt-2 text-red-300/80">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-lg bg-red-600/20 px-4 py-2 text-red-400 hover:bg-red-600/30"
-          >
-            Retry
-          </button>
+      <PageWrapper>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="max-w-md rounded-xl border border-red-500/30 bg-red-500/10 p-8 text-center">
+            <h2 className="text-xl font-bold text-red-400">Error Loading Patterns</h2>
+            <p className="mt-2 text-red-300/80">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-lg bg-red-600/20 px-4 py-2 text-red-400 hover:bg-red-600/30"
+            >
+              Retry
+            </button>
+          </div>
         </div>
-      </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* Header */}
-      <header className="border-b border-zinc-800 bg-zinc-900/50">
-        <div className="mx-auto max-w-7xl px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-zinc-100">Pattern Discovery</h1>
-              <p className="mt-1 text-zinc-400">
-                Cross-domain correlations detected across {patterns.length} patterns
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleScanPatterns}
-                disabled={isScanning}
-                className="flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50"
-              >
-                {isScanning ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Scanning...
-                  </>
-                ) : (
-                  <>
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                    Run Pattern Scan
-                  </>
-                )}
-              </button>
-              <a
-                href="/predictions"
-                className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-700"
-              >
-                View Predictions →
-              </a>
-            </div>
-          </div>
+    <PageWrapper
+      title="Pattern Discovery"
+      description={`Cross-domain correlations detected across ${patterns.length} patterns`}
+      headerAction={
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleScanPatterns}
+            disabled={isScanning}
+            className="flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-50"
+          >
+            {isScanning ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Scanning...
+              </>
+            ) : (
+              <>
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Run Pattern Scan
+              </>
+            )}
+          </button>
+          <a
+            href="/predictions"
+            className="rounded-lg border border-dark-border bg-dark-card px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-dark-hover"
+          >
+            View Predictions →
+          </a>
         </div>
-      </header>
+      }
+    >
 
       {/* Domain stats bar */}
-      <div className="border-b border-zinc-800 bg-zinc-900/30">
-        <div className="mx-auto max-w-7xl px-4 py-4">
+      <div className="border-b border-dark-border bg-dark-card/30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+        <div className="py-4">
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-500">Domains:</span>
             {Object.entries(SCHEMA_METADATA).map(([domain, meta]) => {
@@ -239,45 +236,43 @@ export default function PatternsPage() {
       </div>
 
       {/* View mode toggle */}
-      <div className="border-b border-zinc-800">
-        <div className="mx-auto max-w-7xl px-4">
-          <div className="flex">
-            <button
-              onClick={() => setViewMode('graph')}
-              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                viewMode === 'graph'
-                  ? 'border-violet-500 text-violet-400'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Network Graph
-              </span>
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-                viewMode === 'list'
-                  ? 'border-violet-500 text-violet-400'
-                  : 'border-transparent text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                List View
-              </span>
-            </button>
-          </div>
+      <div className="border-b border-dark-border -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex">
+          <button
+            onClick={() => setViewMode('graph')}
+            className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+              viewMode === 'graph'
+                ? 'border-brand-500 text-brand-400'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Network Graph
+            </span>
+          </button>
+          <button
+            onClick={() => setViewMode('list')}
+            className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'border-brand-500 text-brand-400'
+                : 'border-transparent text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              List View
+            </span>
+          </button>
         </div>
       </div>
 
       {/* Main content */}
-      <main className="mx-auto max-w-7xl px-4 py-8">
+      <div className="py-8">
         {viewMode === 'graph' ? (
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Graph visualization */}
@@ -349,7 +344,7 @@ export default function PatternsPage() {
         ) : (
           <PatternList patterns={displayedPatterns} onPatternClick={handlePatternClick} />
         )}
-      </main>
-    </div>
+      </div>
+    </PageWrapper>
   );
 }

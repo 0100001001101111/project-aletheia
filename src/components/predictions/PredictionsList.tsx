@@ -15,6 +15,7 @@ type PredictionStatus = 'open' | 'pending' | 'testing' | 'confirmed' | 'refuted'
 interface Prediction {
   id: string;
   hypothesis: string;
+  explainer?: string | null;
   domains_involved?: InvestigationType[];
   domains?: InvestigationType[];
   confidence_score: number;
