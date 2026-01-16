@@ -82,6 +82,17 @@ export const DOMAIN_CONFIGS: Record<InvestigationType, DomainConfig> = {
       description: 'Detailed narrative of the apparition experience',
     },
   },
+  ufo: {
+    type: 'poisson',
+    name: 'UFO/UAP Sightings',
+    expectedRate: 1, // Events per unit time (configurable)
+    description: 'UFO/UAP sightings with geophysical and geomagnetic correlations (SPECTER hypothesis).',
+    fields: {
+      primary: 'events',
+      secondary: 'timeWindow',
+      description: 'Number of sightings in observation window with environmental correlations',
+    },
+  },
 };
 
 // ============================================================================

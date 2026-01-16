@@ -16,7 +16,8 @@ export type InvestigationType =
   | 'ganzfeld'          // Ganzfeld/psi experiments
   | 'crisis_apparition' // Crisis apparitions
   | 'stargate'          // Remote viewing
-  | 'geophysical';      // Geophysical anomalies
+  | 'geophysical'       // Geophysical anomalies
+  | 'ufo';              // UFO/UAP sightings
 
 export type TriageStatus = 'pending' | 'provisional' | 'verified' | 'rejected';
 
@@ -488,13 +489,63 @@ export interface GeophysicalRawData {
   correlated_events?: string[];
 }
 
+/** UFO/UAP sighting raw data schema */
+export interface UFORawData {
+  date_time?: string;
+  local_sidereal_time?: number;
+  duration_seconds?: number;
+  shape?: string;
+  witness_count?: number;
+  description?: string;
+  location?: {
+    city?: string;
+    state?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  geophysical?: {
+    nearest_fault_line_km?: number;
+    bedrock_type?: string;
+    piezoelectric_bedrock?: boolean;
+    earthquake_nearby?: boolean;
+    earthquake_count?: number;
+    max_magnitude?: number;
+    population_density?: number;
+  };
+  geomagnetic?: {
+    kp_index?: number;
+    kp_max?: number;
+    geomagnetic_storm?: boolean;
+  };
+  confounds?: {
+    military_base_nearby_km?: number;
+    airport_nearby_km?: number;
+    weather_conditions?: string;
+  };
+  effects?: {
+    physical_effects?: boolean;
+    physical_effects_desc?: string;
+    physiological_effects?: boolean;
+    physiological_effects_desc?: string;
+    em_interference?: boolean;
+    em_interference_desc?: string;
+  };
+  source?: string;
+  source_id?: string;
+  has_coordinates?: boolean;
+  quality_score?: number;
+  confound_score?: number;
+}
+
 /** Union type for all raw data schemas */
 export type InvestigationRawData =
   | NDERawData
   | GanzfeldRawData
   | CrisisApparitionRawData
   | StargateRawData
-  | GeophysicalRawData;
+  | GeophysicalRawData
+  | UFORawData;
 
 // =====================================================
 // UTILITY TYPES
@@ -513,6 +564,8 @@ export type TypedInvestigation<T extends InvestigationType> = Omit<Investigation
     ? StargateRawData
     : T extends 'geophysical'
     ? GeophysicalRawData
+    : T extends 'ufo'
+    ? UFORawData
     : Record<string, unknown>;
 };
 

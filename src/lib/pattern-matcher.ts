@@ -79,6 +79,7 @@ export const CROSS_DOMAIN_VARIABLES: Record<string, {
       nde: 'medical_context.stress_severity',
       crisis_apparition: 'crisis_event.severity',
       geophysical: 'correlated_events',
+      ufo: 'geophysical.earthquake_nearby',
     },
     type: 'numeric',
   },
@@ -126,6 +127,7 @@ export const CROSS_DOMAIN_VARIABLES: Record<string, {
     paths: {
       ganzfeld: 'environment.local_sidereal_time',
       stargate: 'environment.local_sidereal_time',
+      ufo: 'local_sidereal_time',
     },
     type: 'numeric',
   },
@@ -135,8 +137,42 @@ export const CROSS_DOMAIN_VARIABLES: Record<string, {
       ganzfeld: 'environment.geomagnetic_activity_kp',
       stargate: 'environment.geomagnetic_kp',
       geophysical: 'weather.geomagnetic_kp',
+      ufo: 'geomagnetic.kp_index',
     },
     type: 'numeric',
+  },
+  physiological_effects: {
+    label: 'Physiological Effects Reported',
+    paths: {
+      nde: 'aftereffects',
+      crisis_apparition: 'percipient_profile.physical_response',
+      ufo: 'effects.physiological_effects',
+    },
+    type: 'boolean',
+  },
+  em_interference: {
+    label: 'Electromagnetic Interference',
+    paths: {
+      geophysical: 'anomaly_events.anomaly_type',
+      ufo: 'effects.em_interference',
+    },
+    type: 'boolean',
+  },
+  seismic_correlation: {
+    label: 'Seismic/Earthquake Correlation',
+    paths: {
+      geophysical: 'location.geological_features',
+      ufo: 'geophysical.earthquake_nearby',
+    },
+    type: 'boolean',
+  },
+  piezoelectric_bedrock: {
+    label: 'Piezoelectric Bedrock Present',
+    paths: {
+      geophysical: 'location.geological_features',
+      ufo: 'geophysical.piezoelectric_bedrock',
+    },
+    type: 'boolean',
   },
   blinding_protocol: {
     label: 'Blinding Protocol Used',
@@ -182,6 +218,7 @@ const OUTCOME_PATHS: Partial<Record<InvestigationType, string>> = {
   stargate: 'evaluation.hit_miss',
   crisis_apparition: 'verification.confirmed',
   geophysical: 'anomalous_readings_percent',
+  ufo: 'effects.physiological_effects', // High signal = consciousness correlation
 };
 
 // ============================================================================
@@ -202,7 +239,6 @@ export function findCrossdomainPatterns(
   );
 
   if (qualifiedInvestigations.length < 10) {
-    console.log('Not enough qualified investigations for pattern detection');
     return patterns;
   }
 
@@ -269,7 +305,7 @@ export function findCrossdomainPatterns(
  * Calculate prevalence - proportion of domains showing this pattern
  */
 export function calculatePrevalence(pattern: DetectedPattern): number {
-  const totalDomains = 5; // nde, ganzfeld, crisis_apparition, stargate, geophysical
+  const totalDomains = 6; // nde, ganzfeld, crisis_apparition, stargate, geophysical, ufo
   return pattern.domains.length / totalDomains;
 }
 
@@ -546,6 +582,7 @@ function formatDomainName(domain: InvestigationType): string {
     crisis_apparition: 'Crisis Apparition',
     stargate: 'Remote Viewing',
     geophysical: 'Geophysical',
+    ufo: 'UFO/UAP',
   };
   return names[domain] || domain;
 }
@@ -624,12 +661,91 @@ export const SEED_PATTERNS: Omit<DetectedPattern, 'id'>[] = [
       { domain: 'nde', correlation: 0.31, pValue: 0.04, sampleSize: 90, direction: 'positive' },
       { domain: 'ganzfeld', correlation: 0.36, pValue: 0.02, sampleSize: 140, direction: 'positive' },
     ],
-    prevalence: 0.4,
+    prevalence: 0.33,
     reliability: 0.97,
     volatility: 0.91,
     confidenceScore: 0.87,
     sampleSize: 230,
     detectedAt: '2024-08-05T00:00:00.000Z',
+  },
+  // UFO Correlation Patterns
+  {
+    variable: 'seismic_correlation',
+    description: 'UFO sightings correlate with seismic activity (SPECTER hypothesis)',
+    domains: ['ufo', 'geophysical'],
+    correlations: [
+      { domain: 'ufo', correlation: 0.41, pValue: 0.008, sampleSize: 9765, direction: 'positive' },
+      { domain: 'geophysical', correlation: 0.38, pValue: 0.02, sampleSize: 80, direction: 'positive' },
+    ],
+    prevalence: 0.33,
+    reliability: 0.986,
+    volatility: 0.93,
+    confidenceScore: 0.88,
+    sampleSize: 9845,
+    detectedAt: '2026-01-16T00:00:00.000Z',
+  },
+  {
+    variable: 'geomagnetic_activity',
+    description: 'High Kp index correlates with UFO sightings and altered states',
+    domains: ['ufo', 'geophysical', 'ganzfeld'],
+    correlations: [
+      { domain: 'ufo', correlation: 0.35, pValue: 0.01, sampleSize: 14480, direction: 'positive' },
+      { domain: 'geophysical', correlation: 0.42, pValue: 0.008, sampleSize: 80, direction: 'positive' },
+      { domain: 'ganzfeld', correlation: 0.28, pValue: 0.05, sampleSize: 120, direction: 'positive' },
+    ],
+    prevalence: 0.5,
+    reliability: 0.977,
+    volatility: 0.91,
+    confidenceScore: 0.89,
+    sampleSize: 14680,
+    detectedAt: '2026-01-16T00:00:00.000Z',
+  },
+  {
+    variable: 'physiological_effects',
+    description: 'UFO encounters with physiological effects mirror NDE patterns',
+    domains: ['ufo', 'nde', 'crisis_apparition'],
+    correlations: [
+      { domain: 'ufo', correlation: 0.52, pValue: 0.001, sampleSize: 3283, direction: 'positive' },
+      { domain: 'nde', correlation: 0.48, pValue: 0.005, sampleSize: 200, direction: 'positive' },
+      { domain: 'crisis_apparition', correlation: 0.44, pValue: 0.01, sampleSize: 150, direction: 'positive' },
+    ],
+    prevalence: 0.5,
+    reliability: 0.995,
+    volatility: 0.94,
+    confidenceScore: 0.93,
+    sampleSize: 3633,
+    detectedAt: '2026-01-16T00:00:00.000Z',
+  },
+  {
+    variable: 'em_interference',
+    description: 'EM interference in UFO cases correlates with geophysical anomalies',
+    domains: ['ufo', 'geophysical'],
+    correlations: [
+      { domain: 'ufo', correlation: 0.58, pValue: 0.001, sampleSize: 331, direction: 'positive' },
+      { domain: 'geophysical', correlation: 0.45, pValue: 0.01, sampleSize: 80, direction: 'positive' },
+    ],
+    prevalence: 0.33,
+    reliability: 0.994,
+    volatility: 0.92,
+    confidenceScore: 0.87,
+    sampleSize: 411,
+    detectedAt: '2026-01-16T00:00:00.000Z',
+  },
+  {
+    variable: 'local_sidereal_time',
+    description: 'LST 13.5 peak correlates with UFO sightings and psi performance',
+    domains: ['ufo', 'stargate', 'ganzfeld'],
+    correlations: [
+      { domain: 'ufo', correlation: 0.23, pValue: 0.04, sampleSize: 14480, direction: 'positive' },
+      { domain: 'stargate', correlation: 0.31, pValue: 0.02, sampleSize: 150, direction: 'positive' },
+      { domain: 'ganzfeld', correlation: 0.28, pValue: 0.03, sampleSize: 120, direction: 'positive' },
+    ],
+    prevalence: 0.5,
+    reliability: 0.97,
+    volatility: 0.89,
+    confidenceScore: 0.86,
+    sampleSize: 14750,
+    detectedAt: '2026-01-16T00:00:00.000Z',
   },
 ];
 
@@ -658,7 +774,7 @@ export function calculateDomainConnections(
   patterns: DetectedPattern[]
 ): Map<string, number> {
   const connections = new Map<string, number>();
-  const domains: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical'];
+  const domains: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'];
 
   for (let i = 0; i < domains.length; i++) {
     for (let j = i + 1; j < domains.length; j++) {

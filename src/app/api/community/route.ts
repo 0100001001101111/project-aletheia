@@ -7,6 +7,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import Anthropic from '@anthropic-ai/sdk';
+import { sanitizeString, sanitizeText, sanitizeStringArray } from '@/lib/sanitize';
+import { checkRateLimit, getClientId, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import type { CommunityHypothesis } from '@/types/database';
 
 // GET - List all community hypotheses
@@ -45,6 +47,13 @@ export async function GET(request: Request) {
 
 // POST - Create a new hypothesis
 export async function POST(request: Request) {
+  // Rate limiting for AI generation
+  const clientId = getClientId(request);
+  const rateLimit = checkRateLimit(`ai:${clientId}`, RATE_LIMITS.AI_GENERATION);
+  if (!rateLimit.success) {
+    return rateLimitResponse(rateLimit);
+  }
+
   const supabase = await createClient();
 
   // Check authentication
@@ -77,7 +86,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { title, hypothesis, domains_referenced, user_evidence } = body;
+  const { title: rawTitle, hypothesis: rawHypothesis, domains_referenced: rawDomains, user_evidence: rawEvidence } = body;
+
+  // Sanitize user inputs
+  const title = sanitizeString(rawTitle);
+  const hypothesis = sanitizeText(rawHypothesis);
+  const domains_referenced = sanitizeStringArray(rawDomains);
+  const user_evidence = rawEvidence ? sanitizeText(rawEvidence) : null;
 
   // Validate required fields
   if (!title || !hypothesis) {

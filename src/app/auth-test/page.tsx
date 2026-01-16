@@ -247,7 +247,7 @@ export default function AuthTestPage() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={() => console.log('Auth success!')}
+        onSuccess={() => setIsAuthModalOpen(false)}
       />
     </div>
   );

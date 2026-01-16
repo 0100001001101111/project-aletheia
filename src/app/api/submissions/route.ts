@@ -7,9 +7,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { validateData } from '@/schemas';
 import { calculateTriageScore } from '@/lib/triage';
+import { sanitizeString, sanitizeJSON } from '@/lib/sanitize';
+import { checkRateLimit, getClientId, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import type { InvestigationType, TriageStatus } from '@/types/database';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting for submissions
+  const clientId = getClientId(request);
+  const rateLimit = checkRateLimit(`submission:${clientId}`, RATE_LIMITS.SUBMISSION);
+  if (!rateLimit.success) {
+    return rateLimitResponse(rateLimit);
+  }
+
   try {
     const supabase = await createServerClient();
 
@@ -23,13 +32,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { type, title, raw_data, triage_score, triage_status } = body as {
+    const { type, title: rawTitle, raw_data: rawData, triage_score, triage_status } = body as {
       type: InvestigationType;
       title: string;
       raw_data: Record<string, unknown>;
       triage_score?: number;
       triage_status?: TriageStatus;
     };
+
+    // Sanitize user inputs
+    const title = sanitizeString(rawTitle);
+    const raw_data = sanitizeJSON(rawData) as Record<string, unknown>;
 
     // Validate required fields
     if (!type || !title || !raw_data) {

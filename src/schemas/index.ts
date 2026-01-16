@@ -9,6 +9,7 @@ import { GanzfeldSchema, GANZFELD_REQUIRED_FIELDS, GANZFELD_TRIAGE_INDICATORS, G
 import { CrisisApparitionSchema, CRISIS_APPARITION_REQUIRED_FIELDS, CRISIS_APPARITION_TRIAGE_INDICATORS, CRISIS_APPARITION_FIELD_DESCRIPTIONS, type CrisisApparitionData } from './crisis-apparition';
 import { StargateSchema, STARGATE_REQUIRED_FIELDS, STARGATE_TRIAGE_INDICATORS, STARGATE_FIELD_DESCRIPTIONS, type StargateData } from './stargate';
 import { GeophysicalSchema, GEOPHYSICAL_REQUIRED_FIELDS, GEOPHYSICAL_TRIAGE_INDICATORS, GEOPHYSICAL_FIELD_DESCRIPTIONS, type GeophysicalData } from './geophysical';
+import { UFOSchema, UFO_REQUIRED_FIELDS, UFO_TRIAGE_INDICATORS, UFO_FIELD_DESCRIPTIONS, type UFOData } from './ufo';
 import type { InvestigationType } from '../types/database';
 
 // Re-export all schemas
@@ -17,6 +18,7 @@ export { GanzfeldSchema, GANZFELD_REQUIRED_FIELDS, GANZFELD_TRIAGE_INDICATORS, G
 export { CrisisApparitionSchema, CRISIS_APPARITION_REQUIRED_FIELDS, CRISIS_APPARITION_TRIAGE_INDICATORS, CRISIS_APPARITION_FIELD_DESCRIPTIONS, type CrisisApparitionData };
 export { StargateSchema, STARGATE_REQUIRED_FIELDS, STARGATE_TRIAGE_INDICATORS, STARGATE_FIELD_DESCRIPTIONS, type StargateData };
 export { GeophysicalSchema, GEOPHYSICAL_REQUIRED_FIELDS, GEOPHYSICAL_TRIAGE_INDICATORS, GEOPHYSICAL_FIELD_DESCRIPTIONS, type GeophysicalData };
+export { UFOSchema, UFO_REQUIRED_FIELDS, UFO_TRIAGE_INDICATORS, UFO_FIELD_DESCRIPTIONS, type UFOData };
 
 // Schema map by investigation type
 export const SCHEMAS: Record<InvestigationType, z.ZodSchema> = {
@@ -25,6 +27,7 @@ export const SCHEMAS: Record<InvestigationType, z.ZodSchema> = {
   crisis_apparition: CrisisApparitionSchema,
   stargate: StargateSchema,
   geophysical: GeophysicalSchema,
+  ufo: UFOSchema,
 };
 
 // Required fields map
@@ -34,6 +37,7 @@ export const REQUIRED_FIELDS: Record<InvestigationType, readonly string[]> = {
   crisis_apparition: CRISIS_APPARITION_REQUIRED_FIELDS,
   stargate: STARGATE_REQUIRED_FIELDS,
   geophysical: GEOPHYSICAL_REQUIRED_FIELDS,
+  ufo: UFO_REQUIRED_FIELDS,
 };
 
 // Triage indicators map
@@ -43,6 +47,7 @@ export const TRIAGE_INDICATORS: Record<InvestigationType, Record<string, string[
   crisis_apparition: CRISIS_APPARITION_TRIAGE_INDICATORS,
   stargate: STARGATE_TRIAGE_INDICATORS,
   geophysical: GEOPHYSICAL_TRIAGE_INDICATORS,
+  ufo: UFO_TRIAGE_INDICATORS,
 };
 
 // Field descriptions map
@@ -52,6 +57,7 @@ export const FIELD_DESCRIPTIONS: Record<InvestigationType, Record<string, string
   crisis_apparition: CRISIS_APPARITION_FIELD_DESCRIPTIONS,
   stargate: STARGATE_FIELD_DESCRIPTIONS,
   geophysical: GEOPHYSICAL_FIELD_DESCRIPTIONS,
+  ufo: UFO_FIELD_DESCRIPTIONS,
 };
 
 // Schema metadata
@@ -91,10 +97,16 @@ export const SCHEMA_METADATA: Record<InvestigationType, {
     icon: '📡',
     color: 'text-cyan-400',
   },
+  ufo: {
+    name: 'UFO/UAP Sighting',
+    description: 'Aerial anomalies with geophysical, temporal, and consciousness correlates',
+    icon: '🛸',
+    color: 'text-rose-400',
+  },
 };
 
 // Union type for all schema data
-export type SchemaData = NDEData | GanzfeldData | CrisisApparitionData | StargateData | GeophysicalData;
+export type SchemaData = NDEData | GanzfeldData | CrisisApparitionData | StargateData | GeophysicalData | UFOData;
 
 /**
  * Get schema for investigation type

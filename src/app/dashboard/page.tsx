@@ -142,6 +142,7 @@ export default function DashboardPage() {
           crisis_apparition: 25,
           stargate: 85,
           geophysical: 30,
+          ufo: 15,
         };
 
         const dataNeeded = Object.entries(domainCounts)
@@ -237,7 +238,7 @@ export default function DashboardPage() {
           color="green"
         />
         <StatCard
-          value="5"
+          value="6"
           label="Domains"
           sublabel="Connected schemas"
           color="cyan"

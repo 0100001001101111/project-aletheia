@@ -18,6 +18,7 @@ const DOMAIN_ICONS: Record<InvestigationType, { icon: string; label: string; col
   crisis_apparition: { icon: '👻', label: 'Crisis Apparitions', color: 'bg-pink-500/20 text-pink-300 border-pink-500/30' },
   stargate: { icon: '🎯', label: 'STARGATE', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
   geophysical: { icon: '🌍', label: 'Geophysical', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
+  ufo: { icon: '🛸', label: 'UFO/UAP', color: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
 };
 
 // Status badge styles

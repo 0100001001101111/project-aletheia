@@ -16,47 +16,55 @@ export async function POST(
   request: Request,
   context: RouteContext
 ) {
-  const params = await context.params;
-  const supabase = await createClient();
+  try {
+    const params = await context.params;
+    const supabase = await createClient();
 
-  // Check authentication
-  const {
-    data: { user: authUser },
-  } = await supabase.auth.getUser();
+    // Check authentication
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
 
-  if (!authUser) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Get current hypothesis - use type assertion for table not in generated types
-  const { data: hypothesis, error: fetchError } = await (supabase
-    .from('aletheia_community_hypotheses') as ReturnType<typeof supabase.from>)
-    .select('id, upvotes')
-    .eq('id', params.id)
-    .single();
-
-  if (fetchError) {
-    if (fetchError.code === 'PGRST116') {
-      return NextResponse.json({ error: 'Hypothesis not found' }, { status: 404 });
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('Error fetching hypothesis:', fetchError);
-    return NextResponse.json({ error: fetchError.message }, { status: 500 });
+
+    // Get current hypothesis - use type assertion for table not in generated types
+    const { data: hypothesis, error: fetchError } = await (supabase
+      .from('aletheia_community_hypotheses') as ReturnType<typeof supabase.from>)
+      .select('id, upvotes')
+      .eq('id', params.id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Hypothesis not found' }, { status: 404 });
+      }
+      console.error('Error fetching hypothesis:', fetchError);
+      return NextResponse.json({ error: 'Failed to fetch hypothesis' }, { status: 500 });
+    }
+
+    const typedHypothesis = hypothesis as Pick<CommunityHypothesis, 'id' | 'upvotes'>;
+
+    // Increment upvotes
+    const { data, error } = await (supabase
+      .from('aletheia_community_hypotheses') as ReturnType<typeof supabase.from>)
+      .update({ upvotes: (typedHypothesis.upvotes || 0) + 1 } as never)
+      .eq('id', params.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error upvoting hypothesis:', error);
+      return NextResponse.json({ error: 'Failed to upvote hypothesis' }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: data as CommunityHypothesis });
+  } catch (error) {
+    console.error('Upvote error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-
-  const typedHypothesis = hypothesis as Pick<CommunityHypothesis, 'id' | 'upvotes'>;
-
-  // Increment upvotes
-  const { data, error } = await (supabase
-    .from('aletheia_community_hypotheses') as ReturnType<typeof supabase.from>)
-    .update({ upvotes: (typedHypothesis.upvotes || 0) + 1 } as never)
-    .eq('id', params.id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error upvoting hypothesis:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json({ data: data as CommunityHypothesis });
 }

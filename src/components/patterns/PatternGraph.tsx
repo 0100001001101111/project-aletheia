@@ -16,13 +16,14 @@ interface PatternGraphProps {
   onEdgeClick?: (pattern: DetectedPattern) => void;
 }
 
-// Node positions (circular layout)
+// Node positions (hexagonal layout for 6 domains)
 const NODE_POSITIONS: Record<InvestigationType, { x: number; y: number }> = {
-  nde: { x: 50, y: 15 },
-  ganzfeld: { x: 85, y: 40 },
-  stargate: { x: 70, y: 80 },
-  crisis_apparition: { x: 30, y: 80 },
-  geophysical: { x: 15, y: 40 },
+  nde: { x: 50, y: 10 },
+  ganzfeld: { x: 85, y: 30 },
+  stargate: { x: 85, y: 70 },
+  crisis_apparition: { x: 50, y: 90 },
+  geophysical: { x: 15, y: 70 },
+  ufo: { x: 15, y: 30 },
 };
 
 // Short abbreviations for node labels
@@ -32,6 +33,7 @@ const NODE_ABBREVIATIONS: Record<InvestigationType, string> = {
   stargate: 'RV',
   crisis_apparition: 'Crisis',
   geophysical: 'Geo',
+  ufo: 'UFO',
 };
 
 interface GraphNode {
@@ -57,7 +59,7 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
 
   // Calculate nodes
   const nodes: GraphNode[] = useMemo(() => {
-    const domains: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical'];
+    const domains: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'];
     return domains.map((domain) => {
       const domainPatterns = patterns.filter((p) => p.domains.includes(domain));
       return {
@@ -71,7 +73,7 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
   // Calculate edges
   const edges: GraphEdge[] = useMemo(() => {
     const edgeMap = new Map<string, GraphEdge>();
-    const domains: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical'];
+    const domains: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'];
 
     for (let i = 0; i < domains.length; i++) {
       for (let j = i + 1; j < domains.length; j++) {

@@ -20,6 +20,7 @@ const TYPE_EXPLAINERS: Record<InvestigationType, string> = {
   crisis_apparition: "Crisis apparitions are reports of seeing or sensing someone at the moment they experience death or severe trauma - often before the observer could have known. This tests whether extreme stress creates a detectable signal between connected individuals.",
   stargate: "Remote viewing sessions task a 'viewer' with describing a hidden target location or object using only mental focus. Responses are rated on accuracy. This tests whether humans can perceive distant information without physical access.",
   geophysical: "Geophysical investigations correlate unusual phenomena (lights, sounds, equipment malfunctions) with environmental factors like seismic activity, electromagnetic fields, or geological composition. This tests whether tectonic stress produces observable effects.",
+  ufo: "UFO/UAP investigations document unidentified aerial phenomena with attention to correlations with seismic activity, geomagnetic conditions, and physiological effects on witnesses. This tests the SPECTER hypothesis that tectonic stress may produce observable aerial phenomena.",
 };
 
 // Field-specific tooltips for investigation data
@@ -488,6 +489,81 @@ function generateInvestigationSummary(type: InvestigationType, data: Record<stri
 
       if (veridical) {
         summary += ` Researchers verified specific details the subject reported perceiving during the event.`;
+      }
+
+      return summary;
+    }
+
+    case 'ufo': {
+      const location = data.location as Record<string, unknown> | undefined;
+      const city = location?.city || data.city || 'unknown location';
+      const state = location?.state || data.state || '';
+      const dateTime = data.date_time;
+      const shape = data.shape;
+      const duration = data.duration_seconds;
+      const witnessCount = data.witness_count;
+      const effects = data.effects as Record<string, unknown> | undefined;
+      const geophysical = data.geophysical as Record<string, unknown> | undefined;
+      const geomagnetic = data.geomagnetic as Record<string, unknown> | undefined;
+      const confounds = data.confounds as Record<string, unknown> | undefined;
+
+      let summary = '';
+
+      // Basic sighting info
+      if (dateTime) {
+        const date = new Date(dateTime as string).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        summary += `On ${date}, `;
+      }
+
+      summary += `witnesses in ${city}${state ? `, ${state}` : ''} reported `;
+
+      if (shape) {
+        summary += `a ${shape}-shaped `;
+      }
+      summary += 'unidentified aerial phenomenon';
+
+      if (witnessCount && Number(witnessCount) > 1) {
+        summary += ` (${witnessCount} witnesses)`;
+      }
+
+      if (duration && Number(duration) > 0) {
+        const mins = Math.floor(Number(duration) / 60);
+        const secs = Number(duration) % 60;
+        if (mins > 0) {
+          summary += ` lasting ${mins} minute${mins > 1 ? 's' : ''}`;
+          if (secs > 0) summary += ` ${secs} seconds`;
+        } else {
+          summary += ` lasting ${secs} seconds`;
+        }
+      }
+      summary += '.';
+
+      // Effects
+      const effectsList: string[] = [];
+      if (effects?.physiological_effects) effectsList.push('physiological effects on witnesses');
+      if (effects?.em_interference) effectsList.push('electromagnetic interference');
+      if (effects?.physical_effects) effectsList.push('physical effects');
+
+      if (effectsList.length > 0) {
+        summary += ` Reported effects: ${effectsList.join(', ')}.`;
+      }
+
+      // Correlations
+      const correlations: string[] = [];
+      if (geophysical?.earthquake_nearby) correlations.push('seismic activity');
+      if (geophysical?.piezoelectric_bedrock) correlations.push('piezoelectric bedrock');
+      if (geomagnetic?.geomagnetic_storm) correlations.push('geomagnetic storm');
+
+      if (correlations.length > 0) {
+        summary += ` Environmental correlations: ${correlations.join(', ')}.`;
+      }
+
+      // Confounds
+      if (confounds?.military_base_nearby_km && Number(confounds.military_base_nearby_km) < 50) {
+        summary += ` Note: Military base within ${confounds.military_base_nearby_km}km.`;
+      }
+      if (confounds?.airport_nearby_km && Number(confounds.airport_nearby_km) < 30) {
+        summary += ` Note: Airport within ${confounds.airport_nearby_km}km.`;
       }
 
       return summary;

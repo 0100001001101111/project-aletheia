@@ -96,6 +96,7 @@ export default function InvestigationsPage() {
     'crisis_apparition',
     'stargate',
     'geophysical',
+    'ufo',
   ];
 
   const statuses: (TriageStatus | 'all')[] = [
@@ -169,7 +170,7 @@ export default function InvestigationsPage() {
                 {total}
               </span>
             </button>
-            {(['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical'] as InvestigationType[]).map((type) => {
+            {(['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'] as InvestigationType[]).map((type) => {
               const meta = SCHEMA_METADATA[type];
               const isActive = filterType === type;
               const colorMap: Record<InvestigationType, string> = {
@@ -177,14 +178,16 @@ export default function InvestigationsPage() {
                 ganzfeld: 'bg-blue-600 shadow-blue-500/25',
                 crisis_apparition: 'bg-amber-600 shadow-amber-500/25',
                 stargate: 'bg-emerald-600 shadow-emerald-500/25',
-                geophysical: 'bg-rose-600 shadow-rose-500/25',
+                geophysical: 'bg-cyan-600 shadow-cyan-500/25',
+                ufo: 'bg-rose-600 shadow-rose-500/25',
               };
               const hoverMap: Record<InvestigationType, string> = {
                 nde: 'hover:bg-purple-600/20 hover:text-purple-300 hover:border-purple-500/50',
                 ganzfeld: 'hover:bg-blue-600/20 hover:text-blue-300 hover:border-blue-500/50',
                 crisis_apparition: 'hover:bg-amber-600/20 hover:text-amber-300 hover:border-amber-500/50',
                 stargate: 'hover:bg-emerald-600/20 hover:text-emerald-300 hover:border-emerald-500/50',
-                geophysical: 'hover:bg-rose-600/20 hover:text-rose-300 hover:border-rose-500/50',
+                geophysical: 'hover:bg-cyan-600/20 hover:text-cyan-300 hover:border-cyan-500/50',
+                ufo: 'hover:bg-rose-600/20 hover:text-rose-300 hover:border-rose-500/50',
               };
 
               return (

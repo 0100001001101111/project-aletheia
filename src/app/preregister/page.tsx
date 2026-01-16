@@ -5,8 +5,8 @@
  * Create pre-registrations for prediction testing
  */
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -18,8 +18,28 @@ interface Prediction {
   domains_involved: string[];
 }
 
+// Loading fallback component
+function PreRegisterLoading() {
+  return (
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent mx-auto" />
+        <p className="mt-4 text-zinc-400">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Wrap the page in Suspense for useSearchParams
 export default function PreRegisterPage() {
-  const router = useRouter();
+  return (
+    <Suspense fallback={<PreRegisterLoading />}>
+      <PreRegisterContent />
+    </Suspense>
+  );
+}
+
+function PreRegisterContent() {
   const searchParams = useSearchParams();
   const predictionId = searchParams.get('prediction');
 

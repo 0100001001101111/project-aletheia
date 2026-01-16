@@ -141,14 +141,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log the verification attempt for audit
-    console.log('Credential claim submitted:', {
-      userId: user.id,
-      level: verificationLevel,
-      metadata,
-      timestamp: new Date().toISOString(),
-      status: 'pending_verification',
-    });
+    // TODO: In production, log verification attempts to audit table
+    // For now, credential claims are stored in user metadata
 
     return NextResponse.json({
       success: true,

@@ -14,8 +14,8 @@ export default function SubmitPage() {
   const router = useRouter();
   const { user, isLoading } = useAuth();
 
-  const handleComplete = (state: WizardState) => {
-    console.log('Submission complete:', state);
+  const handleComplete = (_state: WizardState) => {
+    // Submission complete - wizard handles the redirect
   };
 
   const handleCancel = () => {

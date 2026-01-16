@@ -54,9 +54,7 @@ export function AuthModal({
   }, [onSuccess, onClose]);
 
   const handleAnonymousSuccess = useCallback(
-    (anonId: string) => {
-      // Could show a toast or notification with the ID
-      console.log('Anonymous account created:', anonId);
+    (_anonId: string) => {
       onSuccess?.();
       onClose();
     },
