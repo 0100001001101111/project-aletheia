@@ -23,6 +23,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .select(`
         id,
         title,
+        description,
         type:investigation_type,
         raw_data,
         triage_score,

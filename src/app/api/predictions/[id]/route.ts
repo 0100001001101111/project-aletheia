@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .from('aletheia_predictions')
       .select(`
         *,
-        pattern:aletheia_pattern_matches(
+        pattern:aletheia_pattern_matches!aletheia_predictions_pattern_id_fkey(
           id,
           variable,
           pattern_description,
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           confidence_score,
           sample_size
         ),
-        created_by_user:aletheia_users!created_by(
+        created_by_user:aletheia_users!aletheia_predictions_created_by_fkey(
           id,
           display_name,
           identity_type,

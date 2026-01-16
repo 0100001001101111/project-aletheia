@@ -25,6 +25,15 @@ const NODE_POSITIONS: Record<InvestigationType, { x: number; y: number }> = {
   geophysical: { x: 15, y: 40 },
 };
 
+// Short abbreviations for node labels
+const NODE_ABBREVIATIONS: Record<InvestigationType, string> = {
+  nde: 'NDE',
+  ganzfeld: 'Ganzfeld',
+  stargate: 'RV',
+  crisis_apparition: 'Crisis',
+  geophysical: 'Geo',
+};
+
 interface GraphNode {
   id: InvestigationType;
   x: number;
@@ -43,6 +52,8 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
   const [hoveredNode, setHoveredNode] = useState<InvestigationType | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<string | null>(null);
   const [selectedPattern, setSelectedPattern] = useState<DetectedPattern | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [hoveredEdgeData, setHoveredEdgeData] = useState<GraphEdge | null>(null);
 
   // Calculate nodes
   const nodes: GraphNode[] = useMemo(() => {
@@ -121,11 +132,64 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
     };
   };
 
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setZoom((z) => Math.min(z + 0.25, 2));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setZoom((z) => Math.max(z - 0.25, 0.5));
+  }, []);
+
+  const handleZoomReset = useCallback(() => {
+    setZoom(1);
+  }, []);
+
+  // Calculate viewBox based on zoom
+  const viewBoxSize = 100 / zoom;
+  const viewBoxOffset = (100 - viewBoxSize) / 2;
+
   return (
     <div className="relative">
+      {/* Zoom Controls */}
+      <div className="absolute right-4 top-4 z-10 flex flex-col gap-1 rounded-lg border border-zinc-700 bg-zinc-900/90 p-1">
+        <button
+          onClick={handleZoomIn}
+          disabled={zoom >= 2}
+          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-30"
+          title="Zoom in"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
+          </svg>
+        </button>
+        <button
+          onClick={handleZoomReset}
+          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+          title="Reset zoom"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+          </svg>
+        </button>
+        <button
+          onClick={handleZoomOut}
+          disabled={zoom <= 0.5}
+          className="rounded p-1.5 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 disabled:opacity-30"
+          title="Zoom out"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
+          </svg>
+        </button>
+        <div className="border-t border-zinc-700 pt-1 text-center text-[10px] text-zinc-500">
+          {Math.round(zoom * 100)}%
+        </div>
+      </div>
+
       {/* SVG Graph */}
       <svg
-        viewBox="0 0 100 100"
+        viewBox={`${viewBoxOffset} ${viewBoxOffset} ${viewBoxSize} ${viewBoxSize}`}
         className="h-[500px] w-full"
         preserveAspectRatio="xMidYMid meet"
       >
@@ -151,8 +215,14 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
                   fill="none"
                   opacity={opacity}
                   className="cursor-pointer transition-all hover:stroke-violet-400"
-                  onMouseEnter={() => setHoveredEdge(key)}
-                  onMouseLeave={() => setHoveredEdge(null)}
+                  onMouseEnter={() => {
+                    setHoveredEdge(key);
+                    setHoveredEdgeData(edge);
+                  }}
+                  onMouseLeave={() => {
+                    setHoveredEdge(null);
+                    setHoveredEdgeData(null);
+                  }}
                   onClick={() => handleEdgeClick(edge)}
                 />
                 {/* Edge label */}
@@ -221,14 +291,14 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
                   {metadata.icon}
                 </text>
 
-                {/* Node label */}
+                {/* Node label - using abbreviations */}
                 <text
                   x={node.x}
                   y={node.y + nodeSize + 3}
                   textAnchor="middle"
-                  className={`text-[3px] ${isHovered ? 'fill-zinc-100' : 'fill-zinc-400'}`}
+                  className={`text-[3px] font-medium ${isHovered ? 'fill-zinc-100' : 'fill-zinc-400'}`}
                 >
-                  {metadata.name.split(' ')[0]}
+                  {NODE_ABBREVIATIONS[node.id]}
                 </text>
 
                 {/* Pattern count badge */}
@@ -276,9 +346,46 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
         </div>
       </div>
 
+      {/* Edge hover tooltip */}
+      {hoveredEdgeData && (
+        <div className="absolute bottom-4 right-4 max-w-xs rounded-lg border border-violet-500/50 bg-zinc-900/95 p-4 shadow-lg">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-sm">{SCHEMA_METADATA[hoveredEdgeData.source].icon}</span>
+            <span className="text-xs text-zinc-500">↔</span>
+            <span className="text-sm">{SCHEMA_METADATA[hoveredEdgeData.target].icon}</span>
+            <span className="ml-auto text-xs text-violet-400">
+              {hoveredEdgeData.patterns.length} pattern{hoveredEdgeData.patterns.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="text-xs text-zinc-400">
+            <span className="font-medium text-zinc-300">
+              {NODE_ABBREVIATIONS[hoveredEdgeData.source]} ↔ {NODE_ABBREVIATIONS[hoveredEdgeData.target]}
+            </span>
+          </div>
+          <div className="mt-2 space-y-1.5 max-h-32 overflow-y-auto">
+            {hoveredEdgeData.patterns.slice(0, 5).map((pattern, idx) => (
+              <div
+                key={idx}
+                className="rounded bg-zinc-800/50 px-2 py-1 text-xs text-zinc-300 line-clamp-2"
+              >
+                {pattern.variable}: {pattern.description?.slice(0, 60)}...
+              </div>
+            ))}
+            {hoveredEdgeData.patterns.length > 5 && (
+              <div className="text-xs text-zinc-500 italic">
+                +{hoveredEdgeData.patterns.length - 5} more patterns
+              </div>
+            )}
+          </div>
+          <div className="mt-2 text-[10px] text-zinc-500">
+            Click edge to view details
+          </div>
+        </div>
+      )}
+
       {/* Selected pattern details */}
       {selectedPattern && (
-        <div className="absolute right-4 top-4 max-w-xs rounded-lg border border-zinc-700 bg-zinc-900/95 p-4">
+        <div className="absolute right-16 top-4 max-w-xs rounded-lg border border-zinc-700 bg-zinc-900/95 p-4">
           <div className="mb-2 flex items-center justify-between">
             <h4 className="text-sm font-medium text-zinc-200">Pattern Details</h4>
             <button

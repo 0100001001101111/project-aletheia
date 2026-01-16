@@ -145,9 +145,73 @@ export default function InvestigationsPage() {
         </div>
       </header>
 
-      {/* Filters */}
+      {/* Domain Filter Chips - Prominent */}
+      <div className="border-b border-zinc-800 bg-zinc-900/50">
+        <div className="mx-auto max-w-7xl px-4 py-5">
+          <div className="mb-2 text-sm font-medium text-zinc-400">Filter by Research Domain</div>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => {
+                setFilterType('all');
+                setPage(0);
+              }}
+              className={`flex items-center gap-2 rounded-xl px-5 py-3 text-base font-medium transition-all ${
+                filterType === 'all'
+                  ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/25'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+              }`}
+            >
+              <span className="text-lg">📊</span>
+              <span>All Domains</span>
+              <span className={`ml-1 rounded-full px-2 py-0.5 text-sm ${
+                filterType === 'all' ? 'bg-white/20' : 'bg-zinc-700'
+              }`}>
+                {total}
+              </span>
+            </button>
+            {(['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical'] as InvestigationType[]).map((type) => {
+              const meta = SCHEMA_METADATA[type];
+              const isActive = filterType === type;
+              const colorMap: Record<InvestigationType, string> = {
+                nde: 'bg-purple-600 shadow-purple-500/25',
+                ganzfeld: 'bg-blue-600 shadow-blue-500/25',
+                crisis_apparition: 'bg-amber-600 shadow-amber-500/25',
+                stargate: 'bg-emerald-600 shadow-emerald-500/25',
+                geophysical: 'bg-rose-600 shadow-rose-500/25',
+              };
+              const hoverMap: Record<InvestigationType, string> = {
+                nde: 'hover:bg-purple-600/20 hover:text-purple-300 hover:border-purple-500/50',
+                ganzfeld: 'hover:bg-blue-600/20 hover:text-blue-300 hover:border-blue-500/50',
+                crisis_apparition: 'hover:bg-amber-600/20 hover:text-amber-300 hover:border-amber-500/50',
+                stargate: 'hover:bg-emerald-600/20 hover:text-emerald-300 hover:border-emerald-500/50',
+                geophysical: 'hover:bg-rose-600/20 hover:text-rose-300 hover:border-rose-500/50',
+              };
+
+              return (
+                <button
+                  key={type}
+                  onClick={() => {
+                    setFilterType(type);
+                    setPage(0);
+                  }}
+                  className={`flex items-center gap-2 rounded-xl px-5 py-3 text-base font-medium transition-all border ${
+                    isActive
+                      ? `${colorMap[type]} text-white shadow-lg border-transparent`
+                      : `bg-zinc-800/50 text-zinc-400 border-zinc-700 ${hoverMap[type]}`
+                  }`}
+                >
+                  <span className="text-lg">{meta.icon}</span>
+                  <span>{meta.name.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Secondary Filters */}
       <div className="border-b border-zinc-800 bg-zinc-900/30">
-        <div className="mx-auto max-w-7xl px-4 py-4">
+        <div className="mx-auto max-w-7xl px-4 py-3">
           <div className="flex flex-wrap items-center gap-4">
             {/* Search */}
             <div className="relative flex-1 min-w-[200px]">
@@ -172,22 +236,6 @@ export default function InvestigationsPage() {
                 />
               </svg>
             </div>
-
-            {/* Type filter */}
-            <select
-              value={filterType}
-              onChange={(e) => {
-                setFilterType(e.target.value as InvestigationType | 'all');
-                setPage(0);
-              }}
-              className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-300 focus:border-violet-500 focus:outline-none"
-            >
-              {types.map((type) => (
-                <option key={type} value={type}>
-                  {type === 'all' ? 'All Types' : SCHEMA_METADATA[type].name}
-                </option>
-              ))}
-            </select>
 
             {/* Status filter */}
             <select

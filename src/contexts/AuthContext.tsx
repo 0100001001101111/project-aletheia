@@ -92,7 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { data: profile, error } = await supabase
         .from('aletheia_users')
         .select('*')
-        .eq('id', authUser.id)
+        .eq('auth_id', authUser.id)
         .single() as { data: Omit<AletheiaUser, 'authUser' | 'isEmailVerified'> | null; error: unknown };
 
       if (error || !profile) {
@@ -220,9 +220,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return { error: new Error('Failed to create user') };
       }
 
+      // Check if this is a repeat signup (user already exists)
+      // Supabase returns the existing user but with empty identities array
+      if (authData.user.identities && authData.user.identities.length === 0) {
+        return { error: new Error('An account with this email already exists. Please sign in instead.') };
+      }
+
       // Create Aletheia user profile
       const { error: profileError } = await (supabase.from('aletheia_users') as ReturnType<typeof supabase.from>).insert({
-        id: authData.user.id,
+        auth_id: authData.user.id,
         email,
         display_name: displayName,
         identity_type: identityType,
@@ -271,7 +277,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Create Aletheia user profile
       const { error: profileError } = await (supabase.from('aletheia_users') as ReturnType<typeof supabase.from>).insert({
-        id: authData.user.id,
+        auth_id: authData.user.id,
         email: email,
         display_name: anonId,
         identity_type: options?.verificationLevel ? 'anonymous_verified' : 'anonymous_unverified',

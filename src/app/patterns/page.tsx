@@ -273,7 +273,39 @@ export default function PatternsPage() {
 
       {/* Main content */}
       <div className="py-8">
-        {viewMode === 'graph' ? (
+        {displayedPatterns.length === 0 ? (
+          /* Empty state */
+          <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-12 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800">
+              <svg className="h-6 w-6 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-zinc-300">
+              {selectedDomain
+                ? `No patterns found for ${SCHEMA_METADATA[selectedDomain].name}`
+                : 'No patterns found'}
+            </h3>
+            <p className="mt-1 text-sm text-zinc-500">
+              {selectedDomain
+                ? 'Try selecting a different domain or clear the filter'
+                : 'Run a pattern scan to discover cross-domain correlations'}
+            </p>
+            {selectedDomain && (
+              <button
+                onClick={() => setSelectedDomain(null)}
+                className="mt-4 inline-block rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
+        ) : viewMode === 'graph' ? (
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Graph visualization */}
             <div className="lg:col-span-2">
