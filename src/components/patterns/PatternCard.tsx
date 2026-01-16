@@ -33,7 +33,7 @@ export function PatternCard({ pattern, onClick, compact = false }: PatternCardPr
           </span>
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
-          {pattern.domains.map((domain) => {
+          {(pattern.domains || []).filter(d => d).map((domain) => {
             const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
             return (
               <span key={domain} className="text-sm" title={meta.name}>
@@ -71,7 +71,7 @@ export function PatternCard({ pattern, onClick, compact = false }: PatternCardPr
 
       {/* Domains */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {pattern.domains.map((domain) => {
+        {(pattern.domains || []).filter(d => d).map((domain) => {
           const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
           return (
             <span
@@ -120,7 +120,7 @@ export function PatternCard({ pattern, onClick, compact = false }: PatternCardPr
             Correlations by Domain
           </h4>
           <div className="space-y-2">
-            {pattern.correlations.map((corr) => {
+            {(pattern.correlations || []).filter(c => c && c.domain).map((corr) => {
               const meta = SCHEMA_METADATA[corr.domain] || { name: corr.domain, icon: '❓', color: 'text-zinc-400' };
               const barWidth = Math.abs(corr.correlation) * 100;
               const isPositive = corr.correlation > 0;

@@ -150,7 +150,7 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
         <div className="flex gap-1">
           {domains.map((domain) => {
             const isActive = filterDomain === domain;
-            const meta = domain !== 'all' ? SCHEMA_METADATA[domain] : null;
+            const meta = domain !== 'all' ? (SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' }) : null;
 
             return (
               <button

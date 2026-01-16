@@ -126,7 +126,7 @@ export default function DashboardPage() {
           id: p.id as string,
           variable: p.variable as string,
           description: (p.pattern_description || p.description) as string,
-          domains: (p.domains_matched || p.domains || []) as InvestigationType[],
+          domains: (Array.isArray(p.domains_matched) ? p.domains_matched : Array.isArray(p.domains) ? p.domains : []).filter((d): d is InvestigationType => typeof d === 'string' && d.length > 0),
           correlations: (p.correlations as unknown[]) || [],
           prevalence: (p.prevalence_score || p.prevalence || 0) as number,
           reliability: (p.reliability_score || p.reliability || 0) as number,

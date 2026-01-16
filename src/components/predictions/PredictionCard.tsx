@@ -142,7 +142,7 @@ export function PredictionCard({ prediction, onClick, compact = false }: Predict
             <span className="text-xs text-zinc-500">{confidencePercent}%</span>
           </div>
           <div className="flex gap-1">
-            {domains.slice(0, 3).map((domain) => {
+            {(domains || []).filter(d => d).slice(0, 3).map((domain) => {
               const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
               return (
                 <span
@@ -210,7 +210,7 @@ export function PredictionCard({ prediction, onClick, compact = false }: Predict
 
       {/* Domains */}
       <div className="mb-5 flex flex-wrap gap-2">
-        {domains.map((domain) => {
+        {(domains || []).filter(d => d).map((domain) => {
           const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
           return (
             <span
