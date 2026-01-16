@@ -18,6 +18,9 @@ interface PatternCardProps {
 export function PatternCard({ pattern, onClick, compact = false }: PatternCardProps) {
   const confidenceInfo = getConfidenceLevel(pattern.confidenceScore);
 
+  // Bulletproof domains array
+  const domains = (pattern?.domains || []).filter(Boolean);
+
   if (compact) {
     return (
       <div
@@ -33,11 +36,11 @@ export function PatternCard({ pattern, onClick, compact = false }: PatternCardPr
           </span>
         </div>
         <div className="mt-2 flex flex-wrap gap-1">
-          {(pattern.domains || []).filter(d => d).map((domain) => {
-            const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
+          {domains.map((domain) => {
+            const meta = SCHEMA_METADATA[domain as keyof typeof SCHEMA_METADATA];
             return (
-              <span key={domain} className="text-sm" title={meta.name}>
-                {meta.icon}
+              <span key={domain} className="text-sm" title={meta?.name || domain}>
+                {meta?.icon || '❓'}
               </span>
             );
           })}
@@ -71,15 +74,15 @@ export function PatternCard({ pattern, onClick, compact = false }: PatternCardPr
 
       {/* Domains */}
       <div className="mb-4 flex flex-wrap gap-2">
-        {(pattern.domains || []).filter(d => d).map((domain) => {
-          const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
+        {domains.map((domain) => {
+          const meta = SCHEMA_METADATA[domain as keyof typeof SCHEMA_METADATA];
           return (
             <span
               key={domain}
-              className={`flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-sm ${meta.color}`}
+              className={`flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-sm ${meta?.color || 'text-zinc-400'}`}
             >
-              <span>{meta.icon}</span>
-              <span>{meta.name}</span>
+              <span>{meta?.icon || '❓'}</span>
+              <span>{meta?.name || domain}</span>
             </span>
           );
         })}
@@ -120,15 +123,15 @@ export function PatternCard({ pattern, onClick, compact = false }: PatternCardPr
             Correlations by Domain
           </h4>
           <div className="space-y-2">
-            {(pattern.correlations || []).filter(c => c && c.domain).map((corr) => {
-              const meta = SCHEMA_METADATA[corr.domain] || { name: corr.domain, icon: '❓', color: 'text-zinc-400' };
+            {(pattern.correlations || []).filter(c => c?.domain).map((corr) => {
+              const meta = SCHEMA_METADATA[corr.domain as keyof typeof SCHEMA_METADATA];
               const barWidth = Math.abs(corr.correlation) * 100;
               const isPositive = corr.correlation > 0;
 
               return (
                 <div key={corr.domain} className="flex items-center gap-3">
-                  <span className={`w-24 text-xs ${meta.color}`}>
-                    {meta.icon} {meta.name.split(' ')[0]}
+                  <span className={`w-24 text-xs ${meta?.color || 'text-zinc-400'}`}>
+                    {meta?.icon || '❓'} {(meta?.name || corr.domain).split(' ')[0]}
                   </span>
                   <div className="relative flex-1 h-4 bg-zinc-800 rounded overflow-hidden">
                     <div
