@@ -205,7 +205,7 @@ export function PredictionsList({ predictions, onPredictionClick }: PredictionsL
         >
           {domains.map((domain) => (
             <option key={domain} value={domain}>
-              {domain === 'all' ? 'All Domains' : SCHEMA_METADATA[domain].name}
+              {domain === 'all' ? 'All Domains' : (SCHEMA_METADATA[domain]?.name || domain)}
             </option>
           ))}
         </select>

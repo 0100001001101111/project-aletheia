@@ -365,11 +365,14 @@ export default function PatternsPage() {
                         </span>
                       </div>
                       <div className="mt-2 flex gap-1">
-                        {pattern.domains.map((domain) => (
-                          <span key={domain} className="text-sm" title={SCHEMA_METADATA[domain].name}>
-                            {SCHEMA_METADATA[domain].icon}
-                          </span>
-                        ))}
+                        {pattern.domains.map((domain) => {
+                          const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
+                          return (
+                            <span key={domain} className="text-sm" title={meta.name}>
+                              {meta.icon}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}

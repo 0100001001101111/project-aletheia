@@ -314,7 +314,7 @@ export default function DashboardPage() {
               </h2>
               <div className="space-y-3">
                 {data.dataNeeded.map((need) => {
-                  const meta = SCHEMA_METADATA[need.domain];
+                  const meta = SCHEMA_METADATA[need.domain] || { name: need.domain, icon: '❓', color: 'text-zinc-400' };
                   return (
                     <div key={need.domain} className="rounded-lg bg-dark-card border border-dark-border p-3 hover:border-amber-500/30 transition-colors">
                       <div className="flex items-center gap-2">
