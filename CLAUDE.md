@@ -4,13 +4,34 @@
 
 Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, and falsifiable prediction tracking.
 
+## Current Project State (Jan 2026)
+
+### What's Working
+- **Landing page** - Domain statistics, live counts
+- **Dashboard** - Overview with stats cards
+- **Investigations** - Browse/filter verified investigations
+- **Predictions** - List + detail pages with testing workflow
+- **Patterns** - Cross-domain pattern visualization
+- **Community Hypotheses** - Submit speculative ideas, AI-generated evidence suggestions
+- **Disputes/Jury** - Flag results, jury voting system
+- **Pre-registration** - Hash-locked methodology before testing
+- **Red Team Dashboard** - Skeptic tools for flagging flaws
+- **Auth** - Public + anonymous user system with verification levels
+
+### Recent Additions
+- Trust architecture tables (preregistrations, flaw_flags, community_hypotheses)
+- Methodology points + credibility scoring
+- Community hypotheses with Claude-generated "evidence needed"
+- Onboarding documentation for data custodians
+
 ## Tech Stack
 
 - Next.js 14 (App Router)
-- Supabase (PostgreSQL + Auth)
-- Tailwind CSS
+- Supabase (PostgreSQL + Auth + RLS)
+- Tailwind CSS (dark theme)
 - TypeScript
-- Claude API (LLM parsing)
+- Claude API (LLM parsing, evidence generation)
+- Vercel (deployment)
 
 ## Critical Database Schema Rules
 
@@ -27,12 +48,32 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 ## File Structure
 ```
 src/
-├── app/                    # Next.js pages
-├── components/             # React components
+├── app/
+│   ├── api/                # API routes (predictions, patterns, community, disputes, etc.)
+│   ├── community/          # Community hypotheses pages
+│   ├── dashboard/          # Main dashboard
+│   ├── disputes/           # Jury voting interface
+│   ├── investigations/     # Investigation browser
+│   ├── patterns/           # Pattern visualization
+│   ├── predictions/        # Prediction list + detail
+│   ├── preregister/        # Pre-registration flow
+│   ├── redteam/            # Red team/skeptic dashboard
+│   └── submit/             # Data submission wizard
+├── components/
+│   ├── auth/               # Auth UI components
+│   ├── community/          # Hypothesis cards
+│   ├── disputes/           # Jury voting components
+│   ├── layout/             # Navigation, PageWrapper
+│   ├── predictions/        # Prediction cards, quality assessment
+│   ├── patterns/           # Pattern visualization
+│   ├── submission/         # Submission wizard steps
+│   └── ui/                 # Shared UI primitives
 ├── contexts/               # Auth context
-├── lib/                    # Utilities (supabase, auth, parser, triage, pattern-matcher)
-├── schemas/                # Zod validation schemas
+├── lib/                    # Utilities (supabase, auth, parser, triage, pattern-matcher, statistics)
+├── schemas/                # Zod validation schemas (5 domains)
 └── types/                  # TypeScript types
+docs/
+└── onboarding/             # Data custodian onboarding emails
 supabase/
 └── migrations/             # Database schema (SOURCE OF TRUTH)
 ```
@@ -125,11 +166,38 @@ Score 7+ = Verified status
 - `/test-db` - Query Supabase to verify data
 - `/commit-push` - Git add, commit, push
 
+## Database Tables
+
+**Core:**
+- `aletheia_users` - User profiles with identity_type, verification_level, credibility_score
+- `aletheia_investigations` - Submitted research data with triage scoring
+- `aletheia_predictions` - Falsifiable predictions from pattern matches
+- `aletheia_pattern_matches` - Cross-domain correlations
+- `aletheia_contributions` - Track user contributions for credibility
+
+**Trust Architecture:**
+- `aletheia_preregistrations` - Hash-locked methodologies before testing
+- `aletheia_flaw_flags` - Red team flagging of result issues
+- `aletheia_community_hypotheses` - Speculative ideas from community
+
+**Dispute Resolution:**
+- `aletheia_prediction_results` - Test results with quality scores
+- `aletheia_prediction_testers` - Jury assignment for predictions
+- `aletheia_disputes` - Escalated disputes with jury voting
+- `aletheia_jury_votes` - Individual juror votes
+- `aletheia_jury_pool` - Eligible jurors for disputes
+
 ## Current Seed Data
 
 - 8 investigations (POC projects)
 - 10 patterns
 - 46 predictions (3 confirmed, 2 refuted)
+
+## Known Issues
+
+- TypeScript: New tables (community_hypotheses) require `as never` type assertions until types regenerated
+- Upvote tracking: No per-user vote tracking yet (users can upvote multiple times)
+- Community hypothesis promotion: Manual process, no auto-promotion triggers
 
 ## External Repos That Feed This
 

@@ -10,6 +10,9 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
+import { SimpleModeStepper, type SimpleSubmissionData } from '@/components/predictions/SimpleModeStepper';
+import { QualityAssessment, type QualityScores, calculateQualityScore, hasZeroFactor } from '@/components/predictions/QualityAssessment';
+import { isSimpleModeCompatible, getExpectedProportion } from '@/lib/domain-statistics';
 
 // Status styling
 const STATUS_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -242,6 +245,17 @@ export default function PredictionDetailPage() {
     publication_url: '',
   });
 
+  // Simple vs Advanced mode
+  const [submissionMode, setSubmissionMode] = useState<'simple' | 'advanced'>('simple');
+
+  // Quality assessment scores (multiplicative)
+  const [qualityScores, setQualityScores] = useState<QualityScores>({
+    isolation: 1.0,
+    targetSelection: 1.0,
+    dataIntegrity: 1.0,
+    baseline: 1.0,
+  });
+
   // Collapsible state
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showTechnicalProtocol, setShowTechnicalProtocol] = useState(false);
@@ -313,18 +327,31 @@ export default function PredictionDetailPage() {
     }
   };
 
-  // Submit results
+  // Submit results (Advanced Mode)
   const handleSubmitResults = async () => {
+    // Check for auto-rejection
+    if (hasZeroFactor(qualityScores)) {
+      alert('Cannot submit: One or more quality factors is zero. This indicates a fatal methodology flaw.');
+      return;
+    }
+
     setSubmitLoading(true);
     try {
+      const qualityScore = calculateQualityScore(qualityScores);
       const res = await fetch(`/api/predictions/${id}/results`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...submitForm,
+          submission_mode: 'advanced',
           p_value: submitForm.p_value ? parseFloat(submitForm.p_value) : null,
           sample_size: submitForm.sample_size ? parseInt(submitForm.sample_size) : null,
           effect_size: submitForm.effect_size ? parseFloat(submitForm.effect_size) : null,
+          isolation_score: qualityScores.isolation,
+          target_selection_score: qualityScores.targetSelection,
+          data_integrity_score: qualityScores.dataIntegrity,
+          baseline_score: qualityScores.baseline,
+          quality_score: qualityScore,
         }),
       });
       const data = await res.json();
@@ -337,6 +364,28 @@ export default function PredictionDetailPage() {
     } finally {
       setSubmitLoading(false);
     }
+  };
+
+  // Submit results (Simple Mode)
+  const handleSimpleSubmit = async (data: SimpleSubmissionData) => {
+    const res = await fetch(`/api/predictions/${id}/results`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...data,
+        methodology: data.description,
+        isolation_score: qualityScores.isolation,
+        target_selection_score: qualityScores.targetSelection,
+        data_integrity_score: qualityScores.dataIntegrity,
+        baseline_score: qualityScores.baseline,
+        quality_score: calculateQualityScore(qualityScores),
+      }),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error);
+
+    setShowSubmitModal(false);
+    fetchData(); // Refresh
   };
 
   // Withdraw from testing
@@ -957,164 +1006,236 @@ export default function PredictionDetailPage() {
       {showSubmitModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 overflow-y-auto py-8">
           <div className="bg-zinc-900 rounded-xl border border-zinc-700 p-6 max-w-2xl w-full mx-4 my-auto">
-            <h2 className="text-xl font-bold text-zinc-100 mb-4">Submit Test Results</h2>
+            <h2 className="text-xl font-bold text-zinc-100 mb-2">Submit Test Results</h2>
             <p className="text-sm text-zinc-400 mb-6">
-              Share what you found. Your results will be reviewed before being published to ensure quality.
+              Share what you found. Your results will be reviewed before being published.
             </p>
 
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-              {/* Main result */}
-              <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700">
-                <label className="block text-sm font-medium text-zinc-300 mb-3">
-                  Did your experiment support the prediction? *
-                </label>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setSubmitForm({ ...submitForm, effect_observed: true })}
-                    className={`flex-1 py-3 rounded-lg border font-medium transition ${
-                      submitForm.effect_observed
-                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
-                        : 'border-zinc-600 text-zinc-400 hover:border-zinc-500'
-                    }`}
-                  >
-                    Yes, Supports
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSubmitForm({ ...submitForm, effect_observed: false })}
-                    className={`flex-1 py-3 rounded-lg border font-medium transition ${
-                      !submitForm.effect_observed
-                        ? 'bg-red-500/20 border-red-500 text-red-400'
-                        : 'border-zinc-600 text-zinc-400 hover:border-zinc-500'
-                    }`}
-                  >
-                    No, Opposes
-                  </button>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">P-Value</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={submitForm.p_value}
-                    onChange={(e) => setSubmitForm({ ...submitForm, p_value: e.target.value })}
-                    placeholder="0.05"
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Sample Size</label>
-                  <input
-                    type="number"
-                    value={submitForm.sample_size}
-                    onChange={(e) => setSubmitForm({ ...submitForm, sample_size: e.target.value })}
-                    placeholder="100"
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Effect Size (d)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={submitForm.effect_size}
-                    onChange={(e) => setSubmitForm({ ...submitForm, effect_size: e.target.value })}
-                    placeholder="0.25"
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* Methodology */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
-                  Methodology *
-                </label>
-                <textarea
-                  value={submitForm.methodology}
-                  onChange={(e) => setSubmitForm({ ...submitForm, methodology: e.target.value })}
-                  placeholder="Describe your experimental setup, participants, materials, and procedures..."
-                  rows={4}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Deviations */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
-                  Deviations from Protocol
-                </label>
-                <textarea
-                  value={submitForm.deviations_from_protocol}
-                  onChange={(e) => setSubmitForm({ ...submitForm, deviations_from_protocol: e.target.value })}
-                  placeholder="Any changes you made to the recommended testing protocol..."
-                  rows={2}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Plain summary */}
-              <div>
-                <label className="block text-sm font-medium text-zinc-300 mb-1">
-                  Plain Language Summary
-                </label>
-                <p className="text-xs text-zinc-500 mb-2">
-                  Explain your results so anyone can understand, not just scientists.
-                </p>
-                <textarea
-                  value={submitForm.plain_summary}
-                  onChange={(e) => setSubmitForm({ ...submitForm, plain_summary: e.target.value })}
-                  placeholder="e.g., We tested 50 people and found that dynamic videos did produce higher hit rates than static images, but the difference wasn't large enough to rule out chance..."
-                  rows={3}
-                  className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                />
-              </div>
-
-              {/* Links */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Pre-registration URL</label>
-                  <input
-                    type="url"
-                    value={submitForm.preregistration_url}
-                    onChange={(e) => setSubmitForm({ ...submitForm, preregistration_url: e.target.value })}
-                    placeholder="https://osf.io/..."
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-zinc-300 mb-1">Publication URL</label>
-                  <input
-                    type="url"
-                    value={submitForm.publication_url}
-                    onChange={(e) => setSubmitForm({ ...submitForm, publication_url: e.target.value })}
-                    placeholder="https://doi.org/..."
-                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
-                  />
-                </div>
+            {/* Mode Toggle */}
+            <div className="mb-6 border-b border-zinc-700">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setSubmissionMode('simple')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    submissionMode === 'simple'
+                      ? 'border-violet-500 text-violet-400'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Simple Mode
+                  <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400">Recommended</span>
+                </button>
+                <button
+                  onClick={() => setSubmissionMode('advanced')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                    submissionMode === 'advanced'
+                      ? 'border-violet-500 text-violet-400'
+                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Advanced Mode
+                </button>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-700">
-              <button
-                onClick={() => setShowSubmitModal(false)}
-                className="px-4 py-2 text-zinc-400 hover:text-zinc-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitResults}
-                disabled={submitLoading || !submitForm.methodology}
-                className="rounded-lg bg-emerald-600 px-6 py-2 font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
-              >
-                {submitLoading ? 'Submitting...' : 'Submit Results'}
-              </button>
-            </div>
+            {/* Simple Mode */}
+            {submissionMode === 'simple' && (
+              <div className="space-y-6">
+                <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 p-4">
+                  <div className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <div className="text-sm text-emerald-300">
+                      <strong>Simple Mode:</strong> Just enter your trials and hits. We calculate the statistics for you!
+                    </div>
+                  </div>
+                </div>
+
+                <SimpleModeStepper
+                  predictionId={id}
+                  expectedProportion={
+                    prediction?.domains_involved?.[0]
+                      ? (() => {
+                          try {
+                            return getExpectedProportion(prediction.domains_involved[0] as 'ganzfeld' | 'stargate' | 'nde' | 'crisis_apparition' | 'geophysical');
+                          } catch {
+                            return 0.25;
+                          }
+                        })()
+                      : 0.25
+                  }
+                  onSubmit={handleSimpleSubmit}
+                  onCancel={() => setShowSubmitModal(false)}
+                />
+              </div>
+            )}
+
+            {/* Advanced Mode */}
+            {submissionMode === 'advanced' && (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                {/* Main result */}
+                <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700">
+                  <label className="block text-sm font-medium text-zinc-300 mb-3">
+                    Did your experiment support the prediction? *
+                  </label>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSubmitForm({ ...submitForm, effect_observed: true })}
+                      className={`flex-1 py-3 rounded-lg border font-medium transition ${
+                        submitForm.effect_observed
+                          ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                          : 'border-zinc-600 text-zinc-400 hover:border-zinc-500'
+                      }`}
+                    >
+                      Yes, Supports
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubmitForm({ ...submitForm, effect_observed: false })}
+                      className={`flex-1 py-3 rounded-lg border font-medium transition ${
+                        !submitForm.effect_observed
+                          ? 'bg-red-500/20 border-red-500 text-red-400'
+                          : 'border-zinc-600 text-zinc-400 hover:border-zinc-500'
+                      }`}
+                    >
+                      No, Opposes
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1">P-Value</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={submitForm.p_value}
+                      onChange={(e) => setSubmitForm({ ...submitForm, p_value: e.target.value })}
+                      placeholder="0.05"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1">Sample Size</label>
+                    <input
+                      type="number"
+                      value={submitForm.sample_size}
+                      onChange={(e) => setSubmitForm({ ...submitForm, sample_size: e.target.value })}
+                      placeholder="100"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1">Effect Size (d)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={submitForm.effect_size}
+                      onChange={(e) => setSubmitForm({ ...submitForm, effect_size: e.target.value })}
+                      placeholder="0.25"
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Quality Assessment */}
+                <div className="border-t border-zinc-700 pt-4">
+                  <h3 className="text-sm font-semibold text-zinc-200 mb-3">Methodology Quality Assessment</h3>
+                  <QualityAssessment
+                    scores={qualityScores}
+                    onChange={setQualityScores}
+                  />
+                </div>
+
+                {/* Methodology */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">
+                    Methodology *
+                  </label>
+                  <textarea
+                    value={submitForm.methodology}
+                    onChange={(e) => setSubmitForm({ ...submitForm, methodology: e.target.value })}
+                    placeholder="Describe your experimental setup, participants, materials, and procedures..."
+                    rows={4}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Deviations */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">
+                    Deviations from Protocol
+                  </label>
+                  <textarea
+                    value={submitForm.deviations_from_protocol}
+                    onChange={(e) => setSubmitForm({ ...submitForm, deviations_from_protocol: e.target.value })}
+                    placeholder="Any changes you made to the recommended testing protocol..."
+                    rows={2}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Plain summary */}
+                <div>
+                  <label className="block text-sm font-medium text-zinc-300 mb-1">
+                    Plain Language Summary
+                  </label>
+                  <p className="text-xs text-zinc-500 mb-2">
+                    Explain your results so anyone can understand, not just scientists.
+                  </p>
+                  <textarea
+                    value={submitForm.plain_summary}
+                    onChange={(e) => setSubmitForm({ ...submitForm, plain_summary: e.target.value })}
+                    placeholder="e.g., We tested 50 people and found that dynamic videos did produce higher hit rates than static images, but the difference wasn't large enough to rule out chance..."
+                    rows={3}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                  />
+                </div>
+
+                {/* Links */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1">Pre-registration URL</label>
+                    <input
+                      type="url"
+                      value={submitForm.preregistration_url}
+                      onChange={(e) => setSubmitForm({ ...submitForm, preregistration_url: e.target.value })}
+                      placeholder="https://osf.io/..."
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-1">Publication URL</label>
+                    <input
+                      type="url"
+                      value={submitForm.publication_url}
+                      onChange={(e) => setSubmitForm({ ...submitForm, publication_url: e.target.value })}
+                      placeholder="https://doi.org/..."
+                      className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-zinc-100 focus:border-violet-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-700">
+                  <button
+                    onClick={() => setShowSubmitModal(false)}
+                    className="px-4 py-2 text-zinc-400 hover:text-zinc-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmitResults}
+                    disabled={submitLoading || !submitForm.methodology || hasZeroFactor(qualityScores)}
+                    className="rounded-lg bg-emerald-600 px-6 py-2 font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                  >
+                    {submitLoading ? 'Submitting...' : 'Submit Results'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

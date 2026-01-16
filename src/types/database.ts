@@ -24,6 +24,8 @@ export type PredictionStatus = 'open' | 'testing' | 'confirmed' | 'refuted' | 'p
 
 export type ContributionType = 'submission' | 'validation' | 'refutation' | 'replication';
 
+export type CommunityHypothesisStatus = 'speculative' | 'gathering_evidence' | 'promoted';
+
 // =====================================================
 // TABLE TYPES
 // =====================================================
@@ -101,6 +103,136 @@ export interface TriageReview {
   overall_score: number;
   notes: string | null;
   created_at: string;
+}
+
+export interface CommunityHypothesis {
+  id: string;
+  user_id: string | null;
+  title: string;
+  hypothesis: string;
+  domains_referenced: InvestigationType[] | null;
+  evidence_needed: string | null;
+  status: CommunityHypothesisStatus;
+  upvotes: number;
+  created_at: string;
+}
+
+export interface CommunityHypothesisWithUser extends CommunityHypothesis {
+  user?: Pick<User, 'id' | 'display_name' | 'verification_level'> | null;
+}
+
+// =====================================================
+// PREDICTION TESTING SYSTEM TYPES
+// =====================================================
+
+export type SubmissionMode = 'simple' | 'advanced';
+export type FlawType = 'sensory_leakage' | 'selection_bias' | 'statistical_error' | 'protocol_violation' | 'data_integrity' | 'other';
+export type FlagSeverity = 'minor' | 'major' | 'fatal';
+export type FlagStatus = 'open' | 'acknowledged' | 'disputed' | 'resolved';
+export type PreregistrationStatus = 'active' | 'completed' | 'withdrawn';
+export type DisputeStatus = 'open' | 'resolved' | 'escalated' | 'nullified';
+export type JuryDecision = 'uphold' | 'overturn' | 'partial';
+export type JuryVote = 'uphold' | 'overturn' | 'abstain';
+
+export interface PredictionResult {
+  id: string;
+  prediction_id: string;
+  tester_id: string | null;
+  submission_mode: SubmissionMode;
+  trials: number | null;
+  hits: number | null;
+  description: string | null;
+  effect_observed: boolean;
+  p_value: number | null;
+  sample_size: number | null;
+  effect_size: number | null;
+  methodology: string | null;
+  deviations_from_protocol: string | null;
+  plain_summary: string | null;
+  preregistration_url: string | null;
+  publication_url: string | null;
+  raw_data: Record<string, unknown> | null;
+  isolation_score: number;
+  target_selection_score: number;
+  data_integrity_score: number;
+  baseline_score: number;
+  quality_score: number | null;
+  preregistration_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PredictionTester {
+  id: string;
+  user_id: string | null;
+  display_name: string | null;
+  anonymous: boolean;
+  methodology_points: number;
+  created_at: string;
+}
+
+export interface Preregistration {
+  id: string;
+  prediction_id: string;
+  user_id: string | null;
+  hash_id: string;
+  content_hash: string;
+  protocol: string;
+  hypothesis: string;
+  methodology: string;
+  expected_sample_size: number | null;
+  analysis_plan: string | null;
+  embargoed: boolean;
+  embargo_until: string | null;
+  status: PreregistrationStatus;
+  created_at: string;
+}
+
+export interface ResultFlag {
+  id: string;
+  result_id: string;
+  flagger_id: string | null;
+  flaw_type: FlawType;
+  description: string;
+  evidence: string | null;
+  severity: FlagSeverity;
+  status: FlagStatus;
+  resolution_notes: string | null;
+  created_at: string;
+}
+
+export interface Dispute {
+  id: string;
+  result_id: string;
+  flag_id: string | null;
+  initiator_id: string | null;
+  tier: number;
+  data_requested: string | null;
+  data_provided: string | null;
+  data_provided_at: string | null;
+  jury_decision: JuryDecision | null;
+  jury_votes: { uphold: number; overturn: number; abstain: number } | null;
+  nullification_reason: string | null;
+  status: DisputeStatus;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface JuryVoteRecord {
+  id: string;
+  dispute_id: string;
+  juror_id: string;
+  vote: JuryVote;
+  reasoning: string | null;
+  created_at: string;
+}
+
+export interface JuryPool {
+  id: string;
+  dispute_id: string;
+  juror_id: string;
+  selected_at: string;
+  voted_at: string | null;
 }
 
 // =====================================================
@@ -229,6 +361,46 @@ export interface Database {
         Row: TriageReview;
         Insert: TriageReviewInsert;
         Update: TriageReviewUpdate;
+      };
+      aletheia_prediction_results: {
+        Row: PredictionResult;
+        Insert: Partial<PredictionResult> & { prediction_id: string; effect_observed: boolean };
+        Update: Partial<PredictionResult>;
+      };
+      aletheia_prediction_testers: {
+        Row: PredictionTester;
+        Insert: Partial<PredictionTester>;
+        Update: Partial<PredictionTester>;
+      };
+      aletheia_preregistrations: {
+        Row: Preregistration;
+        Insert: Partial<Preregistration> & { prediction_id: string; hash_id: string; content_hash: string; protocol: string; hypothesis: string; methodology: string };
+        Update: Partial<Preregistration>;
+      };
+      aletheia_result_flags: {
+        Row: ResultFlag;
+        Insert: Partial<ResultFlag> & { result_id: string; flaw_type: FlawType; description: string };
+        Update: Partial<ResultFlag>;
+      };
+      aletheia_disputes: {
+        Row: Dispute;
+        Insert: Partial<Dispute> & { result_id: string };
+        Update: Partial<Dispute>;
+      };
+      aletheia_jury_votes: {
+        Row: JuryVoteRecord;
+        Insert: Partial<JuryVoteRecord> & { dispute_id: string; juror_id: string; vote: JuryVote };
+        Update: Partial<JuryVoteRecord>;
+      };
+      aletheia_jury_pool: {
+        Row: JuryPool;
+        Insert: Partial<JuryPool> & { dispute_id: string; juror_id: string };
+        Update: Partial<JuryPool>;
+      };
+      aletheia_community_hypotheses: {
+        Row: CommunityHypothesis;
+        Insert: Partial<CommunityHypothesis> & { title: string; hypothesis: string };
+        Update: Partial<CommunityHypothesis>;
       };
     };
     Enums: {

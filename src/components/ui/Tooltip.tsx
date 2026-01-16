@@ -86,7 +86,7 @@ export const JARGON_TOOLTIPS: Record<string, string> = {
   brier_score: "Measures prediction accuracy. Lower = better predictions. 0 = perfect, 1 = completely wrong.",
   domains: "Research categories: Near-Death Experiences, Ganzfeld, Crisis Apparitions, Remote Viewing, and Geophysical anomalies.",
   pattern_matcher: "AI system that scans all investigations to find correlations that appear across multiple research domains.",
-  verified: "This submission passed our 4-stage quality check for methodology, source integrity, and data completeness.",
+  verified: "This submission passed our 4-stage quality check for methodology, source integrity, and data completeness. This verifies the research process, not the phenomenon itself.",
   provisional: "Awaiting review. Data is included in pattern matching but not yet fully verified.",
 };
 

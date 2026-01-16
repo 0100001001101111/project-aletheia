@@ -32,7 +32,7 @@ export default function InvestigationsPage() {
   // Filters
   const [filterType, setFilterType] = useState<InvestigationType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<TriageStatus | 'all'>('all');
-  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortField, setSortField] = useState<SortField>('triage_score');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(0);
@@ -264,10 +264,10 @@ export default function InvestigationsPage() {
               }}
               className="rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-300 focus:border-violet-500 focus:outline-none"
             >
+              <option value="triage_score-desc">Highest Score (Best Quality)</option>
+              <option value="triage_score-asc">Lowest Score</option>
               <option value="created_at-desc">Newest First</option>
               <option value="created_at-asc">Oldest First</option>
-              <option value="triage_score-desc">Highest Score</option>
-              <option value="triage_score-asc">Lowest Score</option>
               <option value="title-asc">Title A-Z</option>
               <option value="title-desc">Title Z-A</option>
             </select>
