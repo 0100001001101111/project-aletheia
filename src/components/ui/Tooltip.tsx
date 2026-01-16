@@ -65,13 +65,14 @@ interface InfoTooltipProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
 }
 
-export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
+export function InfoTooltip({ text }: InfoTooltipProps) {
   return (
-    <Tooltip text={text} position={position}>
-      <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-zinc-700/50 text-xs text-zinc-400 hover:bg-zinc-600/50 hover:text-zinc-300">
-        ?
-      </span>
-    </Tooltip>
+    <span
+      title={text}
+      className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-zinc-700/50 text-xs text-zinc-400 hover:bg-zinc-600/50 hover:text-zinc-300 cursor-help"
+    >
+      ?
+    </span>
   );
 }
 
