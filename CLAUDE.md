@@ -9,7 +9,7 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 ### What's Working
 - **Landing page** - Domain statistics, live counts
 - **Dashboard** - Overview with stats cards
-- **Investigations** - Browse/filter verified investigations
+- **Investigations** - Browse/filter verified investigations (6,018 total records)
 - **Predictions** - List + detail pages with testing workflow
 - **Patterns** - Cross-domain pattern visualization
 - **Community Hypotheses** - Submit speculative ideas, AI-generated evidence suggestions
@@ -17,13 +17,17 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 - **Pre-registration** - Hash-locked methodology before testing
 - **Red Team Dashboard** - Skeptic tools for flagging flaws
 - **Auth** - Public + anonymous user system with verification levels
+- **UFO/UAP Schema** - Full schema with geophysical, temporal, and consciousness correlates
 
 ### Recent Additions (Jan 16, 2026)
+- **UFO/UAP Data Import** - 5,815 NUFORC sightings with parsed structured data
+- **Sixth Domain Schema** - UFO schema added to all components (PatternCard, PredictionCard, etc.)
 - **Dispute Resolution System** - Three-tier conflict resolution with blind jury voting
 - Trust architecture tables (preregistrations, flaw_flags, community_hypotheses, disputes, jury_pool, jury_votes)
 - Methodology points + credibility scoring
 - Community hypotheses with Claude-generated "evidence needed"
 - Onboarding documentation for data custodians (docs/onboarding/)
+- **Defensive SCHEMA_METADATA access** - Bulletproof null checks with optional chaining throughout
 
 ## Tech Stack
 
@@ -113,15 +117,16 @@ For API changes:
 2. Check error handling for null/undefined cases
 3. Verify auth middleware works
 
-## The Five Schemas
+## The Six Schemas
 
-| Schema | Focus |
-|--------|-------|
-| NDE | Biological triggers, veridicality |
-| Ganzfeld | Information transfer vs noise |
-| Crisis Apparition | Spontaneous transmission |
-| STARGATE | Remote viewing, edit filter |
-| Geophysical | Tectonic stress, EM anomalies |
+| Schema | Focus | Records |
+|--------|-------|---------|
+| NDE | Biological triggers, veridicality | 2 |
+| Ganzfeld | Information transfer vs noise | 52 |
+| Crisis Apparition | Spontaneous transmission | 18 |
+| STARGATE | Remote viewing, edit filter | 104 |
+| Geophysical | Tectonic stress, EM anomalies | 27 |
+| UFO/UAP | Aerial anomalies, geophysical/consciousness correlates | 5,815 |
 
 ## Core Hypothesis
 
@@ -188,18 +193,25 @@ Score 7+ = Verified status
 - `aletheia_jury_votes` - Individual juror votes
 - `aletheia_jury_pool` - Eligible jurors for disputes
 
-## Current Seed Data
+## Current Data (Jan 16, 2026)
 
-- 8 investigations (POC projects)
+- **6,018 investigations** across 6 domains
+  - UFO/UAP: 5,815 (NUFORC import)
+  - STARGATE: 104
+  - Ganzfeld: 52
+  - Geophysical: 27
+  - Crisis Apparition: 18
+  - NDE: 2
 - 10 patterns
 - 46 predictions (3 confirmed, 2 refuted)
 
 ## Known Issues
 
-- TypeScript: Some new tables use `AnyClient` type assertions until Supabase types regenerated
-- Upvote tracking: No per-user vote tracking yet (users can upvote multiple times)
-- Community hypothesis promotion: Manual process, no auto-promotion triggers
-- Jury selection: Currently manual, needs random selection algorithm
+- **TypeScript**: Some new tables use `AnyClient` type assertions until Supabase types regenerated
+- **Upvote tracking**: No per-user vote tracking yet (users can upvote multiple times)
+- **Community hypothesis promotion**: Manual process, no auto-promotion triggers
+- **Jury selection**: Currently manual, needs random selection algorithm
+- **Vercel CLI permissions**: `vercel --prod` fails with git author error; workaround is to temporarily move `.git` folder before deploying
 
 ## External Repos That Feed This
 

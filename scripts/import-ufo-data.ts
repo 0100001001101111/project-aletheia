@@ -22,7 +22,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 // Import configuration
 const BATCH_SIZE = 500;
-const INPUT_FILE = path.join(process.env.HOME!, 'Desktop/ufo-data-prep/outputs/ufo_sightings_enriched.json');
+const INPUT_FILE = path.join(process.env.HOME!, 'Desktop/ufo-data-prep/outputs/ufo_high_signal_1000.json');
 
 // System user ID for bulk imports
 const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
