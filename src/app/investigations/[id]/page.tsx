@@ -5,10 +5,12 @@
  * View a single investigation submission
  */
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SCHEMA_METADATA, flattenToDotNotation, FIELD_DESCRIPTIONS } from '@/schemas';
 import { getTriageScoreColor, getTriageStatusColor } from '@/lib/triage';
+import { formatFieldName, formatValue as formatVal } from '@/lib/format';
+import { InfoTooltip, JARGON_TOOLTIPS } from '@/components/ui/Tooltip';
 import type { InvestigationType, TriageStatus } from '@/types/database';
 
 interface Investigation {
@@ -41,11 +43,11 @@ interface Investigation {
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }
 
 export default function InvestigationPage({ params }: PageProps) {
-  const { id } = use(params);
+  const { id } = params;
   const router = useRouter();
   const [investigation, setInvestigation] = useState<Investigation | null>(null);
   const [loading, setLoading] = useState(true);
@@ -130,9 +132,16 @@ export default function InvestigationPage({ params }: PageProps) {
             <div className="text-right">
               <div className={`text-4xl font-bold ${scoreColor}`}>
                 {investigation.triage_score}/10
+                <InfoTooltip text={JARGON_TOOLTIPS.triage_score} position="left" />
               </div>
-              <span className={`mt-1 inline-block rounded-full border px-3 py-1 text-sm capitalize ${statusColor}`}>
+              <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm capitalize ${statusColor}`}>
                 {investigation.triage_status}
+                {investigation.triage_status === 'verified' && (
+                  <InfoTooltip text={JARGON_TOOLTIPS.verified} position="left" />
+                )}
+                {investigation.triage_status === 'provisional' && (
+                  <InfoTooltip text={JARGON_TOOLTIPS.provisional} position="left" />
+                )}
               </span>
             </div>
           </div>
@@ -171,13 +180,13 @@ export default function InvestigationPage({ params }: PageProps) {
                 {Object.entries(groupByCategory(flatData)).map(([category, fields]) => (
                   <div key={category}>
                     <h3 className="mb-2 text-sm font-medium uppercase tracking-wide text-zinc-500">
-                      {category.replace(/_/g, ' ')}
+                      {formatFieldName(category)}
                     </h3>
                     <div className="grid gap-2 md:grid-cols-2">
                       {Object.entries(fields).map(([key, value]) => (
                         <div key={key} className="rounded-lg bg-zinc-800/50 p-3">
                           <div className="text-xs text-zinc-500">
-                            {fieldDescriptions[key] || key}
+                            {fieldDescriptions[key] || formatFieldName(key)}
                           </div>
                           <div className="mt-1 text-sm text-zinc-200">
                             {formatValue(value)}

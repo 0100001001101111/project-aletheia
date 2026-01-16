@@ -84,14 +84,14 @@ async function getStats() {
     // Get all investigations and count by type
     const { data: investigations } = await supabase
       .from('aletheia_investigations')
-      .select('type') as { data: Array<{ type: string }> | null };
+      .select('investigation_type') as { data: Array<{ investigation_type: string }> | null };
 
     const investigationCounts = {
-      nde: investigations?.filter((i) => i.type === 'nde').length || 0,
-      ganzfeld: investigations?.filter((i) => i.type === 'ganzfeld').length || 0,
-      crisis: investigations?.filter((i) => i.type === 'crisis_apparition').length || 0,
-      stargate: investigations?.filter((i) => i.type === 'stargate').length || 0,
-      geophysical: investigations?.filter((i) => i.type === 'geophysical').length || 0,
+      nde: investigations?.filter((i) => i.investigation_type === 'nde').length || 0,
+      ganzfeld: investigations?.filter((i) => i.investigation_type === 'ganzfeld').length || 0,
+      crisis: investigations?.filter((i) => i.investigation_type === 'crisis_apparition').length || 0,
+      stargate: investigations?.filter((i) => i.investigation_type === 'stargate').length || 0,
+      geophysical: investigations?.filter((i) => i.investigation_type === 'geophysical').length || 0,
       total: investigations?.length || 0,
     };
 
@@ -184,12 +184,12 @@ export default async function LandingPage() {
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-brand-900/30 bg-[#0a0a0f]/80 backdrop-blur-xl">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-600 to-accent-blue flex items-center justify-center">
                 <span className="text-white font-bold text-lg">A</span>
               </div>
               <span className="font-semibold text-zinc-100 text-lg">Aletheia</span>
-            </div>
+            </Link>
 
             <div className="hidden md:flex items-center gap-8">
               <Link href="/dashboard" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
@@ -200,6 +200,9 @@ export default async function LandingPage() {
               </Link>
               <Link href="/patterns" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
                 Patterns
+              </Link>
+              <Link href="/investigations" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
+                Investigations
               </Link>
               <Link
                 href="/submit"

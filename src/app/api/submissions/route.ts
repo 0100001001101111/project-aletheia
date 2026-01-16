@@ -89,11 +89,11 @@ export async function POST(request: NextRequest) {
       .from('aletheia_investigations') as ReturnType<typeof supabase.from>)
       .insert({
         title,
-        type,
+        investigation_type: type,
         raw_data,
         triage_score: finalTriageScore,
         triage_status: finalTriageStatus || 'pending',
-        submitted_by: profile.id,
+        user_id: profile.id,
       } as never)
       .select()
       .single() as { data: { id: string } | null; error: { message?: string } | null };
@@ -112,11 +112,7 @@ export async function POST(request: NextRequest) {
         user_id: profile.id,
         investigation_id: investigation?.id,
         contribution_type: 'submission',
-        details: {
-          title,
-          type,
-          triage_score: finalTriageScore,
-        },
+        notes: `Submitted: ${title} (${type}, score: ${finalTriageScore})`,
       } as never);
 
     return NextResponse.json({
@@ -150,11 +146,11 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from('aletheia_investigations')
-      .select('id, title, type, triage_score, triage_status, created_at, submitted_by', { count: 'exact' });
+      .select('id, title, type:investigation_type, triage_score, triage_status, created_at, user_id', { count: 'exact' });
 
     // Apply filters
     if (type) {
-      query = query.eq('type', type);
+      query = query.eq('investigation_type', type);
     }
     if (status) {
       query = query.eq('triage_status', status);

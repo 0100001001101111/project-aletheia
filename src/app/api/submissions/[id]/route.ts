@@ -21,8 +21,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data: investigation, error } = await supabase
       .from('aletheia_investigations')
       .select(`
-        *,
-        submitted_by_user:aletheia_users!submitted_by(
+        id,
+        title,
+        type:investigation_type,
+        raw_data,
+        triage_score,
+        triage_status,
+        created_at,
+        updated_at,
+        submitted_by_user:aletheia_users!user_id(
           id,
           display_name,
           identity_type
@@ -30,14 +37,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         contributions:aletheia_contributions(
           id,
           contribution_type,
-          details,
+          notes,
           created_at
         ),
         triage_reviews:aletheia_triage_reviews(
           id,
-          score_override,
-          status_override,
-          review_notes,
+          overall_score,
+          notes,
           created_at
         )
       `)
@@ -99,9 +105,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Check ownership (only owner can update)
     const { data: existing } = await supabase
       .from('aletheia_investigations')
-      .select('submitted_by, type')
+      .select('user_id, investigation_type')
       .eq('id', id)
-      .single() as { data: { submitted_by: string; type: string } | null };
+      .single() as { data: { user_id: string; investigation_type: string } | null };
 
     if (!existing) {
       return NextResponse.json(
@@ -110,7 +116,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (existing.submitted_by !== profile.id) {
+    if (existing.user_id !== profile.id) {
       return NextResponse.json(
         { error: 'You can only edit your own submissions' },
         { status: 403 }
@@ -137,14 +143,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updates.raw_data = raw_data;
 
       // Validate updated data
-      const validation = validateData(existing.type as InvestigationType, raw_data);
+      const validation = validateData(existing.investigation_type as InvestigationType, raw_data);
       if (!validation.success) {
         console.warn('Updated data has validation errors:', validation.errors);
       }
 
       // Recalculate triage if requested or if data changed
       if (recalculate_triage !== false) {
-        const triage = calculateTriageScore(raw_data, existing.type as InvestigationType);
+        const triage = calculateTriageScore(raw_data, existing.investigation_type as InvestigationType);
         updates.triage_score = triage.overall;
         updates.triage_status = triage.status;
       }
@@ -172,9 +178,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         user_id: profile.id,
         investigation_id: id,
         contribution_type: 'edit',
-        details: {
-          fields_updated: Object.keys(updates),
-        },
+        notes: `Edited fields: ${Object.keys(updates).join(', ')}`,
       } as never);
 
     return NextResponse.json({
@@ -221,9 +225,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     // Check ownership
     const { data: existing } = await supabase
       .from('aletheia_investigations')
-      .select('submitted_by')
+      .select('user_id')
       .eq('id', id)
-      .single() as { data: { submitted_by: string } | null };
+      .single() as { data: { user_id: string } | null };
 
     if (!existing) {
       return NextResponse.json(
@@ -232,7 +236,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (existing.submitted_by !== profile.id) {
+    if (existing.user_id !== profile.id) {
       return NextResponse.json(
         { error: 'You can only delete your own submissions' },
         { status: 403 }
