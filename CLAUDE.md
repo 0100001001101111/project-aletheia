@@ -18,11 +18,12 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 - **Red Team Dashboard** - Skeptic tools for flagging flaws
 - **Auth** - Public + anonymous user system with verification levels
 
-### Recent Additions
-- Trust architecture tables (preregistrations, flaw_flags, community_hypotheses)
+### Recent Additions (Jan 16, 2026)
+- **Dispute Resolution System** - Three-tier conflict resolution with blind jury voting
+- Trust architecture tables (preregistrations, flaw_flags, community_hypotheses, disputes, jury_pool, jury_votes)
 - Methodology points + credibility scoring
 - Community hypotheses with Claude-generated "evidence needed"
-- Onboarding documentation for data custodians
+- Onboarding documentation for data custodians (docs/onboarding/)
 
 ## Tech Stack
 
@@ -195,9 +196,10 @@ Score 7+ = Verified status
 
 ## Known Issues
 
-- TypeScript: New tables (community_hypotheses) require `as never` type assertions until types regenerated
+- TypeScript: Some new tables use `AnyClient` type assertions until Supabase types regenerated
 - Upvote tracking: No per-user vote tracking yet (users can upvote multiple times)
 - Community hypothesis promotion: Manual process, no auto-promotion triggers
+- Jury selection: Currently manual, needs random selection algorithm
 
 ## External Repos That Feed This
 
