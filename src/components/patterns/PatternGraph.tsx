@@ -257,7 +257,7 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
         {/* Nodes */}
         <g className="nodes">
           {nodes.map((node) => {
-            const metadata = SCHEMA_METADATA[node.id];
+            const metadata = SCHEMA_METADATA[node.id] || { name: node.id, icon: '❓', color: 'text-zinc-400' };
             const isHovered = hoveredNode === node.id;
             const nodeSize = Math.max(6, Math.min(10, 5 + node.patternCount));
 
@@ -352,9 +352,9 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
       {hoveredEdgeData && (
         <div className="absolute bottom-4 right-4 max-w-xs rounded-lg border border-violet-500/50 bg-zinc-900/95 p-4 shadow-lg">
           <div className="mb-2 flex items-center gap-2">
-            <span className="text-sm">{SCHEMA_METADATA[hoveredEdgeData.source].icon}</span>
+            <span className="text-sm">{SCHEMA_METADATA[hoveredEdgeData.source]?.icon || '❓'}</span>
             <span className="text-xs text-zinc-500">↔</span>
-            <span className="text-sm">{SCHEMA_METADATA[hoveredEdgeData.target].icon}</span>
+            <span className="text-sm">{SCHEMA_METADATA[hoveredEdgeData.target]?.icon || '❓'}</span>
             <span className="ml-auto text-xs text-violet-400">
               {hoveredEdgeData.patterns.length} pattern{hoveredEdgeData.patterns.length !== 1 ? 's' : ''}
             </span>
@@ -418,7 +418,7 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
           </div>
           <div className="mt-3 flex flex-wrap gap-1">
             {selectedPattern.domains.map((domain) => {
-              const meta = SCHEMA_METADATA[domain];
+              const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
               return (
                 <span
                   key={domain}

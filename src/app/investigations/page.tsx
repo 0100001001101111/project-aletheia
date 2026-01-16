@@ -171,7 +171,7 @@ export default function InvestigationsPage() {
               </span>
             </button>
             {(['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'] as InvestigationType[]).map((type) => {
-              const meta = SCHEMA_METADATA[type];
+              const meta = SCHEMA_METADATA[type] || { name: type, icon: '❓', color: 'text-zinc-400' };
               const isActive = filterType === type;
               const colorMap: Record<InvestigationType, string> = {
                 nde: 'bg-purple-600 shadow-purple-500/25',
@@ -312,7 +312,7 @@ export default function InvestigationsPage() {
                 </thead>
                 <tbody className="divide-y divide-zinc-700">
                   {filteredInvestigations.map((investigation) => {
-                    const meta = SCHEMA_METADATA[investigation.type];
+                    const meta = SCHEMA_METADATA[investigation.type] || { name: investigation.type, icon: '❓', color: 'text-zinc-400' };
                     const scoreColor = getTriageScoreColor(investigation.triage_score);
                     const statusColor = getTriageStatusColor(investigation.triage_status);
 

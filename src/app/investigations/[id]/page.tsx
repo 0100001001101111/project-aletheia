@@ -670,7 +670,7 @@ export default function InvestigationPage({ params }: PageProps) {
     );
   }
 
-  const metadata = SCHEMA_METADATA[investigation.type];
+  const metadata = SCHEMA_METADATA[investigation.type] || { name: investigation.type, icon: '❓', color: 'text-zinc-400', description: '' };
   const fieldDescriptions = FIELD_DESCRIPTIONS[investigation.type];
   const flatData = flattenToDotNotation(investigation.raw_data);
   const scoreColor = getTriageScoreColor(investigation.triage_score);

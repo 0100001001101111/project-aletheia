@@ -201,8 +201,8 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
         {filterDomain !== 'all' && (
           <span>
             {' '}in{' '}
-            <span className={SCHEMA_METADATA[filterDomain].color}>
-              {SCHEMA_METADATA[filterDomain].name}
+            <span className={SCHEMA_METADATA[filterDomain]?.color || 'text-zinc-400'}>
+              {SCHEMA_METADATA[filterDomain]?.name || filterDomain}
             </span>
           </span>
         )}
@@ -259,7 +259,7 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-1.5">
                           {pattern.domains.map((domain) => {
-                            const meta = SCHEMA_METADATA[domain];
+                            const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
                             return (
                               <span
                                 key={domain}

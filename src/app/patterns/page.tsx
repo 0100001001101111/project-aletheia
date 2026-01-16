@@ -299,7 +299,7 @@ export default function PatternsPage() {
             </div>
             <h3 className="text-lg font-medium text-zinc-300">
               {selectedDomain
-                ? `No patterns found for ${SCHEMA_METADATA[selectedDomain].name}`
+                ? `No patterns found for ${SCHEMA_METADATA[selectedDomain]?.name || selectedDomain}`
                 : 'No patterns found'}
             </h3>
             <p className="mt-1 text-sm text-zinc-500">
@@ -346,7 +346,7 @@ export default function PatternsPage() {
               <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
                 <h3 className="mb-3 text-sm font-medium text-zinc-300">
                   {selectedDomain
-                    ? `${SCHEMA_METADATA[selectedDomain].name} Patterns`
+                    ? `${SCHEMA_METADATA[selectedDomain]?.name || selectedDomain} Patterns`
                     : 'All Patterns'}
                 </h3>
                 <div className="space-y-2 max-h-[500px] overflow-y-auto">
