@@ -93,29 +93,29 @@ export default async function PredictionDetailPage({ params }: PageProps) {
       <main className="mx-auto max-w-4xl px-4 py-8 space-y-8">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+          <div className="rounded-xl bg-zinc-800/50 p-4 text-center" title="How certain we are this pattern is real, based on how many domains show it and how consistent the data is. Higher = more certain.">
             <div className="text-2xl font-bold text-violet-400">{confidencePercent}%</div>
-            <div className="text-sm text-zinc-500">Confidence</div>
+            <div className="text-sm text-zinc-500 cursor-help">Confidence <span className="text-zinc-600">ⓘ</span></div>
           </div>
           {prediction.p_value != null && (
-            <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+            <div className="rounded-xl bg-zinc-800/50 p-4 text-center" title="Probability this result happened by chance. Lower = more likely to be real. Scientists typically want p < 0.05 (less than 5% chance of being random).">
               <div className={`text-2xl font-bold ${prediction.p_value < 0.05 ? 'text-emerald-400' : 'text-zinc-400'}`}>
                 {prediction.p_value.toFixed(4)}
               </div>
-              <div className="text-sm text-zinc-500">P-Value</div>
+              <div className="text-sm text-zinc-500 cursor-help">P-Value <span className="text-zinc-600">ⓘ</span></div>
             </div>
           )}
           {prediction.brier_score != null && (
-            <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+            <div className="rounded-xl bg-zinc-800/50 p-4 text-center" title="Measures prediction accuracy. Lower = better predictions. 0 = perfect, 1 = completely wrong.">
               <div className={`text-2xl font-bold ${prediction.brier_score < 0.25 ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {prediction.brier_score.toFixed(3)}
               </div>
-              <div className="text-sm text-zinc-500">Brier Score</div>
+              <div className="text-sm text-zinc-500 cursor-help">Brier Score <span className="text-zinc-600">ⓘ</span></div>
             </div>
           )}
-          <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
+          <div className="rounded-xl bg-zinc-800/50 p-4 text-center" title="Research categories: Near-Death Experiences, Ganzfeld, Crisis Apparitions, Remote Viewing, and Geophysical anomalies.">
             <div className="text-2xl font-bold text-zinc-300">{domains.length}</div>
-            <div className="text-sm text-zinc-500">Domains</div>
+            <div className="text-sm text-zinc-500 cursor-help">Domains <span className="text-zinc-600">ⓘ</span></div>
           </div>
         </div>
 

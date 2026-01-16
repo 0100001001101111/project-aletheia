@@ -83,9 +83,9 @@ export default async function PatternDetailPage({ params }: PageProps) {
                 </p>
               )}
             </div>
-            <div className="text-right shrink-0">
+            <div className="text-right shrink-0" title="How certain we are this pattern is real, based on how many domains show it and how consistent the data is. Higher = more certain.">
               <div className="text-3xl font-bold text-violet-400">{confidencePercent}%</div>
-              <div className="text-sm text-zinc-500">Confidence</div>
+              <div className="text-sm text-zinc-500 cursor-help">Confidence <span className="text-zinc-600">ⓘ</span></div>
             </div>
           </div>
         </div>
