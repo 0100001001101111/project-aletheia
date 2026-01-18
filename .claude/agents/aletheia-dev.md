@@ -161,9 +161,10 @@ quality_score = isolation_score * target_selection_score * data_integrity_score 
 
 | Score | Status | Meaning |
 |-------|--------|---------|
-| 8-10 | Verified | High-quality, trusted data |
-| 4-7 | Provisional | Usable but needs validation |
-| 0-3 | Rejected | Insufficient quality |
+| 7-10 | Verified | High-quality, trusted data |
+| 4-6 | Provisional | Usable but needs validation |
+| 1-3 | Pending | Needs more information |
+| 0 | Rejected | Insufficient quality |
 
 ### Six Domains
 
@@ -203,7 +204,7 @@ C_s = (Prevalence × 0.3) + (Reliability × 0.4) + (Stability × 0.3)
 - **Prevalence**: Pattern appears in 3+ domains
 - **Reliability**: p-value consistently < 0.05
 - **Stability**: Pattern holds when new data added
-- **Threshold**: C_s > 0.85 triggers prediction generation
+- **Threshold**: C_s >= 0.85 triggers prediction generation
 
 ### Dispute Resolution Tiers
 
