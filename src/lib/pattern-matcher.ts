@@ -58,166 +58,102 @@ export interface Prediction {
 // Variable Mappings - What to look for across schemas
 // ============================================================================
 
+// Updated paths to match actual data structure in the database
 export const CROSS_DOMAIN_VARIABLES: Record<string, {
   label: string;
   paths: Partial<Record<InvestigationType, string>>;
   type: 'numeric' | 'boolean' | 'categorical';
 }> = {
-  absorption_score: {
-    label: 'Absorption/Dissociation Score',
-    paths: {
-      nde: 'receiver_profile.absorption_scale',
-      ganzfeld: 'receiver.absorption_score',
-      stargate: 'viewer.psi_belief',
-      crisis_apparition: 'percipient_profile.absorption_tendency',
-    },
-    type: 'numeric',
-  },
-  stress_index: {
-    label: 'Stress/Crisis Level',
-    paths: {
-      nde: 'medical_context.stress_severity',
-      crisis_apparition: 'crisis_event.severity',
-      geophysical: 'correlated_events',
-      ufo: 'geophysical.earthquake_nearby',
-    },
-    type: 'numeric',
-  },
-  creative_vocation: {
-    label: 'Creative/Artistic Background',
-    paths: {
-      nde: 'receiver_profile.creative_occupation',
-      ganzfeld: 'receiver.creative_background',
-      stargate: 'viewer.training_background',
-    },
-    type: 'boolean',
-  },
-  openness_to_experience: {
-    label: 'Openness to Experience',
-    paths: {
-      nde: 'receiver_profile.openness_score',
-      ganzfeld: 'receiver.openness',
-      crisis_apparition: 'percipient_profile.openness',
-    },
-    type: 'numeric',
-  },
-  prior_experience: {
-    label: 'Prior Anomalous Experience',
-    paths: {
-      nde: 'receiver_profile.prior_experiences',
-      ganzfeld: 'receiver.prior_psi_experiences',
-      stargate: 'viewer.experience_years',
-      crisis_apparition: 'percipient_profile.prior_apparitions',
-    },
-    type: 'boolean',
-  },
-  time_of_day: {
-    label: 'Time of Day',
-    paths: {
-      nde: 'event_time',
-      ganzfeld: 'session.start_time',
-      stargate: 'session.start_time',
-      crisis_apparition: 'apparition_time',
-      geophysical: 'investigation_date',
-    },
-    type: 'categorical',
-  },
-  local_sidereal_time: {
-    label: 'Local Sidereal Time',
-    paths: {
-      ganzfeld: 'environment.local_sidereal_time',
-      stargate: 'environment.local_sidereal_time',
-      ufo: 'local_sidereal_time',
-    },
-    type: 'numeric',
-  },
   geomagnetic_activity: {
     label: 'Geomagnetic Activity (Kp Index)',
     paths: {
-      ganzfeld: 'environment.geomagnetic_activity_kp',
-      stargate: 'environment.geomagnetic_kp',
-      geophysical: 'weather.geomagnetic_kp',
       ufo: 'geomagnetic.kp_index',
+      geophysical: 'kp_index',
     },
     type: 'numeric',
-  },
-  physiological_effects: {
-    label: 'Physiological Effects Reported',
-    paths: {
-      nde: 'aftereffects',
-      crisis_apparition: 'percipient_profile.physical_response',
-      ufo: 'effects.physiological_effects',
-    },
-    type: 'boolean',
-  },
-  em_interference: {
-    label: 'Electromagnetic Interference',
-    paths: {
-      geophysical: 'anomaly_events.anomaly_type',
-      ufo: 'effects.em_interference',
-    },
-    type: 'boolean',
   },
   seismic_correlation: {
     label: 'Seismic/Earthquake Correlation',
     paths: {
-      geophysical: 'location.geological_features',
       ufo: 'geophysical.earthquake_nearby',
+      geophysical: 'earthquake_nearby',
     },
     type: 'boolean',
   },
   piezoelectric_bedrock: {
     label: 'Piezoelectric Bedrock Present',
     paths: {
-      geophysical: 'location.geological_features',
       ufo: 'geophysical.piezoelectric_bedrock',
+      geophysical: 'piezoelectric_bedrock',
     },
     type: 'boolean',
   },
-  blinding_protocol: {
-    label: 'Blinding Protocol Used',
+  em_interference: {
+    label: 'Electromagnetic Interference',
     paths: {
-      ganzfeld: 'protocol.double_blind',
-      stargate: 'protocol.blind_level',
-      geophysical: 'protocol.blind_protocol',
+      ufo: 'effects.em_interference',
+      geophysical: 'em_interference',
     },
     type: 'boolean',
   },
-  outcome_success: {
-    label: 'Successful Outcome',
+  physiological_effects: {
+    label: 'Physiological Effects Reported',
     paths: {
-      nde: 'veridical_perception.verified',
-      ganzfeld: 'results.hit',
-      stargate: 'evaluation.hit_miss',
-      crisis_apparition: 'verification.confirmed',
+      ufo: 'effects.physiological_effects',
     },
     type: 'boolean',
   },
-  target_type: {
-    label: 'Target Type (Static/Dynamic)',
+  local_sidereal_time: {
+    label: 'Local Sidereal Time',
     paths: {
-      ganzfeld: 'target.dynamic',
-      stargate: 'target.type',
+      ufo: 'local_sidereal_time',
     },
-    type: 'categorical',
+    type: 'numeric',
   },
-  edit_filter: {
-    label: 'Minimal Editing/Filtering',
+  witness_count: {
+    label: 'Number of Witnesses',
     paths: {
-      ganzfeld: 'results.unedited_response',
-      stargate: 'impressions.analytical_overlay',
+      ufo: 'witness_count',
+    },
+    type: 'numeric',
+  },
+  quality_score: {
+    label: 'Data Quality Score',
+    paths: {
+      ufo: 'quality_score',
+    },
+    type: 'numeric',
+  },
+  hit_rate: {
+    label: 'Hit Rate',
+    paths: {
+      ganzfeld: 'hit_rate',
+    },
+    type: 'numeric',
+  },
+  effect_size: {
+    label: 'Effect Size',
+    paths: {
+      ganzfeld: 'effect_size_d',
+    },
+    type: 'numeric',
+  },
+  geomagnetic_storm: {
+    label: 'Geomagnetic Storm Active',
+    paths: {
+      ufo: 'geomagnetic.geomagnetic_storm',
     },
     type: 'boolean',
   },
 };
 
-// Outcome variables for each domain
+// Outcome variables for each domain - updated to match actual data
 const OUTCOME_PATHS: Partial<Record<InvestigationType, string>> = {
-  nde: 'veridical_perception.verified',
-  ganzfeld: 'results.hit',
-  stargate: 'evaluation.hit_miss',
-  crisis_apparition: 'verification.confirmed',
-  geophysical: 'anomalous_readings_percent',
+  nde: 'target_hits',  // from actual NDE data
+  ganzfeld: 'hit',  // boolean hit/miss for individual trials
+  stargate: 'hit_rate',  // stargate data uses hit_rate
+  crisis_apparition: 'verified',
+  geophysical: 'anomalous',
   ufo: 'effects.physiological_effects', // High signal = consciousness correlation
 };
 
@@ -297,8 +233,147 @@ export function findCrossdomainPatterns(
     }
   }
 
+  // Also find intra-domain patterns (correlations within a single domain)
+  const intraDomainPatterns = findIntraDomainPatterns(byType);
+  patterns.push(...intraDomainPatterns);
+
   // Sort by confidence score
   return patterns.sort((a, b) => b.confidenceScore - a.confidenceScore);
+}
+
+/**
+ * Find patterns within a single domain (intra-domain correlations)
+ * Useful when one domain has rich multi-variable data (like UFO)
+ */
+function findIntraDomainPatterns(
+  byType: Partial<Record<InvestigationType, Investigation[]>>
+): DetectedPattern[] {
+  const patterns: DetectedPattern[] = [];
+
+  // Define variable pairs to correlate within domains
+  const intraDomainCorrelations: Array<{
+    domain: InvestigationType;
+    variable1: { key: string; label: string; path: string; type: 'numeric' | 'boolean' };
+    variable2: { key: string; label: string; path: string; type: 'numeric' | 'boolean' };
+    minSamples: number;
+  }> = [
+    // UFO intra-domain correlations
+    {
+      domain: 'ufo',
+      variable1: { key: 'kp_index', label: 'Geomagnetic Activity (Kp)', path: 'geomagnetic.kp_index', type: 'numeric' },
+      variable2: { key: 'physio', label: 'Physiological Effects', path: 'effects.physiological_effects', type: 'boolean' },
+      minSamples: 100,
+    },
+    {
+      domain: 'ufo',
+      variable1: { key: 'earthquake', label: 'Nearby Earthquake', path: 'geophysical.earthquake_nearby', type: 'boolean' },
+      variable2: { key: 'physio', label: 'Physiological Effects', path: 'effects.physiological_effects', type: 'boolean' },
+      minSamples: 100,
+    },
+    {
+      domain: 'ufo',
+      variable1: { key: 'em_interference', label: 'EM Interference', path: 'effects.em_interference', type: 'boolean' },
+      variable2: { key: 'physio', label: 'Physiological Effects', path: 'effects.physiological_effects', type: 'boolean' },
+      minSamples: 100,
+    },
+    {
+      domain: 'ufo',
+      variable1: { key: 'kp_index', label: 'Geomagnetic Activity (Kp)', path: 'geomagnetic.kp_index', type: 'numeric' },
+      variable2: { key: 'em_interference', label: 'EM Interference', path: 'effects.em_interference', type: 'boolean' },
+      minSamples: 100,
+    },
+    {
+      domain: 'ufo',
+      variable1: { key: 'geomagnetic_storm', label: 'Geomagnetic Storm', path: 'geomagnetic.geomagnetic_storm', type: 'boolean' },
+      variable2: { key: 'physio', label: 'Physiological Effects', path: 'effects.physiological_effects', type: 'boolean' },
+      minSamples: 100,
+    },
+    {
+      domain: 'ufo',
+      variable1: { key: 'lst', label: 'Local Sidereal Time', path: 'local_sidereal_time', type: 'numeric' },
+      variable2: { key: 'physio', label: 'Physiological Effects', path: 'effects.physiological_effects', type: 'boolean' },
+      minSamples: 100,
+    },
+    {
+      domain: 'ufo',
+      variable1: { key: 'piezoelectric', label: 'Piezoelectric Bedrock', path: 'geophysical.piezoelectric_bedrock', type: 'boolean' },
+      variable2: { key: 'physio', label: 'Physiological Effects', path: 'effects.physiological_effects', type: 'boolean' },
+      minSamples: 100,
+    },
+  ];
+
+  for (const config of intraDomainCorrelations) {
+    const domainInvestigations = byType[config.domain] || [];
+
+    if (domainInvestigations.length < config.minSamples) continue;
+
+    // Extract variable pairs
+    const pairs = extractVariablePairs(
+      domainInvestigations,
+      config.variable1.path,
+      config.variable2.path,
+      config.variable1.type
+    );
+
+    if (pairs.length < config.minSamples) continue;
+
+    // Calculate correlation
+    const correlation = calculateCorrelation(pairs);
+
+    // Only include if correlation is significant (p < 0.05) and has meaningful effect
+    if (correlation.pValue < 0.05 && Math.abs(correlation.correlation) > 0.05) {
+      const direction = correlation.correlation > 0 ? 'positively' : 'negatively';
+
+      const pattern: DetectedPattern = {
+        variable: `${config.variable1.key}_vs_${config.variable2.key}`,
+        description: `${config.variable1.label} ${direction} correlates with ${config.variable2.label} in UFO/UAP sightings (r=${correlation.correlation.toFixed(3)}, n=${correlation.sampleSize})`,
+        domains: [config.domain],
+        correlations: [{
+          domain: config.domain,
+          ...correlation,
+        }],
+        prevalence: 0,
+        reliability: 0,
+        volatility: 0,
+        confidenceScore: 0,
+        sampleSize: correlation.sampleSize,
+        detectedAt: new Date().toISOString(),
+      };
+
+      // Calculate scores (adjusted for single-domain)
+      pattern.prevalence = 1 / 6; // 1 out of 6 domains
+      pattern.reliability = 1 - correlation.pValue;
+      pattern.volatility = calculateIntraDomainStability(correlation);
+      pattern.confidenceScore = calculateIntraDomainConfidence(pattern, correlation);
+
+      patterns.push(pattern);
+    }
+  }
+
+  return patterns;
+}
+
+/**
+ * Calculate stability for intra-domain patterns based on sample size and effect strength
+ */
+function calculateIntraDomainStability(correlation: CorrelationResult): number {
+  // More samples and stronger effects = more stable
+  const sampleFactor = Math.min(correlation.sampleSize / 1000, 1); // Max out at 1000 samples
+  const effectFactor = Math.min(Math.abs(correlation.correlation) * 2, 1); // Stronger effects more stable
+  return (sampleFactor * 0.6) + (effectFactor * 0.4);
+}
+
+/**
+ * Calculate confidence for intra-domain patterns
+ * Adjusted formula since these are single-domain
+ */
+function calculateIntraDomainConfidence(pattern: DetectedPattern, correlation: CorrelationResult): number {
+  // Weight: statistical significance (40%) + effect size (30%) + sample size (30%)
+  const significanceFactor = Math.max(0, 1 - correlation.pValue * 10); // p=0.05 -> 0.5, p=0.001 -> 0.99
+  const effectFactor = Math.min(Math.abs(correlation.correlation) * 2, 1);
+  const sampleFactor = Math.min(correlation.sampleSize / 2000, 1);
+
+  return (significanceFactor * 0.4) + (effectFactor * 0.3) + (sampleFactor * 0.3);
 }
 
 /**

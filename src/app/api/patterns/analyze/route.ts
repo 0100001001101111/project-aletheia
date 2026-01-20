@@ -17,20 +17,27 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerClient();
 
-    // Check authentication
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const body = await request.json();
-    const { investigationId, fullScan } = body as {
+    const { investigationId, fullScan, adminKey } = body as {
       investigationId?: string;
       fullScan?: boolean;
+      adminKey?: string;
     };
+
+    // Check authentication - allow admin key bypass for CLI/scripts
+    const isAdminBypass = adminKey === process.env.ADMIN_API_KEY;
+
+    let userId: string | null = null;
+    if (!isAdminBypass) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      userId = user.id;
+    }
 
     // Fetch qualified investigations
     const { data: investigationsRaw, error: fetchError } = await supabase
@@ -79,12 +86,14 @@ export async function POST(request: NextRequest) {
     const generatedPredictions: string[] = [];
 
     for (const pattern of patterns) {
-      // Check if pattern already exists (by variable)
-      const { data: existing } = await supabase
-        .from('aletheia_pattern_matches')
-        .select('id')
-        .eq('pattern_variables', [pattern.variable])
-        .single() as { data: { id: string } | null };
+      try {
+        // Check if pattern already exists (by variable)
+        const { data: existingRows } = await supabase
+          .from('aletheia_pattern_matches')
+          .select('id')
+          .eq('variable', pattern.variable);
+
+        const existing = existingRows && existingRows.length > 0 ? existingRows[0] as { id: string } : null;
 
       if (existing) {
         // Update existing pattern
@@ -92,31 +101,41 @@ export async function POST(request: NextRequest) {
           .from('aletheia_pattern_matches') as ReturnType<typeof supabase.from>)
           .update({
             pattern_description: pattern.description,
-            domains_involved: pattern.domains,
+            domains_matched: pattern.domains,
             confidence_score: pattern.confidenceScore,
-            prevalence: pattern.prevalence,
-            reliability: pattern.reliability,
+            prevalence_score: pattern.prevalence,
+            reliability_score: pattern.reliability,
+            volatility_score: pattern.volatility,
+            correlations: pattern.correlations,
             sample_size: pattern.sampleSize,
             detected_at: pattern.detectedAt,
+            status: 'active',
           } as never)
           .eq('id', existing.id);
         savedPatterns.push(existing.id);
       } else {
         // Insert new pattern
-        const { data: newPattern } = await (supabase
+        const { data: newPattern, error: insertError } = await (supabase
           .from('aletheia_pattern_matches') as ReturnType<typeof supabase.from>)
           .insert({
-            pattern_variables: [pattern.variable],
+            variable: pattern.variable,
             pattern_description: pattern.description,
-            domains_involved: pattern.domains,
+            domains_matched: pattern.domains,
             confidence_score: pattern.confidenceScore,
-            prevalence: pattern.prevalence,
-            reliability: pattern.reliability,
+            prevalence_score: pattern.prevalence,
+            reliability_score: pattern.reliability,
+            volatility_score: pattern.volatility,
+            correlations: pattern.correlations,
             sample_size: pattern.sampleSize,
             detected_at: pattern.detectedAt,
+            status: 'active',
           } as never)
           .select('id')
-          .single() as { data: { id: string } | null };
+          .single() as { data: { id: string } | null; error: { message: string } | null };
+
+        if (insertError) {
+          console.error('Pattern insert error:', insertError);
+        }
 
         if (newPattern) {
           savedPatterns.push(newPattern.id);
@@ -144,21 +163,26 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+      } catch (patternError) {
+        console.error('Error saving pattern:', pattern.variable, patternError);
+      }
     }
 
-    // Create audit log entry
-    await (supabase.from('aletheia_audit_log') as ReturnType<typeof supabase.from>)
-      .insert({
-        user_id: user.id,
-        action: 'pattern_analysis',
-        details: {
-          investigationCount: investigations.length,
-          patternsFound: patterns.length,
-          patternsSaved: savedPatterns.length,
-          predictionsGenerated: generatedPredictions.length,
-          triggeredBy: investigationId ? `submission:${investigationId}` : 'manual',
-        },
-      } as never);
+    // Create audit log entry (skip if no user)
+    if (userId) {
+      await (supabase.from('aletheia_audit_log') as ReturnType<typeof supabase.from>)
+        .insert({
+          user_id: userId,
+          action: 'pattern_analysis',
+          details: {
+            investigationCount: investigations.length,
+            patternsFound: patterns.length,
+            patternsSaved: savedPatterns.length,
+            predictionsGenerated: generatedPredictions.length,
+            triggeredBy: investigationId ? `submission:${investigationId}` : 'manual',
+          },
+        } as never);
+    }
 
     return NextResponse.json({
       success: true,
