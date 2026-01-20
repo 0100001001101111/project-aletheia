@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 
 // Type for rows from the materialized view (not in generated Supabase types)
 interface HeatmapDataRow {
@@ -64,8 +64,6 @@ export async function GET(request: NextRequest) {
     const maxLat = searchParams.get('maxLat') ? parseFloat(searchParams.get('maxLat')!) : null;
     const minLng = searchParams.get('minLng') ? parseFloat(searchParams.get('minLng')!) : null;
     const maxLng = searchParams.get('maxLng') ? parseFloat(searchParams.get('maxLng')!) : null;
-
-    const supabase = createServiceClient();
 
     // Build the query - use type assertion since materialized view isn't in generated types
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
