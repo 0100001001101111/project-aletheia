@@ -86,7 +86,7 @@ export const DOMAIN_CONFIGS: Record<InvestigationType, DomainConfig> = {
     type: 'poisson',
     name: 'UFO/UAP Sightings',
     expectedRate: 1, // Events per unit time (configurable)
-    description: 'UFO/UAP sightings with geophysical and geomagnetic correlations (SPECTER hypothesis).',
+    description: 'UFO/UAP sightings with geomagnetic data. Note: SPECTER seismic hypothesis did not survive rigorous testing.',
     fields: {
       primary: 'events',
       secondary: 'timeWindow',

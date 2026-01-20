@@ -20,7 +20,7 @@ const TYPE_EXPLAINERS: Record<InvestigationType, string> = {
   crisis_apparition: "Crisis apparitions are reports of seeing or sensing someone at the moment they experience death or severe trauma - often before the observer could have known. This tests whether extreme stress creates a detectable signal between connected individuals.",
   stargate: "Remote viewing sessions task a 'viewer' with describing a hidden target location or object using only mental focus. Responses are rated on accuracy. This tests whether humans can perceive distant information without physical access.",
   geophysical: "Geophysical investigations correlate unusual phenomena (lights, sounds, equipment malfunctions) with environmental factors like seismic activity, electromagnetic fields, or geological composition. This tests whether tectonic stress produces observable effects.",
-  ufo: "UFO/UAP investigations document unidentified aerial phenomena with attention to correlations with seismic activity, geomagnetic conditions, and physiological effects on witnesses. This tests the SPECTER hypothesis that tectonic stress may produce observable aerial phenomena.",
+  ufo: "UFO/UAP investigations document unidentified aerial phenomena with attention to potential correlations with geomagnetic conditions and physiological effects on witnesses. Note: The SPECTER seismic hypothesis was tested but did not survive rigorous statistical analysis.",
 };
 
 // Field-specific tooltips for investigation data

@@ -419,9 +419,10 @@ function extractVariablePairs(
       numVariable = variableValue;
     } else if (variableType === 'boolean') {
       numVariable = variableValue === true ? 1 : variableValue === false ? 0 : null;
-    } else if (variableType === 'categorical' && variableValue !== null) {
-      // Simple hash for categorical
-      numVariable = typeof variableValue === 'string' ? variableValue.length : null;
+    } else if (variableType === 'categorical') {
+      // Skip categorical variables - string length is not a valid numeric proxy
+      // Categorical correlations require chi-square tests, not Pearson correlation
+      continue;
     }
 
     // Handle outcome conversion
@@ -588,166 +589,12 @@ function formatDomainName(domain: InvestigationType): string {
 }
 
 // ============================================================================
-// Seed Patterns
+// SEED_PATTERNS REMOVED
 // ============================================================================
-
-export const SEED_PATTERNS: Omit<DetectedPattern, 'id'>[] = [
-  {
-    variable: 'absorption_score',
-    description: 'High absorption predicts success across domains',
-    domains: ['nde', 'ganzfeld', 'stargate'],
-    correlations: [
-      { domain: 'nde', correlation: 0.42, pValue: 0.02, sampleSize: 45, direction: 'positive' },
-      { domain: 'ganzfeld', correlation: 0.38, pValue: 0.03, sampleSize: 120, direction: 'positive' },
-      { domain: 'stargate', correlation: 0.35, pValue: 0.04, sampleSize: 85, direction: 'positive' },
-    ],
-    prevalence: 0.6,
-    reliability: 0.97,
-    volatility: 0.92,
-    confidenceScore: 0.89,
-    sampleSize: 250,
-    detectedAt: '2024-06-15T00:00:00.000Z',
-  },
-  {
-    variable: 'stress_index',
-    description: 'Stress produces signal at all scales',
-    domains: ['nde', 'crisis_apparition', 'geophysical'],
-    correlations: [
-      { domain: 'nde', correlation: 0.55, pValue: 0.001, sampleSize: 200, direction: 'positive' },
-      { domain: 'crisis_apparition', correlation: 0.48, pValue: 0.01, sampleSize: 150, direction: 'positive' },
-      { domain: 'geophysical', correlation: 0.32, pValue: 0.05, sampleSize: 80, direction: 'positive' },
-    ],
-    prevalence: 0.6,
-    reliability: 0.98,
-    volatility: 0.88,
-    confidenceScore: 0.92,
-    sampleSize: 430,
-    detectedAt: '2024-05-20T00:00:00.000Z',
-  },
-  {
-    variable: 'edit_filter',
-    description: 'Minimal editing predicts accuracy',
-    domains: ['ganzfeld', 'stargate'],
-    correlations: [
-      { domain: 'ganzfeld', correlation: 0.29, pValue: 0.04, sampleSize: 180, direction: 'positive' },
-      { domain: 'stargate', correlation: 0.33, pValue: 0.03, sampleSize: 150, direction: 'positive' },
-    ],
-    prevalence: 0.4,
-    reliability: 0.965,
-    volatility: 0.94,
-    confidenceScore: 0.85,
-    sampleSize: 330,
-    detectedAt: '2024-07-01T00:00:00.000Z',
-  },
-  {
-    variable: 'target_type',
-    description: 'Dynamic targets reduce noise floor',
-    domains: ['ganzfeld'],
-    correlations: [
-      { domain: 'ganzfeld', correlation: 0.41, pValue: 0.008, sampleSize: 220, direction: 'positive' },
-    ],
-    prevalence: 0.2,
-    reliability: 0.992,
-    volatility: 0.95,
-    confidenceScore: 0.91,
-    sampleSize: 220,
-    detectedAt: '2024-04-10T00:00:00.000Z',
-  },
-  {
-    variable: 'creative_vocation',
-    description: 'Creativity correlates with receiver performance',
-    domains: ['nde', 'ganzfeld'],
-    correlations: [
-      { domain: 'nde', correlation: 0.31, pValue: 0.04, sampleSize: 90, direction: 'positive' },
-      { domain: 'ganzfeld', correlation: 0.36, pValue: 0.02, sampleSize: 140, direction: 'positive' },
-    ],
-    prevalence: 0.33,
-    reliability: 0.97,
-    volatility: 0.91,
-    confidenceScore: 0.87,
-    sampleSize: 230,
-    detectedAt: '2024-08-05T00:00:00.000Z',
-  },
-  // UFO Correlation Patterns
-  {
-    variable: 'seismic_correlation',
-    description: 'UFO sightings correlate with seismic activity (SPECTER hypothesis)',
-    domains: ['ufo', 'geophysical'],
-    correlations: [
-      { domain: 'ufo', correlation: 0.41, pValue: 0.008, sampleSize: 9765, direction: 'positive' },
-      { domain: 'geophysical', correlation: 0.38, pValue: 0.02, sampleSize: 80, direction: 'positive' },
-    ],
-    prevalence: 0.33,
-    reliability: 0.986,
-    volatility: 0.93,
-    confidenceScore: 0.88,
-    sampleSize: 9845,
-    detectedAt: '2026-01-16T00:00:00.000Z',
-  },
-  {
-    variable: 'geomagnetic_activity',
-    description: 'High Kp index correlates with UFO sightings and altered states',
-    domains: ['ufo', 'geophysical', 'ganzfeld'],
-    correlations: [
-      { domain: 'ufo', correlation: 0.35, pValue: 0.01, sampleSize: 14480, direction: 'positive' },
-      { domain: 'geophysical', correlation: 0.42, pValue: 0.008, sampleSize: 80, direction: 'positive' },
-      { domain: 'ganzfeld', correlation: 0.28, pValue: 0.05, sampleSize: 120, direction: 'positive' },
-    ],
-    prevalence: 0.5,
-    reliability: 0.977,
-    volatility: 0.91,
-    confidenceScore: 0.89,
-    sampleSize: 14680,
-    detectedAt: '2026-01-16T00:00:00.000Z',
-  },
-  {
-    variable: 'physiological_effects',
-    description: 'UFO encounters with physiological effects mirror NDE patterns',
-    domains: ['ufo', 'nde', 'crisis_apparition'],
-    correlations: [
-      { domain: 'ufo', correlation: 0.52, pValue: 0.001, sampleSize: 3283, direction: 'positive' },
-      { domain: 'nde', correlation: 0.48, pValue: 0.005, sampleSize: 200, direction: 'positive' },
-      { domain: 'crisis_apparition', correlation: 0.44, pValue: 0.01, sampleSize: 150, direction: 'positive' },
-    ],
-    prevalence: 0.5,
-    reliability: 0.995,
-    volatility: 0.94,
-    confidenceScore: 0.93,
-    sampleSize: 3633,
-    detectedAt: '2026-01-16T00:00:00.000Z',
-  },
-  {
-    variable: 'em_interference',
-    description: 'EM interference in UFO cases correlates with geophysical anomalies',
-    domains: ['ufo', 'geophysical'],
-    correlations: [
-      { domain: 'ufo', correlation: 0.58, pValue: 0.001, sampleSize: 331, direction: 'positive' },
-      { domain: 'geophysical', correlation: 0.45, pValue: 0.01, sampleSize: 80, direction: 'positive' },
-    ],
-    prevalence: 0.33,
-    reliability: 0.994,
-    volatility: 0.92,
-    confidenceScore: 0.87,
-    sampleSize: 411,
-    detectedAt: '2026-01-16T00:00:00.000Z',
-  },
-  {
-    variable: 'local_sidereal_time',
-    description: 'LST 13.5 peak correlates with UFO sightings and psi performance',
-    domains: ['ufo', 'stargate', 'ganzfeld'],
-    correlations: [
-      { domain: 'ufo', correlation: 0.23, pValue: 0.04, sampleSize: 14480, direction: 'positive' },
-      { domain: 'stargate', correlation: 0.31, pValue: 0.02, sampleSize: 150, direction: 'positive' },
-      { domain: 'ganzfeld', correlation: 0.28, pValue: 0.03, sampleSize: 120, direction: 'positive' },
-    ],
-    prevalence: 0.5,
-    reliability: 0.97,
-    volatility: 0.89,
-    confidenceScore: 0.86,
-    sampleSize: 14750,
-    detectedAt: '2026-01-16T00:00:00.000Z',
-  },
-];
+// Fabricated seed patterns were removed on 2026-01-20.
+// All patterns must now be calculated from actual investigation data using
+// findCrossdomainPatterns(). See audit report for details.
+// ============================================================================
 
 // ============================================================================
 // Pattern Analysis Utilities

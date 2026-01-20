@@ -39,6 +39,7 @@ export interface User {
   identity_type: IdentityType;
   verification_level: VerificationLevel;
   credibility_score: number;
+  methodology_points: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +55,11 @@ export interface Investigation {
   triage_score: number | null;
   triage_status: TriageStatus;
   triage_notes: string | null;
+  triage_source_integrity: number | null;
+  triage_methodology: number | null;
+  triage_variable_capture: number | null;
+  triage_data_quality: number | null;
+  triage_recommendations: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +73,11 @@ export interface Prediction {
   domains_involved: InvestigationType[];
   p_value: number | null;
   brier_score: number | null;
+  pattern_id: string | null;
+  testing_protocol: string | null;
+  created_by: string | null;
+  resolved_at: string | null;
+  explainer: string | null;
   created_at: string;
   updated_at: string;
 }

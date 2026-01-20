@@ -193,17 +193,37 @@ Score 7+ = Verified status
 - `aletheia_jury_votes` - Individual juror votes
 - `aletheia_jury_pool` - Eligible jurors for disputes
 
-## Current Data (Jan 16, 2026)
+## Current Data (Jan 20, 2026)
 
-- **6,018 investigations** across 6 domains
-  - UFO/UAP: 5,815 (NUFORC import)
+- **5,171 investigations** across 6 domains
+  - UFO/UAP: 4,968 (NUFORC import, deduplicated)
   - STARGATE: 104
   - Ganzfeld: 52
   - Geophysical: 27
   - Crisis Apparition: 18
   - NDE: 2
-- 10 patterns
-- 46 predictions (3 confirmed, 2 refuted)
+- **0 patterns** (seed data removed - awaiting real calculations)
+- **0 predictions** (fake predictions removed - awaiting real test results)
+
+### IMPORTANT: earthquake_nearby Field
+
+The `earthquake_nearby` field in UFO records shows 53% = true. **This is NOT a validated correlation.**
+
+**Methodology:**
+- Time window: 7 days
+- Radius: 150-200km (inconsistent documentation)
+- Magnitude: M≥2.5
+- Source: USGS API
+
+**Why it's meaningless:**
+The M≥2.5 threshold is too low. California has ~15,000 M≥2.5 earthquakes/year. Within 200km of any California location, there's almost always a recent earthquake.
+
+**Rigorous testing (specter-watch methodological_review.py) found:**
+- At M≥4.0 threshold: effect ratio drops from 8.32x to ~1.5x
+- After Bonferroni correction: most findings non-significant
+- Verdict: **SPECTER earthquake hypothesis FAILED**
+
+Do NOT claim "53% seismic correlation" without this context.
 
 ## Known Issues
 
