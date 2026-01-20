@@ -6,30 +6,19 @@
  * The key innovation - show estimated score BEFORE submit
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Witness } from './WitnessesForm';
 import type { EvidenceItem } from './EvidenceForm';
 import type { UAPDomainData } from './UAP_FieldsForm';
 import type { BasicInfoData } from './BasicInfoForm';
 import type { InvestigationType } from '@/types/database';
-
-interface ScoreBreakdown {
-  witnessCredibility: number;
-  documentationTiming: number;
-  evidenceQuality: number;
-  corroboration: number;
-  verifiability: number;
-  bonusesApplied: Array<{ name: string; value: number }>;
-  bonusesNotApplied: Array<{ name: string; value: number; reason: string }>;
-  total: number;
-  tier: 'verified' | 'provisional' | 'rejected';
-}
-
-interface ImprovementSuggestion {
-  action: string;
-  impact: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-}
+import {
+  calculateScore,
+  generateImprovementSuggestions,
+  type SubmissionData,
+  type ScoreBreakdown,
+  type ImprovementSuggestion,
+} from '@/lib/scoring';
 
 interface ScorePreviewProps {
   investigationType: InvestigationType;
@@ -60,225 +49,32 @@ function getTierBg(tier: string): string {
   }
 }
 
-// Client-side score calculation (simplified version of server-side)
-function calculateScoreBreakdown(
+/**
+ * Convert form data to scoring library format
+ */
+function toSubmissionData(
   witnesses: Witness[],
   evidence: EvidenceItem[],
   basicInfo: BasicInfoData
-): ScoreBreakdown {
-  let witnessCredibility = 0;
-  let documentationTiming = 0;
-  let evidenceQuality = 0;
-  let corroboration = 0;
-  let verifiability = 0;
-  const bonusesApplied: Array<{ name: string; value: number }> = [];
-  const bonusesNotApplied: Array<{ name: string; value: number; reason: string }> = [];
-
-  // Witness Credibility (max 2.0)
-  const professionalWitnesses = witnesses.filter(w =>
-    w.identityType === 'named_professional' || w.identityType === 'named_official'
-  );
-  const verifiedProfessionals = professionalWitnesses.filter(w =>
-    w.verificationStatus === 'independently_verified'
-  );
-  const directWitnesses = witnesses.filter(w => w.role === 'primary_direct');
-
-  if (verifiedProfessionals.length >= 3) {
-    witnessCredibility = 2.0;
-  } else if (verifiedProfessionals.length >= 1) {
-    witnessCredibility = 1.5;
-  } else if (professionalWitnesses.length >= 1) {
-    witnessCredibility = 0.8;
-  } else if (directWitnesses.length >= 1) {
-    witnessCredibility = 0.5;
-  } else {
-    witnessCredibility = 0.2;
-  }
-
-  // Documentation Timing (max 2.0)
-  // Based on days between event and documentation
-  const eventDate = new Date(basicInfo.eventDate);
-  const now = new Date();
-  const yearsSinceEvent = (now.getTime() - eventDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
-
-  // Check for contemporary evidence
-  const contemporaryEvidence = evidence.filter(e =>
-    e.daysFromEvent !== null && Math.abs(e.daysFromEvent) <= 7
-  );
-
-  if (contemporaryEvidence.length >= 2) {
-    documentationTiming = 2.0;
-  } else if (contemporaryEvidence.length >= 1) {
-    documentationTiming = 1.5;
-  } else if (yearsSinceEvent <= 1) {
-    documentationTiming = 1.0;
-  } else if (yearsSinceEvent <= 5) {
-    documentationTiming = 0.6;
-  } else if (yearsSinceEvent <= 10) {
-    documentationTiming = 0.4;
-  } else {
-    documentationTiming = 0.3;
-  }
-
-  // Evidence Quality (max 2.0)
-  const CATEGORY_WEIGHTS: Record<string, number> = {
-    'contemporary_official': 1.0,
-    'contemporary_news': 0.9,
-    'contemporary_photo_video': 0.85,
-    'academic_paper': 0.8,
-    'foia_document': 0.7,
-    'later_testimony_video': 0.6,
-    'later_testimony_written': 0.5,
-    'other': 0.3,
-  };
-
-  if (evidence.length > 0) {
-    const avgWeight = evidence.reduce((sum, e) =>
-      sum + (CATEGORY_WEIGHTS[e.category] || 0.3), 0
-    ) / evidence.length;
-    const primarySourceBonus = evidence.some(e => e.isPrimarySource) ? 0.2 : 0;
-    evidenceQuality = Math.min(2.0, (avgWeight * 2) + primarySourceBonus);
-  }
-
-  // Corroboration (max 2.0)
-  if (witnesses.length >= 6) {
-    corroboration = 2.0;
-  } else if (witnesses.length >= 3) {
-    corroboration = 1.5;
-  } else if (witnesses.length >= 2) {
-    corroboration = 1.0;
-  } else {
-    corroboration = 0.3;
-  }
-
-  // Verifiability (max 2.0)
-  const verifiedWitnesses = witnesses.filter(w =>
-    w.verificationStatus === 'independently_verified'
-  );
-  const verifiedEvidence = evidence.filter(e => e.independentlyVerified);
-
-  if (verifiedWitnesses.length >= 2 && verifiedEvidence.length >= 2) {
-    verifiability = 2.0;
-  } else if (verifiedWitnesses.length >= 1 || verifiedEvidence.length >= 1) {
-    verifiability = 1.0;
-  } else if (witnesses.some(w => w.verificationStatus === 'documentation_provided')) {
-    verifiability = 0.6;
-  } else {
-    verifiability = 0.4;
-  }
-
-  // Bonuses
-  if (verifiedProfessionals.length >= 3) {
-    bonusesApplied.push({ name: '3+ verified professional witnesses', value: 1.0 });
-  } else if (professionalWitnesses.length >= 3) {
-    bonusesNotApplied.push({
-      name: '3+ verified professional witnesses',
-      value: 1.0,
-      reason: 'Credentials not independently verified'
-    });
-  }
-
-  const foiaDoc = evidence.find(e => e.category === 'foia_document');
-  if (foiaDoc) {
-    bonusesApplied.push({ name: 'Official FOIA document', value: 0.2 });
-  }
-
-  const officialDocs = evidence.filter(e => e.category === 'contemporary_official');
-  if (officialDocs.length >= 1) {
-    bonusesApplied.push({ name: 'Contemporary official documentation', value: 0.3 });
-  }
-
-  const willingToTestify = witnesses.filter(w => w.willingToTestify);
-  if (willingToTestify.length >= 2) {
-    bonusesApplied.push({ name: '2+ witnesses willing to testify', value: 0.2 });
-  }
-
-  // Calculate total
-  const baseScore = witnessCredibility + documentationTiming + evidenceQuality + corroboration + verifiability;
-  const bonusTotal = bonusesApplied.reduce((sum, b) => sum + b.value, 0);
-  const total = Math.min(10, baseScore + bonusTotal);
-
-  // Determine tier
-  let tier: 'verified' | 'provisional' | 'rejected';
-  if (total >= 8.0) {
-    tier = 'verified';
-  } else if (total >= 4.0) {
-    tier = 'provisional';
-  } else {
-    tier = 'rejected';
-  }
-
+): SubmissionData {
   return {
-    witnessCredibility,
-    documentationTiming,
-    evidenceQuality,
-    corroboration,
-    verifiability,
-    bonusesApplied,
-    bonusesNotApplied,
-    total,
-    tier,
+    witnesses: witnesses.map(w => ({
+      identityType: w.identityType,
+      role: w.role,
+      verificationStatus: w.verificationStatus,
+      willingToTestify: w.willingToTestify,
+      willingPolygraph: w.willingPolygraph,
+      blindAudit: w.blindAudit,
+    })),
+    evidence: evidence.map(e => ({
+      category: e.category,
+      daysFromEvent: e.daysFromEvent,
+      isPrimarySource: e.isPrimarySource,
+      independentlyVerified: e.independentlyVerified,
+    })),
+    eventDate: basicInfo.eventDate,
+    physicalEvidencePresent: false, // Could be derived from domainData if needed
   };
-}
-
-function generateImprovements(
-  score: ScoreBreakdown,
-  witnesses: Witness[],
-  evidence: EvidenceItem[]
-): ImprovementSuggestion[] {
-  const suggestions: ImprovementSuggestion[] = [];
-
-  // Witness verification improvements
-  const unverifiedProfessionals = witnesses.filter(w =>
-    (w.identityType === 'named_professional' || w.identityType === 'named_official') &&
-    w.verificationStatus !== 'independently_verified'
-  );
-
-  unverifiedProfessionals.forEach(w => {
-    suggestions.push({
-      action: `Verify ${w.name || 'witness'}'s ${w.profession || 'professional'} credentials`,
-      impact: 0.3,
-      difficulty: 'medium',
-    });
-  });
-
-  // Evidence improvements
-  if (!evidence.some(e => e.category === 'contemporary_official')) {
-    suggestions.push({
-      action: 'Locate contemporary official documents (police reports, military records)',
-      impact: 0.5,
-      difficulty: 'hard',
-    });
-  }
-
-  if (!evidence.some(e => e.category === 'contemporary_news')) {
-    suggestions.push({
-      action: 'Find contemporary news articles from within 7 days of event',
-      impact: 0.3,
-      difficulty: 'medium',
-    });
-  }
-
-  // Witness improvements
-  const witnessesWithoutBlindAudit = witnesses.filter(w => w.blindAudit === 'unknown');
-  if (witnessesWithoutBlindAudit.length > 0) {
-    suggestions.push({
-      action: 'Confirm whether witnesses were isolated before testimony (blind audit)',
-      impact: 0.1,
-      difficulty: 'easy',
-    });
-  }
-
-  const unverifiedEvidence = evidence.filter(e => !e.independentlyVerified);
-  if (unverifiedEvidence.length > 0) {
-    suggestions.push({
-      action: 'Independently verify evidence sources',
-      impact: 0.2 * unverifiedEvidence.length,
-      difficulty: 'medium',
-    });
-  }
-
-  return suggestions.sort((a, b) => b.impact - a.impact).slice(0, 5);
 }
 
 export function ScorePreview({
@@ -295,18 +91,24 @@ export function ScorePreview({
   const [improvements, setImprovements] = useState<ImprovementSuggestion[]>([]);
   const [isCalculating, setIsCalculating] = useState(true);
 
+  // Convert form data to submission data format
+  const submissionData = useMemo(
+    () => toSubmissionData(witnesses, evidence, basicInfo),
+    [witnesses, evidence, basicInfo]
+  );
+
   useEffect(() => {
     // Simulate calculation delay for UX
     setIsCalculating(true);
     const timer = setTimeout(() => {
-      const calculated = calculateScoreBreakdown(witnesses, evidence, basicInfo);
+      const calculated = calculateScore(investigationType, submissionData);
       setScore(calculated);
-      setImprovements(generateImprovements(calculated, witnesses, evidence));
+      setImprovements(generateImprovementSuggestions(submissionData, calculated));
       setIsCalculating(false);
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [witnesses, evidence, basicInfo]);
+  }, [investigationType, submissionData]);
 
   if (isCalculating || !score) {
     return (
@@ -332,7 +134,7 @@ export function ScorePreview({
           <div>
             <div className="text-sm text-zinc-400 uppercase tracking-wide">Estimated Quality Score</div>
             <div className={`text-5xl font-bold ${getTierColor(score.tier)}`}>
-              {score.total.toFixed(1)}
+              {score.finalScore.toFixed(1)}
               <span className="text-2xl text-zinc-500">/10</span>
             </div>
           </div>
@@ -369,14 +171,17 @@ export function ScorePreview({
         <h3 className="font-semibold text-zinc-200 mb-4">Score Breakdown</h3>
         <div className="space-y-3">
           {[
-            { label: 'Witness Credibility', value: score.witnessCredibility, max: 2.0 },
-            { label: 'Documentation Timing', value: score.documentationTiming, max: 2.0 },
-            { label: 'Evidence Quality', value: score.evidenceQuality, max: 2.0 },
-            { label: 'Corroboration', value: score.corroboration, max: 2.0 },
-            { label: 'Verifiability', value: score.verifiability, max: 2.0 },
+            { label: 'Witness Credibility', value: score.breakdown.witnessCredibility, max: 2.0, weight: '30%' },
+            { label: 'Documentation Timing', value: score.breakdown.documentationTiming, max: 2.0, weight: '25%' },
+            { label: 'Evidence Quality', value: score.breakdown.evidenceQuality, max: 2.0, weight: '20%' },
+            { label: 'Corroboration', value: score.breakdown.corroboration, max: 2.0, weight: '15%' },
+            { label: 'Verifiability', value: score.breakdown.verifiability, max: 2.0, weight: '10%' },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-4">
-              <div className="w-40 text-sm text-zinc-400">{item.label}</div>
+              <div className="w-44 text-sm text-zinc-400">
+                {item.label}
+                <span className="ml-1 text-xs text-zinc-500">({item.weight})</span>
+              </div>
               <div className="flex-1">
                 <div className="h-2 rounded-full bg-zinc-700 overflow-hidden">
                   <div
@@ -395,21 +200,22 @@ export function ScorePreview({
           ))}
         </div>
 
-        {/* Bonuses */}
+        {/* Bonuses Applied */}
         {score.bonusesApplied.length > 0 && (
           <div className="mt-4 pt-4 border-t border-zinc-700">
             <div className="text-sm text-zinc-400 mb-2">Bonuses Applied:</div>
             <div className="space-y-1">
               {score.bonusesApplied.map((bonus, i) => (
                 <div key={i} className="flex justify-between text-sm">
-                  <span className="text-emerald-400">+ {bonus.name}</span>
-                  <span className="text-emerald-400">+{bonus.value.toFixed(1)}</span>
+                  <span className="text-emerald-400">+ {bonus.reason}</span>
+                  <span className="text-emerald-400 font-medium">+{bonus.value.toFixed(1)}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* Bonuses Not Applied */}
         {score.bonusesNotApplied.length > 0 && (
           <div className="mt-4 pt-4 border-t border-zinc-700">
             <div className="text-sm text-zinc-400 mb-2">Bonuses Not Applied:</div>
@@ -417,10 +223,10 @@ export function ScorePreview({
               {score.bonusesNotApplied.map((bonus, i) => (
                 <div key={i} className="text-sm">
                   <div className="flex justify-between">
-                    <span className="text-zinc-500">○ {bonus.name}</span>
+                    <span className="text-zinc-500">○ {bonus.reason}</span>
                     <span className="text-zinc-500">+{bonus.value.toFixed(1)}</span>
                   </div>
-                  <div className="text-xs text-amber-400 ml-4">{bonus.reason}</div>
+                  <div className="text-xs text-amber-400 ml-4">{bonus.requirement}</div>
                 </div>
               ))}
             </div>
@@ -444,12 +250,13 @@ export function ScorePreview({
                   <div className="text-sm text-zinc-200">{imp.action}</div>
                   <div className="flex gap-2 mt-1">
                     <span className="text-xs text-emerald-400">+{imp.impact.toFixed(1)} impact</span>
-                    <span className={`text-xs ${
-                      imp.difficulty === 'easy' ? 'text-emerald-400' :
-                      imp.difficulty === 'medium' ? 'text-amber-400' : 'text-red-400'
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      imp.difficulty === 'easy' ? 'bg-emerald-500/20 text-emerald-400' :
+                      imp.difficulty === 'medium' ? 'bg-amber-500/20 text-amber-400' : 'bg-red-500/20 text-red-400'
                     }`}>
                       {imp.difficulty}
                     </span>
+                    <span className="text-xs text-zinc-500">{imp.category}</span>
                   </div>
                 </div>
               </div>
@@ -457,6 +264,18 @@ export function ScorePreview({
           </div>
         </div>
       )}
+
+      {/* Score Explanation */}
+      <div className="rounded-xl border border-zinc-700 bg-zinc-800/50 p-4">
+        <h4 className="text-sm font-medium text-zinc-300 mb-2">How Scoring Works</h4>
+        <p className="text-xs text-zinc-500">
+          Your score is calculated using a weighted sum of five components: witness credibility (30%),
+          documentation timing (25%), evidence quality (20%), corroboration (15%), and verifiability (10%).
+          Bonuses are added for exceptional documentation like verified professional witnesses or official
+          FOIA documents. Scores of 8.0+ are &quot;Verified&quot; and contribute to pattern matching.
+          Scores 4.0-7.9 are &quot;Provisional&quot; and visible in Community Findings.
+        </p>
+      </div>
 
       {/* Navigation */}
       <div className="flex justify-between pt-4">
