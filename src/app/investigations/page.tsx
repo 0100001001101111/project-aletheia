@@ -5,11 +5,25 @@
  * Browse and filter all investigation submissions
  */
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { SCHEMA_METADATA } from '@/schemas';
 import { getTriageScoreColor, getTriageStatusColor } from '@/lib/triage';
 import type { InvestigationType, TriageStatus } from '@/types/database';
+
+// Dynamically import map component to avoid SSR issues with Mapbox
+const UFOMap = dynamic(() => import('@/components/maps/UFOMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-[600px] items-center justify-center bg-zinc-900 rounded-xl">
+      <div className="text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent mx-auto" />
+        <p className="mt-2 text-zinc-400">Loading map...</p>
+      </div>
+    </div>
+  ),
+});
 
 interface Investigation {
   id: string;
@@ -21,13 +35,33 @@ interface Investigation {
 }
 
 type SortField = 'created_at' | 'triage_score' | 'title';
+type ViewMode = 'list' | 'map';
 
-export default function InvestigationsPage() {
+// Wrapper component to handle Suspense for useSearchParams
+export default function InvestigationsPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-violet-500 border-t-transparent" />
+      </div>
+    }>
+      <InvestigationsPage />
+    </Suspense>
+  );
+}
+
+function InvestigationsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+
+  // View mode (list or map)
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    (searchParams.get('view') as ViewMode) || 'list'
+  );
 
   // Filters
   const [filterType, setFilterType] = useState<InvestigationType | 'all'>('all');
@@ -136,16 +170,63 @@ export default function InvestigationsPage() {
                 Browse {total} submitted research investigations
               </p>
             </div>
-            <a
-              href="/submit"
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
-            >
-              Submit New
-            </a>
+            <div className="flex items-center gap-4">
+              {/* View Mode Toggle */}
+              <div className="flex rounded-lg border border-zinc-700 overflow-hidden">
+                <button
+                  onClick={() => {
+                    setViewMode('list');
+                    router.push('/investigations?view=list', { scroll: false });
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                  </svg>
+                  List
+                </button>
+                <button
+                  onClick={() => {
+                    setViewMode('map');
+                    router.push('/investigations?view=map', { scroll: false });
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    viewMode === 'map'
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  Map
+                </button>
+              </div>
+              <a
+                href="/submit"
+                className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
+              >
+                Submit New
+              </a>
+            </div>
           </div>
         </div>
       </header>
 
+      {/* Map View */}
+      {viewMode === 'map' && (
+        <div className="h-[calc(100vh-140px)] min-h-[600px]">
+          <UFOMap />
+        </div>
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <>
       {/* Domain Filter Chips - Prominent */}
       <div className="border-b border-zinc-800 bg-zinc-900/50">
         <div className="mx-auto max-w-7xl px-4 py-5">
@@ -403,6 +484,8 @@ export default function InvestigationsPage() {
           </div>
         )}
       </main>
+        </>
+      )}
     </div>
   );
 }
