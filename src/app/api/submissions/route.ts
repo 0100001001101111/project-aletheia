@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       'crisis_apparition',
       'stargate',
       'geophysical',
+      'ufo',
     ];
     if (!validTypes.includes(type)) {
       return NextResponse.json(
@@ -119,20 +120,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create contribution record
+    // Create contribution record with credibility points
+    // High-quality submissions (7+) earn more points
+    const credibilityPoints = finalTriageScore >= 7 ? 5 : finalTriageScore >= 4 ? 2 : 0;
+
     await (supabase.from('aletheia_contributions') as ReturnType<typeof supabase.from>)
       .insert({
         user_id: profile.id,
         investigation_id: investigation?.id,
         contribution_type: 'submission',
+        credibility_points_earned: credibilityPoints,
         notes: `Submitted: ${title} (${type}, score: ${finalTriageScore})`,
       } as never);
+
+    // Auto-update user credibility score for verified submissions
+    if (credibilityPoints > 0) {
+      const { data: currentUser } = await supabase
+        .from('aletheia_users')
+        .select('credibility_score')
+        .eq('id', profile.id)
+        .single() as { data: { credibility_score: number } | null };
+
+      if (currentUser) {
+        // Cap at 100
+        const newScore = Math.min(100, (currentUser.credibility_score || 0) + credibilityPoints);
+        await (supabase.from('aletheia_users') as ReturnType<typeof supabase.from>)
+          .update({ credibility_score: newScore } as never)
+          .eq('id', profile.id);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       id: investigation?.id,
       triage_score: finalTriageScore,
       triage_status: finalTriageStatus,
+      credibility_earned: credibilityPoints,
     });
   } catch (error) {
     console.error('Submissions API error:', error);

@@ -1,35 +1,10 @@
 /**
  * Client-Side Statistics Library
- * Calculates p-values, effect sizes, and confidence intervals for prediction results
- * All calculations run in the browser - no server round-trip needed
+ * Auto-calculate p-values and effect sizes for prediction testing
  */
 
 // ============================================================================
-// NORMAL DISTRIBUTION
-// ============================================================================
-
-/**
- * Normal CDF approximation using Abramowitz & Stegun formula
- * Accurate to 6 decimal places
- */
-function normalCDF(z: number): number {
-  const a1 = 0.254829592;
-  const a2 = -0.284496736;
-  const a3 = 1.421413741;
-  const a4 = -1.453152027;
-  const a5 = 1.061405429;
-  const p = 0.3275911;
-
-  const sign = z < 0 ? -1 : 1;
-  const absZ = Math.abs(z) / Math.sqrt(2);
-  const t = 1.0 / (1.0 + p * absZ);
-  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absZ * absZ);
-
-  return 0.5 * (1.0 + sign * y);
-}
-
-// ============================================================================
-// BINOMIAL TEST
+// TYPE DEFINITIONS
 // ============================================================================
 
 export interface BinomialResult {
@@ -39,18 +14,34 @@ export interface BinomialResult {
   pValue: number;
   significant: boolean;
   effectObserved: boolean;
-  effectSize: number; // Cohen's h
+  effectSize: number;
   confidenceInterval: { lower: number; upper: number };
   plainEnglish: string;
 }
 
+export interface PoissonResult {
+  observedEvents: number;
+  expected: number;
+  pValue: number;
+  significant: boolean;
+}
+
+export interface QualitativeResult {
+  type: 'qualitative';
+  tags: string[];
+  wordCount: number;
+  hasVeridical: boolean;
+  hasCorroboration: boolean;
+  hasTimeline: boolean;
+}
+
+// ============================================================================
+// BINOMIAL TEST
+// ============================================================================
+
 /**
- * Binomial test for proportion data
- * Used for Ganzfeld (25% baseline) and Stargate (25% baseline) domains
- *
- * @param hits - Number of successful trials (correct guesses)
- * @param trials - Total number of trials
- * @param expectedProp - Expected proportion under null hypothesis (default: 0.25 for 4-choice)
+ * Binomial test for proportion data (Ganzfeld, Stargate, etc.)
+ * Tests whether observed hit rate differs from expected baseline
  */
 export function binomialTest(
   hits: number,
@@ -58,45 +49,46 @@ export function binomialTest(
   expectedProp: number = 0.25
 ): BinomialResult {
   if (trials <= 0) {
-    throw new Error('Trials must be greater than 0');
-  }
-  if (hits < 0 || hits > trials) {
-    throw new Error('Hits must be between 0 and trials');
-  }
-  if (expectedProp <= 0 || expectedProp >= 1) {
-    throw new Error('Expected proportion must be between 0 and 1');
+    return {
+      observedProportion: 0,
+      expectedProportion: expectedProp,
+      zScore: 0,
+      pValue: 1,
+      significant: false,
+      effectObserved: false,
+      effectSize: 0,
+      confidenceInterval: { lower: 0, upper: 0 },
+      plainEnglish: 'No trials conducted.',
+    };
   }
 
   const observedProp = hits / trials;
-
-  // Standard error for proportion
   const se = Math.sqrt((expectedProp * (1 - expectedProp)) / trials);
 
-  // Z-score
-  const zScore = se > 0 ? (observedProp - expectedProp) / se : 0;
+  if (se === 0) {
+    return {
+      observedProportion: observedProp,
+      expectedProportion: expectedProp,
+      zScore: 0,
+      pValue: 1,
+      significant: false,
+      effectObserved: false,
+      effectSize: 0,
+      confidenceInterval: { lower: observedProp, upper: observedProp },
+      plainEnglish: 'Unable to calculate - check baseline.',
+    };
+  }
 
-  // Two-tailed p-value
-  const pValue = 2 * (1 - normalCDF(Math.abs(zScore)));
-
-  // Effect size (Cohen's h)
-  const effectSize = cohensH(observedProp, expectedProp);
-
-  // Wilson score confidence interval
-  const confidenceInterval = wilsonInterval(hits, trials);
-
-  // Determine if effect is observed (above chance AND significant)
+  const zScore = (observedProp - expectedProp) / se;
+  const pValue = 2 * (1 - normalCDF(Math.abs(zScore))); // two-tailed
+  const effectSize = cohensHInternal(observedProp, expectedProp);
+  const ci = wilsonIntervalInternal(hits, trials);
   const significant = pValue < 0.05;
   const effectObserved = observedProp > expectedProp && significant;
 
-  // Generate plain English explanation
-  const plainEnglish = generateBinomialExplanation(
-    hits,
-    trials,
-    observedProp,
-    expectedProp,
-    pValue,
-    significant,
-    effectObserved
+  // Generate plain English summary
+  const plainEnglish = generatePlainEnglish(
+    hits, trials, observedProp, expectedProp, pValue, significant, effectObserved
   );
 
   return {
@@ -107,15 +99,15 @@ export function binomialTest(
     significant,
     effectObserved,
     effectSize,
-    confidenceInterval,
+    confidenceInterval: ci,
     plainEnglish,
   };
 }
 
 /**
- * Generate plain English explanation for binomial test results
+ * Generate plain English explanation of results
  */
-function generateBinomialExplanation(
+function generatePlainEnglish(
   hits: number,
   trials: number,
   observed: number,
@@ -124,40 +116,81 @@ function generateBinomialExplanation(
   significant: boolean,
   effectObserved: boolean
 ): string {
-  const hitRate = (observed * 100).toFixed(1);
-  const chanceRate = (expected * 100).toFixed(0);
+  const percent = (observed * 100).toFixed(1);
+  const expectedPercent = (expected * 100).toFixed(0);
 
   if (effectObserved) {
-    if (pValue < 0.001) {
-      return `Strong evidence of an effect: ${hits}/${trials} hits (${hitRate}%) vs ${chanceRate}% expected by chance. This result is extremely unlikely to occur randomly (p < 0.001).`;
-    } else if (pValue < 0.01) {
-      return `Good evidence of an effect: ${hits}/${trials} hits (${hitRate}%) vs ${chanceRate}% expected by chance. This result is very unlikely to be random (p < 0.01).`;
-    } else {
-      return `Suggestive evidence of an effect: ${hits}/${trials} hits (${hitRate}%) vs ${chanceRate}% expected by chance. This result is unlikely to be random (p < 0.05).`;
-    }
-  } else if (observed > expected && !significant) {
-    return `Above chance but not statistically significant: ${hits}/${trials} hits (${hitRate}%) vs ${chanceRate}% expected. Could be a real effect or random variation - more trials needed.`;
-  } else if (observed < expected && significant) {
-    return `Below chance: ${hits}/${trials} hits (${hitRate}%) vs ${chanceRate}% expected. Performance was significantly worse than random guessing.`;
+    return `${hits}/${trials} hits (${percent}%) vs ${expectedPercent}% expected. Statistically significant above chance (p = ${formatPValue(pValue)}).`;
+  } else if (significant && observed < expected) {
+    return `${hits}/${trials} hits (${percent}%) vs ${expectedPercent}% expected. Significantly below chance (p = ${formatPValue(pValue)}).`;
   } else {
-    return `Consistent with chance: ${hits}/${trials} hits (${hitRate}%) vs ${chanceRate}% expected. No evidence of an effect in this sample.`;
+    return `${hits}/${trials} hits (${percent}%) vs ${expectedPercent}% expected. Not statistically significant (p = ${formatPValue(pValue)}).`;
   }
 }
 
-// ============================================================================
-// CONFIDENCE INTERVALS
-// ============================================================================
+/**
+ * Internal Cohen's h for binomialTest
+ */
+function cohensHInternal(observed: number, expected: number): number {
+  const phi1 = 2 * Math.asin(Math.sqrt(Math.max(0, Math.min(1, observed))));
+  const phi2 = 2 * Math.asin(Math.sqrt(Math.max(0, Math.min(1, expected))));
+  return Math.abs(phi1 - phi2);
+}
 
 /**
- * Wilson score interval for proportions
- * More accurate than normal approximation, especially for small samples or extreme proportions
+ * Internal Wilson interval for binomialTest
+ */
+function wilsonIntervalInternal(hits: number, trials: number): { lower: number; upper: number } {
+  if (trials <= 0) return { lower: 0, upper: 0 };
+  const z = 1.96;
+  const p = hits / trials;
+  const denominator = 1 + (z * z) / trials;
+  const center = p + (z * z) / (2 * trials);
+  const margin = z * Math.sqrt((p * (1 - p) + (z * z) / (4 * trials)) / trials);
+  return {
+    lower: Math.max(0, (center - margin) / denominator),
+    upper: Math.min(1, (center + margin) / denominator),
+  };
+}
+
+/**
+ * Normal CDF approximation (Abramowitz & Stegun)
+ * Used for p-value calculations
+ */
+function normalCDF(z: number): number {
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+
+  const sign = z < 0 ? -1 : 1;
+  z = Math.abs(z) / Math.sqrt(2);
+
+  const t = 1.0 / (1.0 + p * z);
+  const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-z * z);
+
+  return 0.5 * (1.0 + sign * y);
+}
+
+/**
+ * Wilson score interval for confidence bounds
+ * More accurate than normal approximation for small samples
  */
 export function wilsonInterval(
   hits: number,
   trials: number,
   confidence: number = 0.95
-): { lower: number; upper: number } {
-  // Z-score for desired confidence level
+): {
+  lower: number;
+  upper: number;
+} {
+  if (trials <= 0) {
+    return { lower: 0, upper: 0 };
+  }
+
+  // z-score for 95% CI
   const z = confidence === 0.95 ? 1.96 : confidence === 0.99 ? 2.576 : 1.645;
 
   const p = hits / trials;
@@ -171,18 +204,10 @@ export function wilsonInterval(
   };
 }
 
-// ============================================================================
-// EFFECT SIZE
-// ============================================================================
-
 /**
  * Cohen's h effect size for proportions
- * Measures the standardized difference between two proportions
- *
- * Interpretation:
- * - Small: |h| ~ 0.2
- * - Medium: |h| ~ 0.5
- * - Large: |h| ~ 0.8
+ * Measures the magnitude of difference between observed and expected
+ * h = 0.2 small, h = 0.5 medium, h = 0.8 large
  */
 export function cohensH(observed: number, expected: number): number {
   const phi1 = 2 * Math.asin(Math.sqrt(Math.max(0, Math.min(1, observed))));
@@ -191,238 +216,202 @@ export function cohensH(observed: number, expected: number): number {
 }
 
 /**
- * Get effect size label
- */
-export function getEffectSizeLabel(h: number): string {
-  const absH = Math.abs(h);
-  if (absH >= 0.8) return 'Large';
-  if (absH >= 0.5) return 'Medium';
-  if (absH >= 0.2) return 'Small';
-  return 'Negligible';
-}
-
-// ============================================================================
-// POISSON TEST (for Geophysical domain)
-// ============================================================================
-
-export interface PoissonResult {
-  observedEvents: number;
-  expectedEvents: number;
-  pValue: number;
-  significant: boolean;
-  ratio: number;
-  plainEnglish: string;
-}
-
-/**
- * Poisson test for count data
- * Used for temporal clustering analysis (e.g., UFO sightings near earthquakes)
- *
- * @param observed - Number of events observed
- * @param expectedRate - Expected events per unit time under null
- * @param timeWindow - Duration of observation window
+ * Poisson test for temporal clustering (geophysical anomalies)
+ * Tests whether observed events exceed expected rate
  */
 export function poissonTest(
-  observed: number,
+  observedEvents: number,
   expectedRate: number,
-  timeWindow: number = 1
-): PoissonResult {
-  if (observed < 0) {
-    throw new Error('Observed events must be non-negative');
-  }
-  if (expectedRate <= 0) {
-    throw new Error('Expected rate must be positive');
-  }
-
+  timeWindow: number
+): {
+  observedEvents: number;
+  expected: number;
+  pValue: number;
+  significant: boolean;
+} {
   const expected = expectedRate * timeWindow;
 
-  // Use normal approximation for large expected counts
-  // Otherwise use exact Poisson
-  let pValue: number;
-  if (expected >= 10) {
-    // Normal approximation
-    const z = (observed - expected) / Math.sqrt(expected);
-    pValue = observed > expected ? 1 - normalCDF(z) : normalCDF(z);
-  } else {
-    // Exact Poisson CDF
-    pValue = 1 - poissonCDF(observed - 1, expected);
+  if (expected <= 0) {
+    return {
+      observedEvents,
+      expected: 0,
+      pValue: 1,
+      significant: false,
+    };
   }
 
-  const significant = pValue < 0.05;
-  const ratio = observed / expected;
-
-  // Plain English
-  let plainEnglish: string;
-  if (ratio > 1 && significant) {
-    plainEnglish = `Significant clustering: ${observed} events observed vs ${expected.toFixed(1)} expected (${ratio.toFixed(1)}x higher). This clustering is unlikely to be random.`;
-  } else if (ratio > 1 && !significant) {
-    plainEnglish = `Slight elevation: ${observed} events observed vs ${expected.toFixed(1)} expected. Not enough data to rule out random variation.`;
-  } else {
-    plainEnglish = `Normal or below: ${observed} events observed vs ${expected.toFixed(1)} expected. No unusual clustering detected.`;
-  }
+  // P(X >= k) for Poisson distribution
+  const pValue = 1 - poissonCDF(observedEvents - 1, expected);
 
   return {
-    observedEvents: observed,
-    expectedEvents: expected,
+    observedEvents,
+    expected,
     pValue,
-    significant,
-    ratio,
-    plainEnglish,
+    significant: pValue < 0.05,
   };
 }
 
 /**
- * Poisson CDF - probability of observing k or fewer events
+ * Poisson CDF approximation
  */
 function poissonCDF(k: number, lambda: number): number {
   if (k < 0) return 0;
 
   let sum = 0;
-  for (let i = 0; i <= Math.floor(k); i++) {
-    sum += Math.exp(-lambda + i * Math.log(lambda) - logFactorial(i));
+  for (let i = 0; i <= k; i++) {
+    sum += poissonPMF(i, lambda);
   }
   return Math.min(1, sum);
 }
 
 /**
- * Log factorial using Stirling's approximation for large n
+ * Poisson probability mass function
  */
-function logFactorial(n: number): number {
-  if (n <= 1) return 0;
-  if (n < 20) {
-    // Direct calculation for small n
-    let result = 0;
-    for (let i = 2; i <= n; i++) {
-      result += Math.log(i);
-    }
-    return result;
-  }
-  // Stirling's approximation
-  return n * Math.log(n) - n + 0.5 * Math.log(2 * Math.PI * n);
-}
-
-// ============================================================================
-// QUALITATIVE CODING (for NDE/Crisis Apparition domains)
-// ============================================================================
-
-export interface QualitativeResult {
-  type: 'qualitative';
-  wordCount: number;
-  tags: string[];
-  completeness: number; // 0-1 based on fields filled
-  plainEnglish: string;
+function poissonPMF(k: number, lambda: number): number {
+  if (k < 0 || lambda <= 0) return 0;
+  return (Math.pow(lambda, k) * Math.exp(-lambda)) / factorial(k);
 }
 
 /**
- * Analyze qualitative description for NDE/Crisis Apparition domains
- * These domains don't use statistical testing - they use structured coding
+ * Factorial with memoization
  */
-export function qualitativeCoding(description: string): QualitativeResult {
-  const wordCount = description.trim().split(/\s+/).filter(Boolean).length;
+const factorialCache: Record<number, number> = { 0: 1, 1: 1 };
+function factorial(n: number): number {
+  if (n < 0) return 1;
+  if (n in factorialCache) return factorialCache[n];
 
-  // Extract relevant tags based on keywords
-  const tags: string[] = [];
-  const lowerDesc = description.toLowerCase();
-
-  // Veridical perception indicators
-  if (/verifi|confirm|match|correct|accurate/i.test(lowerDesc)) {
-    tags.push('veridical');
+  let result = 1;
+  for (let i = 2; i <= n; i++) {
+    result *= i;
+    factorialCache[i] = result;
   }
-
-  // Timeline indicators
-  if (/same time|simultaneous|moment of|at the time/i.test(lowerDesc)) {
-    tags.push('timeline-match');
-  }
-
-  // Corroboration indicators
-  if (/witness|corroborat|independent|multiple|other people/i.test(lowerDesc)) {
-    tags.push('corroborated');
-  }
-
-  // Documentation indicators
-  if (/document|record|writ|log|photo|video/i.test(lowerDesc)) {
-    tags.push('documented');
-  }
-
-  // Crisis/emergency indicators
-  if (/death|dying|accident|emergency|crisis|hospital/i.test(lowerDesc)) {
-    tags.push('crisis-event');
-  }
-
-  // Calculate completeness based on word count and tags
-  const completeness = Math.min(1, (wordCount / 200) * 0.5 + (tags.length / 5) * 0.5);
-
-  // Plain English summary
-  let plainEnglish: string;
-  if (tags.length >= 3) {
-    plainEnglish = `Rich account with ${tags.length} quality indicators: ${tags.join(', ')}. Well-documented for qualitative analysis.`;
-  } else if (tags.length >= 1) {
-    plainEnglish = `Account includes ${tags.length} quality indicator(s): ${tags.join(', ')}. Additional corroboration would strengthen the case.`;
-  } else {
-    plainEnglish = `Narrative account without specific quality indicators. May benefit from follow-up questions about timing, witnesses, or documentation.`;
-  }
-
-  return {
-    type: 'qualitative',
-    wordCount,
-    tags,
-    completeness,
-    plainEnglish,
-  };
-}
-
-// ============================================================================
-// P-VALUE HELPERS
-// ============================================================================
-
-/**
- * Get plain English explanation for p-value
- */
-export function getPValueExplanation(pValue: number): {
-  text: string;
-  color: string;
-  icon: string;
-} {
-  if (pValue < 0.001) {
-    return {
-      text: 'Extremely unlikely to be random',
-      color: 'text-emerald-400',
-      icon: '***',
-    };
-  }
-  if (pValue < 0.01) {
-    return {
-      text: 'Very unlikely to be random',
-      color: 'text-emerald-400',
-      icon: '**',
-    };
-  }
-  if (pValue < 0.05) {
-    return {
-      text: 'Unlikely to be random',
-      color: 'text-green-400',
-      icon: '*',
-    };
-  }
-  if (pValue < 0.1) {
-    return {
-      text: 'Marginally significant',
-      color: 'text-yellow-400',
-      icon: '~',
-    };
-  }
-  return {
-    text: 'Could be random chance',
-    color: 'text-zinc-400',
-    icon: '',
-  };
+  return result;
 }
 
 /**
  * Format p-value for display
  */
-export function formatPValue(pValue: number): string {
-  if (pValue < 0.001) return '< 0.001';
-  if (pValue < 0.01) return pValue.toFixed(3);
-  return pValue.toFixed(2);
+export function formatPValue(p: number): string {
+  if (p < 0.001) return '< 0.001';
+  if (p < 0.01) return p.toFixed(3);
+  if (p < 0.05) return p.toFixed(3);
+  return p.toFixed(2);
+}
+
+/**
+ * Get significance interpretation
+ */
+export function getSignificanceLevel(p: number): {
+  level: 'highly_significant' | 'significant' | 'marginally_significant' | 'not_significant';
+  label: string;
+} {
+  if (p < 0.001) {
+    return { level: 'highly_significant', label: 'Highly Significant' };
+  }
+  if (p < 0.01) {
+    return { level: 'significant', label: 'Significant' };
+  }
+  if (p < 0.05) {
+    return { level: 'marginally_significant', label: 'Marginally Significant' };
+  }
+  return { level: 'not_significant', label: 'Not Significant' };
+}
+
+/**
+ * Get effect size interpretation for Cohen's h
+ */
+export function getEffectSizeInterpretation(h: number): {
+  level: 'negligible' | 'small' | 'medium' | 'large';
+  label: string;
+} {
+  if (h < 0.2) {
+    return { level: 'negligible', label: 'Negligible' };
+  }
+  if (h < 0.5) {
+    return { level: 'small', label: 'Small' };
+  }
+  if (h < 0.8) {
+    return { level: 'medium', label: 'Medium' };
+  }
+  return { level: 'large', label: 'Large' };
+}
+
+// ============================================================================
+// QUALITATIVE ANALYSIS
+// ============================================================================
+
+/**
+ * Qualitative coding for NDE/Crisis Apparition reports
+ * Returns structured tags rather than p-values
+ */
+export function qualitativeCoding(description: string): QualitativeResult {
+  const lowerDesc = description.toLowerCase();
+  const tags: string[] = [];
+
+  // Check for veridical perception
+  const hasVeridical = /veridical|verified|confirmed|accurate/i.test(description) ||
+    /saw.*that.*later.*confirmed/i.test(description);
+  if (hasVeridical) tags.push('veridical');
+
+  // Check for corroboration
+  const hasCorroboration = /witness|corroborate|independent|multiple/i.test(description) ||
+    /others.*also.*saw/i.test(description);
+  if (hasCorroboration) tags.push('corroborated');
+
+  // Check for timeline matching
+  const hasTimeline = /same.*time|exact.*moment|time.*of.*death|simultaneously/i.test(description);
+  if (hasTimeline) tags.push('timeline-match');
+
+  // Additional feature tags
+  if (/out.*of.*body|obe|floating|above/i.test(lowerDesc)) tags.push('obe-reported');
+  if (/tunnel|light|bright/i.test(lowerDesc)) tags.push('light-encounter');
+  if (/deceased|dead.*relative|loved.*one/i.test(lowerDesc)) tags.push('deceased-contact');
+  if (/life.*review|entire.*life/i.test(lowerDesc)) tags.push('life-review');
+  if (/peace|calm|love|warmth/i.test(lowerDesc)) tags.push('positive-affect');
+  if (/fear|terror|dark|negative/i.test(lowerDesc)) tags.push('negative-affect');
+
+  return {
+    type: 'qualitative',
+    tags,
+    wordCount: description.split(/\s+/).filter(Boolean).length,
+    hasVeridical,
+    hasCorroboration,
+    hasTimeline,
+  };
+}
+
+// ============================================================================
+// UI HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Get p-value explanation with color for UI
+ */
+export function getPValueExplanation(p: number): {
+  text: string;
+  color: string;
+} {
+  if (p < 0.001) {
+    return { text: 'Highly significant', color: 'text-emerald-400' };
+  }
+  if (p < 0.01) {
+    return { text: 'Very significant', color: 'text-emerald-400' };
+  }
+  if (p < 0.05) {
+    return { text: 'Significant', color: 'text-amber-400' };
+  }
+  if (p < 0.10) {
+    return { text: 'Marginally significant', color: 'text-orange-400' };
+  }
+  return { text: 'Not significant', color: 'text-zinc-400' };
+}
+
+/**
+ * Get effect size label for display
+ */
+export function getEffectSizeLabel(h: number): string {
+  if (h < 0.2) return 'Negligible';
+  if (h < 0.5) return 'Small';
+  if (h < 0.8) return 'Medium';
+  return 'Large';
 }

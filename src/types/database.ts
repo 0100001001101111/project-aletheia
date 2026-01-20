@@ -129,7 +129,7 @@ export interface CommunityHypothesisWithUser extends CommunityHypothesis {
 export type SubmissionMode = 'simple' | 'advanced';
 export type FlawType = 'sensory_leakage' | 'selection_bias' | 'statistical_error' | 'protocol_violation' | 'data_integrity' | 'other';
 export type FlagSeverity = 'minor' | 'major' | 'fatal';
-export type FlagStatus = 'open' | 'acknowledged' | 'disputed' | 'resolved';
+export type FlagStatus = 'open' | 'acknowledged' | 'disputed' | 'resolved' | 'rejected';
 export type PreregistrationStatus = 'active' | 'completed' | 'withdrawn';
 export type DisputeStatus = 'open' | 'resolved' | 'escalated' | 'nullified';
 export type JuryDecision = 'uphold' | 'overturn' | 'partial';

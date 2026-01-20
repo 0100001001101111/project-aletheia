@@ -5,6 +5,7 @@
 
 import type { InvestigationType } from '../types/database';
 import { TRIAGE_INDICATORS, getNestedValue } from '../schemas';
+import { calculateUFOQualityScore, calculateConfoundScore, type UFOData } from '../schemas/ufo';
 
 export interface TriageBreakdown {
   sourceIntegrity: { score: number; max: number; details: string[] };
@@ -80,14 +81,29 @@ export function calculateTriageScore(
   }
 
   // Calculate overall score (0-10)
-  const rawTotal =
-    breakdown.sourceIntegrity.score +
-    breakdown.methodology.score +
-    breakdown.variableCapture.score +
-    breakdown.dataQuality.score;
+  // For UFO type, use dedicated quality scoring
+  if (schemaType === 'ufo') {
+    const ufoQuality = calculateUFOQualityScore(data as UFOData);
+    const confoundScore = calculateConfoundScore(data as UFOData);
 
-  // Scale to 0-10
-  breakdown.overall = Math.round(rawTotal);
+    // Adjust quality based on confounds (high confound reduces quality)
+    const confoundPenalty = Math.min(3, Math.floor(confoundScore / 25));
+    breakdown.overall = Math.max(0, Math.min(10, ufoQuality - confoundPenalty));
+
+    // Add confound info to recommendations if high
+    if (confoundScore >= 50) {
+      breakdown.recommendations.push(`High confound score (${confoundScore}): near airport/military base`);
+    }
+  } else {
+    const rawTotal =
+      breakdown.sourceIntegrity.score +
+      breakdown.methodology.score +
+      breakdown.variableCapture.score +
+      breakdown.dataQuality.score;
+
+    // Scale to 0-10
+    breakdown.overall = Math.round(rawTotal);
+  }
 
   // Determine status
   if (breakdown.overall >= 7) {
@@ -147,6 +163,8 @@ function getDefaultDataQualityFields(schemaType: InvestigationType): string[] {
       return ['session_transcript', 'sketch_analysis.sketches_available', 'impressions.summary_description'];
     case 'geophysical':
       return ['readings', 'raw_data_file', 'anomaly_events'];
+    case 'ufo':
+      return ['description', 'location.latitude', 'location.longitude', 'date_time'];
     default:
       return [];
   }
@@ -206,6 +224,24 @@ function addSchemaSpecificRecommendations(
       }
       if (!hasValue(data, 'protocol.control_location_used')) {
         breakdown.recommendations.push('Consider using a control location for comparison');
+      }
+      break;
+
+    case 'ufo':
+      if (!hasValue(data, 'geophysical.earthquake_nearby')) {
+        breakdown.recommendations.push('Check for seismic activity within 7 days and 200km (SPECTER correlation)');
+      }
+      if (!hasValue(data, 'geomagnetic.kp_index')) {
+        breakdown.recommendations.push('Record Kp index at time of sighting for geomagnetic correlation');
+      }
+      if (!hasValue(data, 'effects.physiological_effects')) {
+        breakdown.recommendations.push('Document any physiological effects (high-signal indicator)');
+      }
+      if (hasValue(data, 'witness_count')) {
+        const count = getNestedValue(data, 'witness_count') as number;
+        if (count === 1) {
+          breakdown.recommendations.push('Single-witness sighting - corroboration would strengthen quality');
+        }
       }
       break;
   }
