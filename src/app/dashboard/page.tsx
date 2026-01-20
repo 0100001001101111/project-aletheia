@@ -13,6 +13,7 @@ import { PatternCard } from '@/components/patterns/PatternCard';
 import { PredictionCard } from '@/components/predictions/PredictionCard';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { InfoTooltip, JARGON_TOOLTIPS } from '@/components/ui/Tooltip';
+import { SpaceWeatherCard } from '@/components/space-weather/SpaceWeatherCard';
 import type { DetectedPattern } from '@/lib/pattern-matcher';
 import type { InvestigationType } from '@/types/database';
 
@@ -302,6 +303,11 @@ export default function DashboardPage() {
               </Link>
             </div>
           )}
+
+          {/* Space Weather */}
+          <div className="animate-fade-in" style={{ animationDelay: '0.15s' }}>
+            <SpaceWeatherCard compact />
+          </div>
 
           {/* Data Needed */}
           {data?.dataNeeded && data.dataNeeded.length > 0 && (
