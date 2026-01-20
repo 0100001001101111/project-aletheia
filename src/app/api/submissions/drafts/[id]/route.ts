@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { validateSubmissionUpdate } from '@/lib/anti-gaming';
+import type { Witness } from '@/components/submission/WitnessesForm';
+import type { EvidenceItem } from '@/components/submission/EvidenceForm';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
@@ -87,10 +90,10 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser();
     const sessionId = cookieStore.get('draft_session')?.value;
 
-    // First verify ownership
+    // First verify ownership and get current state
     const { data: existing } = await supabase
       .from('aletheia_submission_drafts')
-      .select('user_id, session_id')
+      .select('user_id, session_id, witnesses, evidence')
       .eq('id', id)
       .single();
 
@@ -106,6 +109,31 @@ export async function PATCH(
     }
 
     const body = await request.json();
+
+    // Validate credential changes to prevent gaming
+    if (body.witnesses && existing.witnesses) {
+      const originalWitnesses = (existing.witnesses || []) as Witness[];
+      const originalEvidence = (existing.evidence || []) as EvidenceItem[];
+      const updatedWitnesses = body.witnesses as Witness[];
+      const updatedEvidence = (body.evidence || originalEvidence) as EvidenceItem[];
+
+      const validationErrors = validateSubmissionUpdate(
+        originalWitnesses,
+        originalEvidence,
+        updatedWitnesses,
+        updatedEvidence
+      );
+
+      if (validationErrors.length > 0) {
+        return NextResponse.json(
+          {
+            error: 'Validation failed: credential changes require supporting evidence',
+            validationErrors
+          },
+          { status: 400 }
+        );
+      }
+    }
 
     // Build update object - only include fields that are present
     const updateData: Record<string, unknown> = {};

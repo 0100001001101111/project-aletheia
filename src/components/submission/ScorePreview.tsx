@@ -6,7 +6,7 @@
  * The key innovation - show estimated score BEFORE submit
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { Witness } from './WitnessesForm';
 import type { EvidenceItem } from './EvidenceForm';
 import type { UAPDomainData } from './UAP_FieldsForm';
@@ -19,6 +19,7 @@ import {
   type ScoreBreakdown,
   type ImprovementSuggestion,
 } from '@/lib/scoring';
+import type { GamingFlag } from '@/lib/anti-gaming';
 
 interface ScorePreviewProps {
   investigationType: InvestigationType;
@@ -26,6 +27,7 @@ interface ScorePreviewProps {
   witnesses: Witness[];
   domainData: UAPDomainData;
   evidence: EvidenceItem[];
+  draftId?: string;
   onNext: () => void;
   onBack: () => void;
   onSaveDraft: () => void;
@@ -83,6 +85,7 @@ export function ScorePreview({
   witnesses,
   domainData,
   evidence,
+  draftId,
   onNext,
   onBack,
   onSaveDraft,
@@ -90,6 +93,8 @@ export function ScorePreview({
   const [score, setScore] = useState<ScoreBreakdown | null>(null);
   const [improvements, setImprovements] = useState<ImprovementSuggestion[]>([]);
   const [isCalculating, setIsCalculating] = useState(true);
+  const [gamingFlags, setGamingFlags] = useState<GamingFlag[]>([]);
+  const [iterationCount, setIterationCount] = useState(0);
 
   // Convert form data to submission data format
   const submissionData = useMemo(
@@ -97,18 +102,52 @@ export function ScorePreview({
     [witnesses, evidence, basicInfo]
   );
 
+  // Log score estimate for anti-gaming audit
+  const logScoreAudit = useCallback(async (calculated: ScoreBreakdown) => {
+    if (!draftId) return;
+
+    try {
+      const response = await fetch('/api/submissions/score-audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          draftId,
+          witnesses,
+          evidence,
+          score: {
+            finalScore: calculated.finalScore,
+            tier: calculated.tier,
+            breakdown: calculated.breakdown,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGamingFlags(data.flags || []);
+        setIterationCount(data.iterationCount || 0);
+      }
+    } catch (error) {
+      console.error('Failed to log score audit:', error);
+    }
+  }, [draftId, witnesses, evidence]);
+
   useEffect(() => {
     // Simulate calculation delay for UX
     setIsCalculating(true);
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       const calculated = calculateScore(investigationType, submissionData);
       setScore(calculated);
       setImprovements(generateImprovementSuggestions(submissionData, calculated));
+
+      // Log to audit trail
+      await logScoreAudit(calculated);
+
       setIsCalculating(false);
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [investigationType, submissionData]);
+  }, [investigationType, submissionData, logScoreAudit]);
 
   if (isCalculating || !score) {
     return (
@@ -165,6 +204,33 @@ export function ScorePreview({
           )}
         </div>
       </div>
+
+      {/* Gaming Detection Warning */}
+      {gamingFlags.length > 0 && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 text-red-400">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-medium text-red-300">Score Integrity Notice</h4>
+              <div className="mt-2 space-y-1">
+                {gamingFlags.map((flag, i) => (
+                  <p key={i} className="text-xs text-red-400/80">
+                    {flag.reason}
+                  </p>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-zinc-500">
+                Submission modifications are logged for quality assurance.
+                {iterationCount >= 5 && ` (${iterationCount} score calculations logged)`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Score Breakdown */}
       <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-6">
