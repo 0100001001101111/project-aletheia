@@ -14,6 +14,7 @@ import { WitnessesForm, type Witness } from './WitnessesForm';
 import { UAP_FieldsForm, type UAPDomainData, createEmptyUAPData } from './UAP_FieldsForm';
 import { EvidenceForm, type EvidenceItem } from './EvidenceForm';
 import { ScorePreview } from './ScorePreview';
+import { EnvironmentalDataPanel } from './EnvironmentalDataPanel';
 
 export type WizardStep = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
@@ -350,16 +351,24 @@ export function NewSubmissionWizard({ draftId, onComplete, onCancel }: NewSubmis
 
       case 6:
         return (
-          <ScorePreview
-            investigationType={state.investigationType!}
-            basicInfo={state.basicInfo}
-            witnesses={state.witnesses}
-            domainData={state.domainData}
-            evidence={state.evidence}
-            onNext={handleSubmit}
-            onBack={goBack}
-            onSaveDraft={saveDraft}
-          />
+          <div className="space-y-6">
+            <ScorePreview
+              investigationType={state.investigationType!}
+              basicInfo={state.basicInfo}
+              witnesses={state.witnesses}
+              domainData={state.domainData}
+              evidence={state.evidence}
+              draftId={state.draftId || undefined}
+              onNext={handleSubmit}
+              onBack={goBack}
+              onSaveDraft={saveDraft}
+            />
+            <EnvironmentalDataPanel
+              latitude={state.basicInfo.latitude}
+              longitude={state.basicInfo.longitude}
+              eventDate={state.basicInfo.eventDate}
+            />
+          </div>
         );
 
       case 7:
@@ -375,7 +384,26 @@ export function NewSubmissionWizard({ draftId, onComplete, onCancel }: NewSubmis
       {/* Progress bar */}
       <div className="border-b border-zinc-800 bg-zinc-900/50">
         <div className="mx-auto max-w-4xl px-4 py-4">
-          <div className="flex items-center justify-between">
+          {/* Mobile: compact progress bar */}
+          <div className="sm:hidden">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-zinc-200">
+                Step {state.currentStep}/7
+              </span>
+              <span className="text-sm text-zinc-400">
+                {STEP_TITLES[state.currentStep]}
+              </span>
+            </div>
+            <div className="h-2 bg-zinc-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-violet-500 transition-all"
+                style={{ width: `${(state.currentStep / 7) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Desktop: full step indicators */}
+          <div className="hidden sm:flex items-center justify-between">
             {([1, 2, 3, 4, 5, 6, 7] as WizardStep[]).map((step) => (
               <div key={step} className="flex items-center">
                 <button
@@ -407,7 +435,7 @@ export function NewSubmissionWizard({ draftId, onComplete, onCancel }: NewSubmis
               </div>
             ))}
           </div>
-          <div className="mt-2 flex items-center justify-between">
+          <div className="mt-2 hidden sm:flex items-center justify-between">
             <div className="text-center flex-1">
               <span className="text-sm text-zinc-400">
                 Step {state.currentStep} of 7:
@@ -422,6 +450,12 @@ export function NewSubmissionWizard({ draftId, onComplete, onCancel }: NewSubmis
               </div>
             )}
           </div>
+          {/* Mobile save indicator */}
+          {state.lastSaved && (
+            <div className="mt-2 text-center text-xs text-zinc-500 sm:hidden">
+              {isSaving ? 'Saving...' : `Draft saved ${state.lastSaved.toLocaleTimeString()}`}
+            </div>
+          )}
         </div>
       </div>
 

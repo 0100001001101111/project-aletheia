@@ -111,3 +111,91 @@ export function JargonTerm({ term, children, position = 'top' }: JargonTermProps
     </span>
   );
 }
+
+/**
+ * Submission Form Field Tooltips
+ * Help text for all wizard fields
+ */
+export const FIELD_HELP_TOOLTIPS: Record<string, string> = {
+  // Basic Info
+  title: "A clear, descriptive title for this investigation. Be specific - e.g., 'NDE during cardiac arrest, Memorial Hospital, 2023'",
+  eventDate: "When did this event occur? As precise as possible helps with environmental correlation analysis.",
+  eventTime: "Time of day can correlate with geomagnetic activity and other environmental factors.",
+  location: "City, state, or region where the event occurred. Used for geographic pattern analysis.",
+  latitude: "GPS coordinates enable precise correlation with seismic, geomagnetic, and weather data.",
+  longitude: "GPS coordinates enable precise correlation with seismic, geomagnetic, and weather data.",
+  description: "Detailed account of what happened. Include all relevant details - duration, sequence of events, any unusual circumstances.",
+
+  // Witnesses
+  witnessCount: "How many people directly observed this event? Multiple independent witnesses strengthen credibility.",
+  witnessCredibility: "Professional background, expertise, or training relevant to what was observed.",
+  primaryWitnessName: "Anonymous ID or name of the main witness (will be anonymized in public data).",
+  witnessStatement: "First-hand account in the witness's own words. Direct quotes are more valuable than summaries.",
+
+  // Evidence
+  evidenceType: "What kind of documentation do you have? Photos, videos, audio, documents, medical records, etc.",
+  sourceReliability: "Where did this evidence come from? Original recordings, official records, and verified sources score higher.",
+  chainOfCustody: "Can you trace who has handled this evidence from creation to now? Unbroken chains prevent tampering concerns.",
+  analysisNotes: "Any technical analysis performed - equipment used, methodology, findings.",
+
+  // Domain-Specific
+  // NDE
+  veridicalElements: "Details the experiencer reported that were later verified - things they couldn't have known through normal means.",
+  medicalContext: "What medical event triggered this? Cardiac arrest, surgery, accident, etc.",
+  obeReported: "Did the experiencer report perceiving events from outside their physical body?",
+
+  // Ganzfeld
+  targetType: "What was the sender viewing - static image, video clip, or other?",
+  receiverBlinded: "Was the receiver isolated with no way to know what the target was?",
+  hitOrMiss: "Did the receiver correctly identify the target from the options?",
+
+  // UFO/UAP
+  shape: "Describe the object's shape - disc, triangle, sphere, cigar, lights only, etc.",
+  duration: "How long was the object visible? Seconds, minutes, hours?",
+  flightCharacteristics: "Movement patterns - hovering, accelerating, sharp turns, etc.",
+  physiologicalEffects: "Did observers experience any physical effects? Nausea, burns, time perception changes?",
+  emInterference: "Any electronics malfunction during the sighting? Car stalls, radio static, phone issues?",
+
+  // Geophysical
+  phenomenonType: "What kind of anomaly? Earthquake lights, unexplained sounds, compass anomalies, etc.",
+  seismicActivity: "Any nearby earthquake activity before, during, or after the event?",
+  geologicalContext: "What's the local geology? Fault lines, bedrock type, mining activity nearby?",
+
+  // Crisis Apparition
+  relationship: "What was the relationship between observer and the person in crisis?",
+  crisisType: "What happened to the person who appeared - death, serious injury, danger?",
+  timingCoincidence: "How close in time was the apparition to the actual crisis event?",
+  verificationMethod: "How was the crisis event independently confirmed?",
+
+  // Remote Viewing
+  targetCoordinates: "Geographic or random coordinates used as the target identifier.",
+  viewerBlinding: "Was the viewer completely blind to the target's identity?",
+  sessionProtocol: "What remote viewing protocol was used? CRV, ERV, ARV, etc.",
+  correspondenceScore: "Rating of how well the viewer's impressions matched the actual target.",
+};
+
+/**
+ * Form Field with Label and Help Tooltip
+ */
+interface FormFieldProps {
+  label: string;
+  helpKey?: keyof typeof FIELD_HELP_TOOLTIPS;
+  helpText?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}
+
+export function FormField({ label, helpKey, helpText, required, children }: FormFieldProps) {
+  const tooltip = helpKey ? FIELD_HELP_TOOLTIPS[helpKey] : helpText;
+
+  return (
+    <div className="space-y-1">
+      <label className="flex items-center gap-1 text-sm font-medium text-zinc-300">
+        {label}
+        {required && <span className="text-red-400">*</span>}
+        {tooltip && <InfoTooltip text={tooltip} />}
+      </label>
+      {children}
+    </div>
+  );
+}

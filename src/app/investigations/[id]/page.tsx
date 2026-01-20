@@ -849,7 +849,10 @@ export default function InvestigationPage({ params }: PageProps) {
             <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4">
               <h3 className="font-medium text-zinc-100">Actions</h3>
               <div className="mt-3 space-y-2">
-                <button className="w-full rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500">
+                <button
+                  onClick={() => router.push(`/investigations/${id}/edit`)}
+                  className="w-full rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500"
+                >
                   Edit Submission
                 </button>
                 <button className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 hover:bg-zinc-700">

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import {
@@ -9,10 +9,14 @@ import {
   type GamingFlag,
   type ChangeRecord,
 } from '@/lib/anti-gaming';
+import { checkRateLimit, getClientId, rateLimitResponse } from '@/lib/rate-limit';
 import type { Witness } from '@/components/submission/WitnessesForm';
 import type { EvidenceItem } from '@/components/submission/EvidenceForm';
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
+
+// Rate limit: 20 score calculations per minute (prevents rapid gaming attempts)
+const SCORE_RATE_LIMIT = { limit: 20, windowMs: 60 * 1000 };
 
 interface ScoreAuditRequest {
   draftId: string;
@@ -32,7 +36,14 @@ interface ScoreAuditRequest {
 }
 
 // POST /api/submissions/score-audit - Log score estimate and check for gaming
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Apply rate limiting
+  const clientId = getClientId(request);
+  const rateLimit = checkRateLimit(`score-audit:${clientId}`, SCORE_RATE_LIMIT);
+  if (!rateLimit.success) {
+    return rateLimitResponse(rateLimit);
+  }
+
   try {
     const cookieStore = await cookies();
     const supabase = createServerClient(

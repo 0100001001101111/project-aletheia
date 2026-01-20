@@ -195,6 +195,132 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   }
 }
 
+// PATCH is alias for PUT with same logic
+export async function PATCH(request: NextRequest, routeParams: RouteParams) {
+  try {
+    const { id } = await routeParams.params;
+    const supabase = await createServerClient();
+
+    // Check authentication
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user profile
+    const { data: profile } = await supabase
+      .from('aletheia_users')
+      .select('id')
+      .eq('auth_id', user.id)
+      .single() as { data: { id: string } | null };
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: 'User profile not found' },
+        { status: 404 }
+      );
+    }
+
+    // Check ownership (only owner can update)
+    const { data: existing } = await supabase
+      .from('aletheia_investigations')
+      .select('user_id, investigation_type')
+      .eq('id', id)
+      .single() as { data: { user_id: string; investigation_type: string } | null };
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Submission not found' },
+        { status: 404 }
+      );
+    }
+
+    if (existing.user_id !== profile.id) {
+      return NextResponse.json(
+        { error: 'You can only edit your own submissions' },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { title, description, raw_data, recalculate_triage } = body as {
+      title?: string;
+      description?: string;
+      raw_data?: Record<string, unknown>;
+      recalculate_triage?: boolean;
+    };
+
+    // Build update object
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (title !== undefined) {
+      updates.title = title;
+    }
+
+    if (description !== undefined) {
+      updates.description = description;
+    }
+
+    if (raw_data) {
+      updates.raw_data = raw_data;
+
+      // Validate updated data
+      const validation = validateData(existing.investigation_type as InvestigationType, raw_data);
+      if (!validation.success) {
+        console.warn('Updated data has validation errors:', validation.errors);
+      }
+
+      // Recalculate triage if requested or if data changed
+      if (recalculate_triage !== false) {
+        const triage = calculateTriageScore(raw_data, existing.investigation_type as InvestigationType);
+        updates.triage_score = triage.overall;
+        updates.triage_status = triage.status;
+      }
+    }
+
+    // Update record
+    const { data: updated, error: updateError } = await (supabase
+      .from('aletheia_investigations') as ReturnType<typeof supabase.from>)
+      .update(updates as never)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Update error:', updateError);
+      return NextResponse.json(
+        { error: `Failed to update submission: ${updateError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Create edit contribution record
+    await (supabase.from('aletheia_contributions') as ReturnType<typeof supabase.from>)
+      .insert({
+        user_id: profile.id,
+        investigation_id: id,
+        contribution_type: 'edit',
+        notes: `Edited fields: ${Object.keys(updates).join(', ')}`,
+      } as never);
+
+    return NextResponse.json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Submission PATCH error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;

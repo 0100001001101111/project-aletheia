@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { InfoTooltip, FIELD_HELP_TOOLTIPS } from '@/components/ui/Tooltip';
 
 export interface BasicInfoData {
   title: string;
@@ -111,8 +112,9 @@ export function BasicInfoForm({
       <div className="space-y-5">
         {/* Title */}
         <div>
-          <label htmlFor="title" className="mb-2 block text-sm font-medium text-zinc-200">
+          <label htmlFor="title" className="mb-2 flex items-center gap-1 text-sm font-medium text-zinc-200">
             Investigation Title <span className="text-red-400">*</span>
+            <InfoTooltip text={FIELD_HELP_TOOLTIPS.title} />
           </label>
           <input
             id="title"
@@ -127,8 +129,9 @@ export function BasicInfoForm({
         {/* Event Date */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="eventDate" className="mb-2 block text-sm font-medium text-zinc-200">
+            <label htmlFor="eventDate" className="mb-2 flex items-center gap-1 text-sm font-medium text-zinc-200">
               Event Date <span className="text-red-400">*</span>
+              <InfoTooltip text={FIELD_HELP_TOOLTIPS.eventDate} />
             </label>
             <input
               id="eventDate"
@@ -153,8 +156,9 @@ export function BasicInfoForm({
 
         {/* Location */}
         <div>
-          <label htmlFor="eventLocation" className="mb-2 block text-sm font-medium text-zinc-200">
+          <label htmlFor="eventLocation" className="mb-2 flex items-center gap-1 text-sm font-medium text-zinc-200">
             Event Location <span className="text-red-400">*</span>
+            <InfoTooltip text={FIELD_HELP_TOOLTIPS.location} />
           </label>
           <div className="flex gap-2">
             <input
@@ -188,8 +192,9 @@ export function BasicInfoForm({
         {/* Coordinates */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label htmlFor="latitude" className="mb-2 block text-sm font-medium text-zinc-200">
+            <label htmlFor="latitude" className="mb-2 flex items-center gap-1 text-sm font-medium text-zinc-200">
               Latitude
+              <InfoTooltip text={FIELD_HELP_TOOLTIPS.latitude} />
             </label>
             <input
               id="latitude"
@@ -202,8 +207,9 @@ export function BasicInfoForm({
             />
           </div>
           <div>
-            <label htmlFor="longitude" className="mb-2 block text-sm font-medium text-zinc-200">
+            <label htmlFor="longitude" className="mb-2 flex items-center gap-1 text-sm font-medium text-zinc-200">
               Longitude
+              <InfoTooltip text={FIELD_HELP_TOOLTIPS.longitude} />
             </label>
             <input
               id="longitude"
@@ -248,8 +254,9 @@ export function BasicInfoForm({
 
         {/* Summary */}
         <div>
-          <label htmlFor="summary" className="mb-2 block text-sm font-medium text-zinc-200">
+          <label htmlFor="summary" className="mb-2 flex items-center gap-1 text-sm font-medium text-zinc-200">
             Brief Summary <span className="text-red-400">*</span>
+            <InfoTooltip text={FIELD_HELP_TOOLTIPS.description} />
             <span className="ml-2 text-xs text-zinc-500">(2-5 sentences, minimum 50 characters)</span>
           </label>
           <textarea

@@ -81,6 +81,8 @@ export const RATE_LIMITS = {
   AI_GENERATION: { limit: 5, windowMs: 60 * 1000 },
   /** Auth routes: 10 per minute */
   AUTH: { limit: 10, windowMs: 60 * 1000 },
+  /** Score calculation: 20 per minute (prevents gaming) */
+  SCORE: { limit: 20, windowMs: 60 * 1000 },
 } as const;
 
 /**

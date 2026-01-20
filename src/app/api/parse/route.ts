@@ -8,11 +8,19 @@ import Anthropic from '@anthropic-ai/sdk';
 import { generateParsePrompt, parseLLMResponse } from '@/lib/parser';
 import { validateData, formatZodErrors } from '@/schemas';
 import { calculateTriageScore } from '@/lib/triage';
+import { checkRateLimit, getClientId, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
 import type { InvestigationType } from '@/types/database';
 
 const anthropic = new Anthropic();
 
 export async function POST(request: NextRequest) {
+  // Rate limit AI generation calls
+  const clientId = getClientId(request);
+  const rateLimit = checkRateLimit(`parse:${clientId}`, RATE_LIMITS.AI_GENERATION);
+  if (!rateLimit.success) {
+    return rateLimitResponse(rateLimit);
+  }
+
   try {
     const body = await request.json();
     const { narrative, schemaType } = body as {

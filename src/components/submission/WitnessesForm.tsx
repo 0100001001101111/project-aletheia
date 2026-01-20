@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { InfoTooltip, FIELD_HELP_TOOLTIPS } from '@/components/ui/Tooltip';
 
 export type IdentityType =
   | 'named_public'
@@ -275,7 +276,10 @@ function WitnessCard({
 
           {/* Claim Summary */}
           <div>
-            <label className="mb-1 block text-sm text-zinc-400">Claim Summary</label>
+            <label className="mb-1 flex items-center gap-1 text-sm text-zinc-400">
+              Claim Summary
+              <InfoTooltip text={FIELD_HELP_TOOLTIPS.witnessStatement} />
+            </label>
             <textarea
               value={witness.claimSummary}
               onChange={(e) => updateField('claimSummary', e.target.value)}
@@ -328,7 +332,10 @@ export function WitnessesForm({ witnesses, onChange, onNext, onBack }: Witnesses
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-2xl font-bold text-zinc-100">Witnesses & Sources</h2>
+        <h2 className="text-2xl font-bold text-zinc-100">
+          Witnesses & Sources
+          <InfoTooltip text={FIELD_HELP_TOOLTIPS.witnessCount} />
+        </h2>
         <p className="mt-2 text-zinc-400">
           Add details about each witness or source for this investigation
         </p>
