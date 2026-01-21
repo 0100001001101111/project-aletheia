@@ -65,7 +65,7 @@ const DOMAINS = [
     id: 'geophysical',
     name: 'Geophysical',
     fullName: 'Earth Anomalies',
-    description: 'UAP, earthquake lights, and environmental correlates',
+    description: 'Earthquake lights and environmental correlates',
     icon: (
       <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -74,6 +74,20 @@ const DOMAINS = [
     color: 'green',
     gradient: 'from-green-500 to-green-400',
   },
+  {
+    id: 'ufo',
+    name: 'UFO/UAP',
+    fullName: 'Unidentified Aerial Phenomena',
+    description: 'Aerial anomalies with witness reports and correlations',
+    icon: (
+      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3c-4.97 0-9 2.686-9 6 0 2.21 2.015 4.134 5 5.197V17l2.5-2.5L13 17v-2.803c2.985-1.063 5-2.987 5-5.197 0-3.314-4.03-6-9-6z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9h.01M15 9h.01M12 21v-4" />
+      </svg>
+    ),
+    color: 'rose',
+    gradient: 'from-rose-500 to-rose-400',
+  },
 ];
 
 // Fetch stats from database
@@ -81,18 +95,29 @@ async function getStats() {
   try {
     const supabase = await createServerClient();
 
-    // Get all investigations and count by type
-    const { data: investigations } = await supabase
+    // Get total investigation count efficiently
+    const { count: totalInvestigations } = await supabase
       .from('aletheia_investigations')
-      .select('investigation_type') as { data: Array<{ investigation_type: string }> | null };
+      .select('id', { count: 'exact', head: true });
+
+    // Get counts by type using individual count queries (more efficient than fetching all rows)
+    const [ndeCount, ganzfeldCount, crisisCount, stargateCount, geophysicalCount, ufoCount] = await Promise.all([
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'nde'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'ganzfeld'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'crisis_apparition'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'stargate'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'geophysical'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'ufo'),
+    ]);
 
     const investigationCounts = {
-      nde: investigations?.filter((i) => i.investigation_type === 'nde').length || 0,
-      ganzfeld: investigations?.filter((i) => i.investigation_type === 'ganzfeld').length || 0,
-      crisis: investigations?.filter((i) => i.investigation_type === 'crisis_apparition').length || 0,
-      stargate: investigations?.filter((i) => i.investigation_type === 'stargate').length || 0,
-      geophysical: investigations?.filter((i) => i.investigation_type === 'geophysical').length || 0,
-      total: investigations?.length || 0,
+      nde: ndeCount.count || 0,
+      ganzfeld: ganzfeldCount.count || 0,
+      crisis: crisisCount.count || 0,
+      stargate: stargateCount.count || 0,
+      geophysical: geophysicalCount.count || 0,
+      ufo: ufoCount.count || 0,
+      total: totalInvestigations || 0,
     };
 
     // Get pattern count
@@ -100,17 +125,21 @@ async function getStats() {
       .from('aletheia_pattern_matches')
       .select('id', { count: 'exact', head: true });
 
-    // Get prediction counts
-    const { data: predictions } = await supabase
-      .from('aletheia_predictions')
-      .select('status') as { data: Array<{ status: string }> | null };
+    // Get prediction counts efficiently
+    const [totalPredictions, confirmedCount, refutedCount, testingCount, openCount] = await Promise.all([
+      supabase.from('aletheia_predictions').select('id', { count: 'exact', head: true }),
+      supabase.from('aletheia_predictions').select('id', { count: 'exact', head: true }).eq('status', 'confirmed'),
+      supabase.from('aletheia_predictions').select('id', { count: 'exact', head: true }).eq('status', 'refuted'),
+      supabase.from('aletheia_predictions').select('id', { count: 'exact', head: true }).eq('status', 'testing'),
+      supabase.from('aletheia_predictions').select('id', { count: 'exact', head: true }).eq('status', 'open'),
+    ]);
 
     const predictionStats = {
-      total: predictions?.length || 0,
-      confirmed: predictions?.filter((p) => p.status === 'confirmed').length || 0,
-      refuted: predictions?.filter((p) => p.status === 'refuted').length || 0,
-      testing: predictions?.filter((p) => p.status === 'testing').length || 0,
-      open: predictions?.filter((p) => p.status === 'open').length || 0,
+      total: totalPredictions.count || 0,
+      confirmed: confirmedCount.count || 0,
+      refuted: refutedCount.count || 0,
+      testing: testingCount.count || 0,
+      open: openCount.count || 0,
     };
 
     return {
@@ -120,7 +149,7 @@ async function getStats() {
     };
   } catch {
     return {
-      investigations: { nde: 0, ganzfeld: 0, crisis: 0, stargate: 0, geophysical: 0, total: 0 },
+      investigations: { nde: 0, ganzfeld: 0, crisis: 0, stargate: 0, geophysical: 0, ufo: 0, total: 0 },
       patterns: 0,
       predictions: { total: 0, confirmed: 0, refuted: 0, testing: 0, open: 0 },
     };
@@ -372,7 +401,7 @@ export default async function LandingPage() {
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">Standardized Schemas</h3>
-              <p className="text-zinc-400 text-sm">5 research domains, machine-readable formats, version controlled</p>
+              <p className="text-zinc-400 text-sm">6 research domains, machine-readable formats, version controlled</p>
             </div>
 
             {/* Feature 2 */}
@@ -529,7 +558,7 @@ export default async function LandingPage() {
 
             {/* Domains */}
             <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-cyan-900/10 border border-cyan-500/20 text-center">
-              <div className="text-5xl font-bold text-cyan-400 mb-2">5</div>
+              <div className="text-5xl font-bold text-cyan-400 mb-2">{DOMAINS.length}</div>
               <div className="text-zinc-400 font-medium">Domains</div>
               <div className="text-xs text-zinc-500 mt-1">Connected schemas</div>
             </div>
@@ -637,10 +666,10 @@ export default async function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Research Domains</h2>
-            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Five Interconnected Fields</p>
+            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Six Interconnected Fields</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
             {DOMAINS.map((domain) => (
               <Link
                 key={domain.id}

@@ -516,8 +516,12 @@ function generateInvestigationSummary(type: InvestigationType, data: Record<stri
 
       // Basic sighting info
       if (dateTime) {
-        const date = new Date(dateTime as string).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        summary += `On ${date}, `;
+        const parsedDate = new Date(dateTime as string);
+        const isValidDate = !isNaN(parsedDate.getTime());
+        if (isValidDate) {
+          const date = parsedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+          summary += `On ${date}, `;
+        }
       }
 
       summary += `witnesses in ${city}${state ? `, ${state}` : ''} reported `;
@@ -698,7 +702,7 @@ export default function InvestigationPage({ params }: PageProps) {
             </div>
             <div className="text-right">
               <div className={`text-4xl font-bold ${scoreColor}`}>
-                {investigation.triage_score}/10
+                {investigation.triage_score != null ? `${investigation.triage_score}/10` : '—'}
                 <InfoTooltip text={JARGON_TOOLTIPS.triage_score} position="left" />
               </div>
               <span className={`mt-1 inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm capitalize ${statusColor}`}>

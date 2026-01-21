@@ -500,7 +500,7 @@ function InvestigationsPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-sm font-medium ${scoreColor}`}>
-                            {investigation.triage_score}/10
+                            {investigation.triage_score != null ? `${investigation.triage_score}/10` : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
