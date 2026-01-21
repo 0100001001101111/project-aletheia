@@ -2,26 +2,32 @@
 
 *Last updated: January 21, 2026*
 
-## Completed This Session
+## CRITICAL: Investigations Page Timeout
 
-- [x] **Window Analysis Dashboard** - Full dashboard at `/analysis/windows`
-- [x] **Monte Carlo Co-occurrence Analysis** - Statistical validation of clustering
-- [x] **Data Ingestion Pipeline** - API and utilities for bulk imports
-- [x] **15 Pre-registered Predictions** - Falsifiable hypotheses from grid data
-- [x] **Fixed cooccurrence API** - Response structure now matches frontend expectations
-- [x] **Cleaned up misplaced files** - Moved Aletheia code from brothers-command-center
+**Status:** BROKEN
+
+The investigations page times out with 166k+ records:
+```
+Failed to fetch submissions: canceling statement due to statement timeout
+```
+
+**Fix needed:**
+- Add server-side pagination to `/api/submissions` route
+- Limit initial fetch to 50-100 records
+- Add "Load More" or infinite scroll
+
+**Affected URL:** `/investigations?tier=exploratory`
 
 ---
 
 ## Next Steps
 
-### 1. Evaluate Window Predictions
-The 15 active predictions need evaluation against new data as it comes in.
+### 1. Fix Investigations Page Timeout (URGENT)
+Add pagination to handle 166k+ records without timeout.
 
-```bash
-# Generate evaluation report
-curl -X POST http://localhost:3000/api/analysis/window/predictions/evaluate
-```
+**Files to modify:**
+- `src/app/api/submissions/route.ts` - Add limit/offset params
+- `src/app/investigations/page.tsx` - Add pagination UI
 
 ### 2. Add Navigation to Window Analysis
 Add link to Window Analysis dashboard in main navigation sidebar.
@@ -29,17 +35,13 @@ Add link to Window Analysis dashboard in main navigation sidebar.
 **Files to modify:**
 - `src/components/layout/Sidebar.tsx` or equivalent nav component
 
-### 3. Temporal Analysis Implementation
-The TemporalAnalysisTab is mostly placeholder. Need to:
-- Connect to actual temporal data
-- Add time-series visualization
-- Correlate events across domains by date
+### 3. Evaluate Window Predictions
+The 15 active predictions need evaluation against new data as it comes in.
 
-### 4. Geological Correlates Data
-GeologicalAnalysisTab needs real data connections:
-- Fault line proximity calculations
-- Bedrock type mapping
-- Aquifer data integration
+### 4. Temporal Analysis Implementation
+The TemporalAnalysisTab has working charts now but uses hardcoded data. Need to:
+- Connect to actual temporal data from database
+- Add time-series visualization
 
 ---
 
@@ -54,45 +56,36 @@ GeologicalAnalysisTab needs real data connections:
 - [ ] Update BFRO data (currently ends 2017)
 - [ ] Import more recent NUFORC data
 - [ ] Add paranormal witness database
-- [ ] Import historical UFO cases (pre-1990)
 
 ---
 
 ## Technical Debt
 
+### Performance (PRIORITY)
+- [ ] **Add pagination to investigations API** (causes timeout)
+- [ ] Implement virtual scrolling for large lists
+- [ ] Cache grid cell data (rarely changes)
+
 ### Type Safety
 - [ ] Replace `@ts-nocheck` with proper types
 - [ ] Replace `AnyClient` assertions after regenerating Supabase types
-- [ ] Run: `npx supabase gen types typescript --project-id YOUR_ID > src/types/supabase.ts`
-
-### Performance
-- [ ] Add pagination to investigations API (166k+ records)
-- [ ] Implement virtual scrolling for large lists
-- [ ] Cache grid cell data (rarely changes)
 
 ### Testing
 - [ ] Unit tests for Monte Carlo simulation
 - [ ] Integration tests for prediction evaluation
-- [ ] E2E tests for window analysis dashboard
 
 ---
 
-## Feature Backlog
+## Completed This Session
 
-### Interactive Map
-- [ ] Add Leaflet/Mapbox integration to WindowMap component
-- [ ] Show hotspots with click-to-zoom
-- [ ] Layer toggle for different phenomena types
-
-### Prediction Tracking UI
-- [ ] Visual timeline of prediction status
-- [ ] Notification when evaluation period ends
-- [ ] Historical accuracy display
-
-### Export/API
-- [ ] Public API for grid data
-- [ ] CSV export for researchers
-- [ ] GeoJSON export for mapping tools
+- [x] Fixed cooccurrence API response structure
+- [x] Fixed seasonal distribution charts (bar rendering)
+- [x] Added location names to Top Windows table
+- [x] Switched correlation metric to z-scores with explanation
+- [x] Added verification notes for geological metrics
+- [x] Cleaned up misplaced files from brothers-command-center
+- [x] Fixed Supabase client instantiation for Vercel builds
+- [x] Deployed to Vercel
 
 ---
 
@@ -102,3 +95,4 @@ GeologicalAnalysisTab needs real data connections:
 - TypeScript check: `npx tsc --noEmit`
 - Scripts use tsx: `npx tsx scripts/rebuild-grid.ts`
 - Window analysis page: http://localhost:3000/analysis/windows
+- Vercel deploy workaround: `mv .git .git-backup && vercel --prod --yes; mv .git-backup .git`

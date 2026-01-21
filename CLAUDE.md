@@ -192,9 +192,10 @@ If there are type errors, fix them before declaring completion.
 
 ## Known Issues
 
+- **CRITICAL: Investigations page timeout** - `/investigations?tier=exploratory` times out with 166k+ records. Needs pagination.
 - **TypeScript**: Some files use `@ts-nocheck` or `AnyClient` type assertions
 - **Scripts**: Standalone scripts in `/scripts` have TypeScript target warnings (harmless)
-- **Vercel CLI**: `vercel --prod` may fail with git author error; use Vercel dashboard or workaround
+- **Vercel CLI**: `vercel --prod` fails with git author error; workaround: `mv .git .git-backup && vercel --prod --yes; mv .git-backup .git`
 
 ## External Repos That Feed This
 
