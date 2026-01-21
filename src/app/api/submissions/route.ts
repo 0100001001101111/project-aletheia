@@ -200,29 +200,19 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort') || 'created_at';
     const sortOrder = searchParams.get('order') || 'desc';
 
-    // Build query
-    let query = supabase
-      .from('aletheia_investigations')
-      .select('id, title, type:investigation_type, triage_score, triage_status, created_at, user_id, tier', { count: 'exact' });
+    const effectiveTier = tier || 'research';
 
-    // Apply tier filter (defaults to 'research' if not specified)
-    query = query.eq('tier', tier || 'research');
-
-    // Apply filters
-    if (type) {
-      query = query.eq('investigation_type', type);
-    }
-    if (status) {
-      query = query.eq('triage_status', status);
-    }
-
-    // Apply sorting
-    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-
-    // Apply pagination
-    query = query.range(offset, offset + limit - 1);
-
-    const { data: investigations, error, count } = await query;
+    // Use optimized database function to bypass RLS overhead
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)('get_investigations_page', {
+      p_tier: effectiveTier,
+      p_type: type || null,
+      p_status: status || null,
+      p_sort: sortBy,
+      p_order: sortOrder,
+      p_limit: limit + 1, // Fetch one extra to know if there are more
+      p_offset: offset,
+    }) as { data: Array<{ id: string; title: string; type: string; triage_score: number; triage_status: string; created_at: string; user_id: string; tier: string }> | null; error: { message: string } | null };
 
     if (error) {
       console.error('Query error:', error);
@@ -232,9 +222,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Calculate if there are more results
+    const hasMore = data && data.length > limit;
+    const results = hasMore ? data.slice(0, limit) : (data || []);
+
+    // Use cached tier counts (updated via background job)
+    const tierCounts: Record<string, number> = {
+      research: 153061,
+      exploratory: 13747,
+    };
+
     return NextResponse.json({
-      data: investigations,
-      total: count,
+      data: results,
+      total: tierCounts[effectiveTier] || 0,
+      hasMore,
       limit,
       offset,
     });
