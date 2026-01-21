@@ -9,11 +9,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { classifyGeomagneticActivity, buildSpaceWeatherContext } from '@/lib/space-weather';
 
-// Use service role client for bulk operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Create Supabase admin client at runtime to avoid build-time env issues
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 interface EnrichmentResult {
   investigation_id: string;
@@ -41,7 +43,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // Fetch investigations that need enrichment
-    let query = supabaseAdmin
+    let query = getSupabaseAdmin()
       .from('aletheia_investigations')
       .select('id, raw_data, created_at')
       .is('kp_at_event', null)
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
         const minTime = new Date(eventTimestamp.getTime() - maxOffsetMs);
         const maxTime = new Date(eventTimestamp.getTime() + maxOffsetMs);
 
-        const { data: kpRecords, error: kpError } = await supabaseAdmin
+        const { data: kpRecords, error: kpError } = await getSupabaseAdmin()
           .from('aletheia_space_weather')
           .select('timestamp, kp_index, ap_index')
           .gte('timestamp', minTime.toISOString())
@@ -147,7 +149,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Update investigation
-        const { error: updateError } = await supabaseAdmin
+        const { error: updateError } = await getSupabaseAdmin()
           .from('aletheia_investigations')
           .update({
             kp_at_event: closestKp.kp_index,

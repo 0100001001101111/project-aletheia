@@ -6,13 +6,18 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Create Supabase client at runtime to avoid build-time env issues
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export async function GET() {
   try {
+    const supabase = getSupabase();
+
     // Fetch all exploratory investigations with location data
     const { data, error } = await supabase
       .from('aletheia_investigations')
