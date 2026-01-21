@@ -17,13 +17,15 @@ import {
   type KpIndexRecord,
 } from '@/lib/space-weather';
 
-// Use service role client for bulk operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 const GFZ_KP_URL = 'https://www-app3.gfz-potsdam.de/kp_index/Kp_ap_since_1932.txt';
+
+// Create Supabase admin client at runtime to avoid build-time env issues
+function getSupabaseAdmin() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
 
 interface BackfillProgress {
   phase: string;
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest) {
         };
       });
 
-      const { error } = await supabaseAdmin
+      const { error } = await getSupabaseAdmin()
         .from('aletheia_space_weather')
         .upsert(insertData, { onConflict: 'timestamp' });
 
