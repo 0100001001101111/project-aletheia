@@ -335,24 +335,44 @@ function InvestigationsPage() {
                 {total}
               </span>
             </button>
-            {(['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'] as InvestigationType[]).map((type) => {
+            {(tier === 'research' ? RESEARCH_DOMAINS : EXPLORATORY_DOMAINS).map((type) => {
               const meta = SCHEMA_METADATA[type] || { name: type, icon: '❓', color: 'text-zinc-400' };
               const isActive = filterType === type;
               const colorMap: Partial<Record<InvestigationType, string>> = {
+                // Research domains
                 nde: 'bg-purple-600 shadow-purple-500/25',
                 ganzfeld: 'bg-blue-600 shadow-blue-500/25',
                 crisis_apparition: 'bg-amber-600 shadow-amber-500/25',
                 stargate: 'bg-emerald-600 shadow-emerald-500/25',
                 geophysical: 'bg-cyan-600 shadow-cyan-500/25',
                 ufo: 'bg-rose-600 shadow-rose-500/25',
+                // Exploratory domains
+                bigfoot: 'bg-green-600 shadow-green-500/25',
+                haunting: 'bg-purple-600 shadow-purple-500/25',
+                crop_circle: 'bg-lime-600 shadow-lime-500/25',
+                bermuda_triangle: 'bg-blue-600 shadow-blue-500/25',
+                hotspot: 'bg-orange-600 shadow-orange-500/25',
+                cryptid: 'bg-teal-600 shadow-teal-500/25',
+                cattle_mutilation: 'bg-red-600 shadow-red-500/25',
+                men_in_black: 'bg-zinc-600 shadow-zinc-500/25',
               };
               const hoverMap: Partial<Record<InvestigationType, string>> = {
+                // Research domains
                 nde: 'hover:bg-purple-600/20 hover:text-purple-300 hover:border-purple-500/50',
                 ganzfeld: 'hover:bg-blue-600/20 hover:text-blue-300 hover:border-blue-500/50',
                 crisis_apparition: 'hover:bg-amber-600/20 hover:text-amber-300 hover:border-amber-500/50',
                 stargate: 'hover:bg-emerald-600/20 hover:text-emerald-300 hover:border-emerald-500/50',
                 geophysical: 'hover:bg-cyan-600/20 hover:text-cyan-300 hover:border-cyan-500/50',
                 ufo: 'hover:bg-rose-600/20 hover:text-rose-300 hover:border-rose-500/50',
+                // Exploratory domains
+                bigfoot: 'hover:bg-green-600/20 hover:text-green-300 hover:border-green-500/50',
+                haunting: 'hover:bg-purple-600/20 hover:text-purple-300 hover:border-purple-500/50',
+                crop_circle: 'hover:bg-lime-600/20 hover:text-lime-300 hover:border-lime-500/50',
+                bermuda_triangle: 'hover:bg-blue-600/20 hover:text-blue-300 hover:border-blue-500/50',
+                hotspot: 'hover:bg-orange-600/20 hover:text-orange-300 hover:border-orange-500/50',
+                cryptid: 'hover:bg-teal-600/20 hover:text-teal-300 hover:border-teal-500/50',
+                cattle_mutilation: 'hover:bg-red-600/20 hover:text-red-300 hover:border-red-500/50',
+                men_in_black: 'hover:bg-zinc-600/20 hover:text-zinc-300 hover:border-zinc-500/50',
               };
 
               return (
