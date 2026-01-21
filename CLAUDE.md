@@ -190,9 +190,36 @@ If there are type errors, fix them before declaring completion.
 - `GET /api/data/ingest` - Get sync status for data sources
 - `POST /api/data/ingest` - Ingest new data from JSON/URL
 
+## Database Functions
+
+### `get_investigations_page()`
+
+Optimized function for querying investigations that bypasses RLS overhead.
+
+```sql
+SELECT * FROM get_investigations_page(
+  p_tier := 'exploratory',      -- 'research' or 'exploratory'
+  p_type := NULL,               -- investigation_type filter (optional)
+  p_status := NULL,             -- triage_status filter (optional)
+  p_sort := 'triage_score',     -- sort column
+  p_order := 'desc',            -- 'asc' or 'desc'
+  p_limit := 20,                -- page size
+  p_offset := 0                 -- pagination offset
+);
+```
+
+**Why this exists:** RLS policies prevent PostgreSQL from using composite indexes efficiently, causing queries to take 5+ seconds instead of ~50ms. This `SECURITY DEFINER` function runs with elevated privileges and uses proper enum type casting to enable index usage.
+
+**Used by:** `/api/submissions` GET endpoint
+
+## RLS Performance Warning
+
+When querying `aletheia_investigations` with RLS enabled (as `anon` or `authenticated` role), PostgreSQL may not use indexes efficiently. Direct queries can timeout even with proper indexes.
+
+**Solution:** Use `get_investigations_page()` function instead of direct table queries for paginated investigation lists.
+
 ## Known Issues
 
-- **CRITICAL: Investigations page timeout** - `/investigations?tier=exploratory` times out with 166k+ records. Needs pagination.
 - **TypeScript**: Some files use `@ts-nocheck` or `AnyClient` type assertions
 - **Scripts**: Standalone scripts in `/scripts` have TypeScript target warnings (harmless)
 - **Vercel CLI**: `vercel --prod` fails with git author error; workaround: `mv .git .git-backup && vercel --prod --yes; mv .git-backup .git`
