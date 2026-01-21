@@ -1,13 +1,16 @@
 "use client";
 
-// Hardcoded results from geological analysis
+// Geological analysis results
+// Note: These metrics require verification against original fault proximity data
+// Initial values suggest ~2x difference; some earlier analyses reported 10x
 const INITIAL_FINDING = {
   metric: "Fault Proximity",
-  highIndexMean: 45.2,
-  lowIndexMean: 89.3,
+  highIndexMean: 45.2,  // High-activity cells: mean distance to nearest fault
+  lowIndexMean: 89.3,   // Low-activity cells: mean distance to nearest fault
   tStatistic: -3.21,
   pValue: 0.0014,
   significant: true,
+  caveat: "Values require verification with USGS fault database",
 };
 
 const CONTROLLED_RESULTS = [
@@ -29,9 +32,9 @@ const CONTROLLED_RESULTS = [
 ];
 
 const GEOLOGICAL_METRICS = [
-  { metric: "Fault Distance (km)", highIndex: "45.2 ± 12.3", lowIndex: "89.3 ± 34.5", finding: "Closer to faults" },
-  { metric: "Elevation (m)", highIndex: "342 ± 189", lowIndex: "298 ± 156", finding: "No difference" },
-  { metric: "Quartz Content (%)", highIndex: "12.3 ± 8.4", lowIndex: "11.8 ± 7.9", finding: "No difference" },
+  { metric: "Fault Distance (km)", highIndex: "45.2 ± 12.3", lowIndex: "89.3 ± 34.5", finding: "~2x closer to faults*" },
+  { metric: "Elevation (m)", highIndex: "342 ± 189", lowIndex: "298 ± 156", finding: "No significant difference" },
+  { metric: "Quartz Content (%)", highIndex: "12.3 ± 8.4", lowIndex: "11.8 ± 7.9", finding: "No significant difference" },
 ];
 
 export function GeologicalAnalysisTab() {
@@ -158,6 +161,10 @@ export function GeologicalAnalysisTab() {
               ))}
             </tbody>
           </table>
+          <p className="text-xs text-zinc-500 mt-3">
+            *Fault distance values are preliminary. Earlier analysis variants reported different effect sizes.
+            These metrics should be verified against the USGS Quaternary Fault Database with consistent cell classification.
+          </p>
         </div>
       </div>
     </div>

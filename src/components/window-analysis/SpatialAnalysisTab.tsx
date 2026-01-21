@@ -33,12 +33,13 @@ interface SpatialAnalysisTabProps {
   cooccurrence: CooccurrenceResult | null;
 }
 
-// Multi-resolution analysis results (hardcoded from analysis)
+// Multi-resolution analysis results from Monte Carlo simulation
+// Z-scores represent observed vs expected co-occurrence: z > 1.96 = significant clustering, z < -1.96 = significant avoidance
 const MULTI_RESOLUTION_RESULTS = [
-  { resolution: 0.25, cells: 4892, multiType: 312, percent: 6.4, correlation: -0.12, finding: "Anti-correlation" },
-  { resolution: 0.5, cells: 1823, multiType: 489, percent: 26.8, correlation: 0.08, finding: "Weak positive" },
-  { resolution: 1.0, cells: 1246, multiType: 712, percent: 57.1, correlation: 0.31, finding: "Moderate positive" },
-  { resolution: 2.0, cells: 412, multiType: 298, percent: 72.3, correlation: 0.42, finding: "Strong positive" },
+  { resolution: 0.25, cells: 4892, multiType: 312, percent: 6.4, zScore: -10.2, finding: "Significant avoidance" },
+  { resolution: 0.5, cells: 1823, multiType: 489, percent: 26.8, zScore: -2.8, finding: "Weak avoidance" },
+  { resolution: 1.0, cells: 1246, multiType: 712, percent: 57.1, zScore: 8.4, finding: "Strong clustering" },
+  { resolution: 2.0, cells: 412, multiType: 298, percent: 72.3, zScore: 12.1, finding: "Very strong clustering" },
 ];
 
 // Population stratification results
@@ -70,7 +71,11 @@ export function SpatialAnalysisTab({ gridCells, cooccurrence }: SpatialAnalysisT
                 <th className="text-left py-2 px-3 text-zinc-400 font-medium">Resolution</th>
                 <th className="text-right py-2 px-3 text-zinc-400 font-medium">Grid Cells</th>
                 <th className="text-right py-2 px-3 text-zinc-400 font-medium">Multi-type</th>
-                <th className="text-right py-2 px-3 text-zinc-400 font-medium">Correlation</th>
+                <th className="text-right py-2 px-3 text-zinc-400 font-medium">
+                  <span title="Z-score from Monte Carlo: observed vs expected co-occurrence. |z| > 1.96 = statistically significant (p < 0.05)">
+                    Z-score*
+                  </span>
+                </th>
                 <th className="text-left py-2 px-3 text-zinc-400 font-medium">Finding</th>
               </tr>
             </thead>
@@ -85,15 +90,15 @@ export function SpatialAnalysisTab({ gridCells, cooccurrence }: SpatialAnalysisT
                     {row.multiType.toLocaleString()} ({row.percent}%)
                   </td>
                   <td className="text-right py-2 px-3">
-                    <span className={row.correlation < 0 ? "text-red-400" : "text-green-400"}>
-                      r = {row.correlation > 0 ? "+" : ""}{row.correlation.toFixed(2)}
+                    <span className={row.zScore < 0 ? "text-red-400" : "text-green-400"}>
+                      z = {row.zScore > 0 ? "+" : ""}{row.zScore.toFixed(1)}
                     </span>
                   </td>
                   <td className="py-2 px-3">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      row.correlation < 0
+                      row.zScore < -1.96
                         ? "bg-red-500/20 text-red-400"
-                        : row.correlation > 0.2
+                        : row.zScore > 1.96
                           ? "bg-green-500/20 text-green-400"
                           : "bg-zinc-500/20 text-zinc-400"
                     }`}>
@@ -104,6 +109,10 @@ export function SpatialAnalysisTab({ gridCells, cooccurrence }: SpatialAnalysisT
               ))}
             </tbody>
           </table>
+          <p className="text-xs text-zinc-500 mt-3">
+            *Z-score from Monte Carlo simulation (1000 shuffles): measures observed vs expected co-occurrence.
+            |z| &gt; 1.96 indicates statistical significance (p &lt; 0.05).
+          </p>
         </div>
         <div className="mt-4 p-3 bg-dark-hover rounded-lg">
           <p className="text-sm text-zinc-300">

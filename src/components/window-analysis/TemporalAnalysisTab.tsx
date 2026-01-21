@@ -42,7 +42,7 @@ const BIGFOOT_SEASONAL = [
   { month: "Dec", count: 178, pct: 4.7 },
 ];
 
-function SeasonalChart({ data, label, peakMonth }: { data: typeof UFO_SEASONAL; label: string; peakMonth: string }) {
+function SeasonalChart({ data, label, peakMonth, color }: { data: typeof UFO_SEASONAL; label: string; peakMonth: string; color: string }) {
   const maxPct = Math.max(...data.map(d => d.pct));
 
   return (
@@ -53,16 +53,27 @@ function SeasonalChart({ data, label, peakMonth }: { data: typeof UFO_SEASONAL; 
           Peak: {peakMonth}
         </span>
       </div>
-      <div className="flex items-end gap-1 h-24">
-        {data.map((d) => (
-          <div key={d.month} className="flex-1 flex flex-col items-center gap-1">
-            <div
-              className={`w-full rounded-t ${d.month === peakMonth ? "bg-brand-500" : "bg-zinc-600"}`}
-              style={{ height: `${(d.pct / maxPct) * 100}%` }}
-            />
-            <span className="text-[10px] text-zinc-500">{d.month.slice(0, 1)}</span>
-          </div>
-        ))}
+      <div className="flex items-end gap-1 h-32 pt-2">
+        {data.map((d) => {
+          const heightPct = (d.pct / maxPct) * 100;
+          const isPeak = d.month === peakMonth;
+          return (
+            <div key={d.month} className="flex-1 flex flex-col items-center justify-end h-full">
+              <div className="flex-1 flex items-end w-full px-0.5">
+                <div
+                  className={`w-full rounded-t transition-all ${isPeak ? color : "bg-zinc-600"}`}
+                  style={{ height: `${Math.max(heightPct, 4)}%`, minHeight: "4px" }}
+                  title={`${d.month}: ${d.count.toLocaleString()} (${d.pct}%)`}
+                />
+              </div>
+              <span className="text-[10px] text-zinc-500 mt-1">{d.month.slice(0, 1)}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-[10px] text-zinc-600 px-1">
+        <span>Jan</span>
+        <span>Dec</span>
       </div>
     </div>
   );
@@ -125,8 +136,8 @@ export function TemporalAnalysisTab() {
           Monthly distribution shows different peak seasons for each phenomenon
         </p>
         <div className="grid gap-6 md:grid-cols-2">
-          <SeasonalChart data={UFO_SEASONAL} label="UFO Sightings" peakMonth="Oct" />
-          <SeasonalChart data={BIGFOOT_SEASONAL} label="Bigfoot Sightings" peakMonth="Jul" />
+          <SeasonalChart data={UFO_SEASONAL} label="UFO Sightings" peakMonth="Oct" color="bg-blue-500" />
+          <SeasonalChart data={BIGFOOT_SEASONAL} label="Bigfoot Sightings" peakMonth="Jul" color="bg-green-500" />
         </div>
         <div className="mt-6 p-3 bg-dark-hover rounded-lg">
           <p className="text-sm text-zinc-300">
