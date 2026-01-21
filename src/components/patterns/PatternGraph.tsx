@@ -17,23 +17,34 @@ interface PatternGraphProps {
 }
 
 // Node positions (hexagonal layout for 6 domains)
-const NODE_POSITIONS: Record<InvestigationType, { x: number; y: number }> = {
+const NODE_POSITIONS: Partial<Record<InvestigationType, { x: number; y: number }>> = {
   nde: { x: 50, y: 10 },
   ganzfeld: { x: 85, y: 30 },
   stargate: { x: 85, y: 70 },
   crisis_apparition: { x: 50, y: 90 },
   geophysical: { x: 15, y: 70 },
   ufo: { x: 15, y: 30 },
+  // Exploratory domains (extended layout)
+  bigfoot: { x: 50, y: 50 },
+  haunting: { x: 30, y: 50 },
+  crop_circle: { x: 70, y: 50 },
+  bermuda_triangle: { x: 10, y: 50 },
+  hotspot: { x: 90, y: 50 },
 };
 
 // Short abbreviations for node labels
-const NODE_ABBREVIATIONS: Record<InvestigationType, string> = {
+const NODE_ABBREVIATIONS: Partial<Record<InvestigationType, string>> = {
   nde: 'NDE',
   ganzfeld: 'Ganzfeld',
   stargate: 'RV',
   crisis_apparition: 'Crisis',
   geophysical: 'Geo',
   ufo: 'UFO',
+  bigfoot: 'BF',
+  haunting: 'Haunt',
+  crop_circle: 'Crop',
+  bermuda_triangle: 'BT',
+  hotspot: 'Hot',
 };
 
 interface GraphNode {
@@ -62,9 +73,11 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
     const domains: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'];
     return domains.map((domain) => {
       const domainPatterns = patterns.filter((p) => p.domains.includes(domain));
+      const pos = NODE_POSITIONS[domain] || { x: 50, y: 50 };
       return {
         id: domain,
-        ...NODE_POSITIONS[domain],
+        x: pos.x,
+        y: pos.y,
         patternCount: domainPatterns.length,
       };
     });
@@ -119,15 +132,15 @@ export function PatternGraph({ patterns, onNodeClick, onEdgeClick }: PatternGrap
 
   // Calculate edge path
   const getEdgePath = (source: InvestigationType, target: InvestigationType): string => {
-    const s = NODE_POSITIONS[source];
-    const t = NODE_POSITIONS[target];
+    const s = NODE_POSITIONS[source] || { x: 50, y: 50 };
+    const t = NODE_POSITIONS[target] || { x: 50, y: 50 };
     return `M ${s.x} ${s.y} L ${t.x} ${t.y}`;
   };
 
   // Get edge label position (midpoint)
   const getEdgeLabelPosition = (source: InvestigationType, target: InvestigationType) => {
-    const s = NODE_POSITIONS[source];
-    const t = NODE_POSITIONS[target];
+    const s = NODE_POSITIONS[source] || { x: 50, y: 50 };
+    const t = NODE_POSITIONS[target] || { x: 50, y: 50 };
     return {
       x: (s.x + t.x) / 2,
       y: (s.y + t.y) / 2,

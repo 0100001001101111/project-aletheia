@@ -8,7 +8,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { InvestigationType } from '@/types/database';
 import type { ParseResult } from '@/lib/parser';
-import { FIELD_DESCRIPTIONS, SCHEMA_METADATA, flattenToDotNotation, getNestedValue, setNestedValue } from '@/schemas';
+import { getFieldDescriptions, SCHEMA_METADATA, flattenToDotNotation, getNestedValue, setNestedValue } from '@/schemas';
 import { getConfidenceLevel } from '@/lib/parser';
 
 interface DataEditorProps {
@@ -111,7 +111,7 @@ export function DataEditor({
   const [showAllFields, setShowAllFields] = useState(false);
 
   const metadata = SCHEMA_METADATA[schemaType];
-  const fieldDescriptions = FIELD_DESCRIPTIONS[schemaType];
+  const fieldDescriptions = getFieldDescriptions(schemaType) || {};
   const confidence = parseResult?.confidence || {};
 
   // Flatten data for editing

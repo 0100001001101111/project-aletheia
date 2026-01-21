@@ -137,7 +137,7 @@ export default function DashboardPage() {
           detectedAt: (p.detected_at || p.created_at) as string,
         }));
 
-        const domainCounts: Record<InvestigationType, number> = {
+        const domainCounts: Partial<Record<InvestigationType, number>> = {
           nde: 45,
           ganzfeld: 120,
           crisis_apparition: 25,

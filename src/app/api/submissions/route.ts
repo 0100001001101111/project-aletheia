@@ -194,6 +194,7 @@ export async function GET(request: NextRequest) {
     // Parse query params
     const type = searchParams.get('type') as InvestigationType | null;
     const status = searchParams.get('status') as TriageStatus | null;
+    const tier = searchParams.get('tier') as 'research' | 'exploratory' | null;
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const sortBy = searchParams.get('sort') || 'created_at';
@@ -202,7 +203,10 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from('aletheia_investigations')
-      .select('id, title, type:investigation_type, triage_score, triage_status, created_at, user_id', { count: 'exact' });
+      .select('id, title, type:investigation_type, triage_score, triage_status, created_at, user_id, tier', { count: 'exact' });
+
+    // Apply tier filter (defaults to 'research' if not specified)
+    query = query.eq('tier', tier || 'research');
 
     // Apply filters
     if (type) {

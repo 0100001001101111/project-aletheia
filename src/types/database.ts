@@ -11,7 +11,8 @@ export type IdentityType = 'public' | 'anonymous_verified' | 'anonymous_unverifi
 
 export type VerificationLevel = 'none' | 'phd' | 'researcher' | 'lab_tech' | 'independent';
 
-export type InvestigationType =
+// Research tier investigation types (rigorous science)
+export type ResearchInvestigationType =
   | 'nde'               // Near-death experiences
   | 'ganzfeld'          // Ganzfeld/psi experiments
   | 'crisis_apparition' // Crisis apparitions
@@ -19,7 +20,23 @@ export type InvestigationType =
   | 'geophysical'       // Geophysical anomalies
   | 'ufo';              // UFO/UAP sightings
 
+// Exploratory tier investigation types (pattern exploration)
+export type ExploratoryInvestigationType =
+  | 'bigfoot'           // Sasquatch/cryptid sightings
+  | 'bermuda_triangle'  // Bermuda Triangle anomalies
+  | 'crop_circle'       // Crop formations
+  | 'cattle_mutilation' // Animal mutilation cases
+  | 'hotspot'           // High strangeness locations
+  | 'cryptid'           // General cryptid sightings
+  | 'haunting'          // Ghost/haunting reports
+  | 'men_in_black';     // MIB encounters
+
+// Combined investigation type
+export type InvestigationType = ResearchInvestigationType | ExploratoryInvestigationType;
+
 export type TriageStatus = 'pending' | 'provisional' | 'verified' | 'rejected';
+
+export type TierType = 'research' | 'exploratory';
 
 export type PredictionStatus = 'open' | 'testing' | 'confirmed' | 'refuted' | 'pending';
 
@@ -46,10 +63,11 @@ export interface User {
 
 export interface Investigation {
   id: string;
-  user_id: string;
+  user_id: string | null; // Null for imported/curated exploratory data
   investigation_type: InvestigationType;
+  tier: TierType;
   title: string;
-  description: string;
+  description: string | null; // Null for imported data where title suffices
   raw_data: Record<string, unknown>;
   raw_narrative: string | null;
   triage_score: number | null;
@@ -60,6 +78,8 @@ export interface Investigation {
   triage_variable_capture: number | null;
   triage_data_quality: number | null;
   triage_recommendations: string[] | null;
+  weirdness_score: number | null; // Exploratory tier: 0-10 weirdness meter
+  exploratory_data: Record<string, unknown> | null; // Additional exploratory metadata
   created_at: string;
   updated_at: string;
 }
@@ -265,15 +285,18 @@ export interface UserInsert {
 
 export interface InvestigationInsert {
   id?: string;
-  user_id: string;
+  user_id?: string | null; // Optional for imported data
   investigation_type: InvestigationType;
+  tier?: TierType;
   title: string;
-  description: string;
+  description?: string | null;
   raw_data?: Record<string, unknown>;
   raw_narrative?: string | null;
   triage_score?: number | null;
   triage_status?: TriageStatus;
   triage_notes?: string | null;
+  weirdness_score?: number | null;
+  exploratory_data?: Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -549,6 +572,98 @@ export interface UFORawData {
   confound_score?: number;
 }
 
+// =====================================================
+// EXPLORATORY TIER RAW DATA SCHEMAS
+// =====================================================
+
+/** Bigfoot/Sasquatch sighting raw data schema */
+export interface BigfootRawData {
+  classification?: {
+    class?: 'A' | 'B' | 'C';
+    class_description?: string;
+  };
+  location?: {
+    lat?: number;
+    lng?: number;
+    state?: string;
+    county?: string;
+  };
+  report_metadata?: {
+    source?: string;
+    report_number?: string;
+  };
+  description?: string;
+  witnesses?: number;
+  physical_evidence?: string[];
+  vocalization?: boolean;
+  tracks_found?: boolean;
+}
+
+/** High Strangeness Hotspot raw data schema */
+export interface HotspotRawData {
+  location?: {
+    lat?: number;
+    lng?: number;
+    name?: string;
+    region?: string;
+  };
+  phenomena?: string[];
+  sources?: string[];
+  notes?: string;
+  documented_since?: string;
+  investigation_status?: string;
+}
+
+/** Cattle Mutilation raw data schema */
+export interface CattleMutilationRawData {
+  date?: string;
+  location?: {
+    lat?: number;
+    lng?: number;
+    state?: string;
+    county?: string;
+  };
+  animal_type?: string;
+  excisions?: string[];
+  blood_present?: boolean;
+  predator_marks?: boolean;
+  ufo_reported_nearby?: boolean;
+  law_enforcement_report?: boolean;
+}
+
+/** Crop Circle raw data schema */
+export interface CropCircleRawData {
+  date_discovered?: string;
+  location?: {
+    lat?: number;
+    lng?: number;
+    country?: string;
+    region?: string;
+  };
+  diameter_meters?: number;
+  pattern_complexity?: 'simple' | 'moderate' | 'complex';
+  crop_type?: string;
+  node_changes?: boolean;
+  radiation_detected?: boolean;
+  formation_overnight?: boolean;
+}
+
+/** Haunting raw data schema */
+export interface HauntingRawData {
+  location?: {
+    lat?: number;
+    lng?: number;
+    name?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+  };
+  phenomena?: string[];
+  documented_since?: string;
+  investigation_count?: number;
+  notable_events?: string[];
+}
+
 /** Union type for all raw data schemas */
 export type InvestigationRawData =
   | NDERawData
@@ -556,7 +671,12 @@ export type InvestigationRawData =
   | CrisisApparitionRawData
   | StargateRawData
   | GeophysicalRawData
-  | UFORawData;
+  | UFORawData
+  | BigfootRawData
+  | HotspotRawData
+  | CattleMutilationRawData
+  | CropCircleRawData
+  | HauntingRawData;
 
 // =====================================================
 // UTILITY TYPES
@@ -577,8 +697,28 @@ export type TypedInvestigation<T extends InvestigationType> = Omit<Investigation
     ? GeophysicalRawData
     : T extends 'ufo'
     ? UFORawData
+    : T extends 'bigfoot'
+    ? BigfootRawData
+    : T extends 'hotspot'
+    ? HotspotRawData
+    : T extends 'cattle_mutilation'
+    ? CattleMutilationRawData
+    : T extends 'crop_circle'
+    ? CropCircleRawData
+    : T extends 'haunting'
+    ? HauntingRawData
     : Record<string, unknown>;
 };
+
+/** Check if an investigation type is exploratory */
+export function isExploratoryType(type: InvestigationType): type is ExploratoryInvestigationType {
+  return ['bigfoot', 'bermuda_triangle', 'crop_circle', 'cattle_mutilation', 'hotspot', 'cryptid', 'haunting', 'men_in_black'].includes(type);
+}
+
+/** Check if an investigation type is research-grade */
+export function isResearchType(type: InvestigationType): type is ResearchInvestigationType {
+  return ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'].includes(type);
+}
 
 /** Investigation with user data joined */
 export interface InvestigationWithUser extends Investigation {

@@ -33,12 +33,12 @@ export async function GET() {
 
   if (!data) {
     return NextResponse.json(
-      { message: 'No analysis results yet. Run POST to generate.' },
+      { result: null, message: 'No analysis results yet. Run POST to generate.' },
       { status: 404 }
     );
   }
 
-  return NextResponse.json(data);
+  return NextResponse.json({ result: data });
 }
 
 export async function POST(request: Request) {

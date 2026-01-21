@@ -652,13 +652,18 @@ function generateTestingProtocol(pattern: DetectedPattern): string {
 }
 
 function formatDomainName(domain: InvestigationType): string {
-  const names: Record<InvestigationType, string> = {
+  const names: Partial<Record<InvestigationType, string>> = {
     nde: 'NDE',
     ganzfeld: 'Ganzfeld',
     crisis_apparition: 'Crisis Apparition',
     stargate: 'Remote Viewing',
     geophysical: 'Geophysical',
     ufo: 'UFO/UAP',
+    bigfoot: 'Bigfoot',
+    haunting: 'Haunting',
+    crop_circle: 'Crop Circle',
+    bermuda_triangle: 'Bermuda Triangle',
+    hotspot: 'Hotspot',
   };
   return names[domain] || domain;
 }

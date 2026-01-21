@@ -12,13 +12,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { CommunityHypothesisWithUser, InvestigationType } from '@/types/database';
 
 // Domain icons mapping
-const DOMAIN_ICONS: Record<InvestigationType, { icon: string; label: string; color: string }> = {
+const DOMAIN_ICONS: Partial<Record<InvestigationType, { icon: string; label: string; color: string }>> = {
   nde: { icon: '💀', label: 'Near-Death Experience', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' },
   ganzfeld: { icon: '👁️', label: 'Ganzfeld', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
   crisis_apparition: { icon: '👻', label: 'Crisis Apparitions', color: 'bg-pink-500/20 text-pink-300 border-pink-500/30' },
   stargate: { icon: '🎯', label: 'STARGATE', color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30' },
   geophysical: { icon: '🌍', label: 'Geophysical', color: 'bg-green-500/20 text-green-300 border-green-500/30' },
   ufo: { icon: '🛸', label: 'UFO/UAP', color: 'bg-rose-500/20 text-rose-300 border-rose-500/30' },
+  bigfoot: { icon: '🦶', label: 'Bigfoot/Sasquatch', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' },
+  haunting: { icon: '🏚️', label: 'Haunted Location', color: 'bg-slate-500/20 text-slate-300 border-slate-500/30' },
+  crop_circle: { icon: '🌾', label: 'Crop Circle', color: 'bg-lime-500/20 text-lime-300 border-lime-500/30' },
+  bermuda_triangle: { icon: '🔺', label: 'Bermuda Triangle', color: 'bg-teal-500/20 text-teal-300 border-teal-500/30' },
+  hotspot: { icon: '📍', label: 'High Strangeness Hotspot', color: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/30' },
+  cryptid: { icon: '🦎', label: 'Cryptid', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+  cattle_mutilation: { icon: '🐄', label: 'Cattle Mutilation', color: 'bg-red-500/20 text-red-300 border-red-500/30' },
+  men_in_black: { icon: '🕴️', label: 'Men in Black', color: 'bg-zinc-600/20 text-zinc-300 border-zinc-600/30' },
 };
 
 // Status badge styles

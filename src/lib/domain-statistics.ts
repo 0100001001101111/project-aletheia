@@ -30,7 +30,7 @@ export interface DomainConfig {
   };
 }
 
-export const DOMAIN_CONFIGS: Record<InvestigationType, DomainConfig> = {
+export const DOMAIN_CONFIGS: Partial<Record<InvestigationType, DomainConfig>> = {
   ganzfeld: {
     type: 'binomial',
     name: 'Ganzfeld',
@@ -138,6 +138,9 @@ export function getDomainStatistics(
   input: DomainInput
 ): DomainStatisticsResult {
   const config = DOMAIN_CONFIGS[domain];
+  if (!config) {
+    throw new Error(`No statistics configuration for domain: ${domain}`);
+  }
 
   switch (config.type) {
     case 'binomial': {
@@ -190,7 +193,11 @@ export function getDomainStatistics(
  * Check if a domain uses Simple Mode (binomial statistics)
  */
 export function isSimpleModeCompatible(domain: InvestigationType): boolean {
-  return DOMAIN_CONFIGS[domain].type === 'binomial';
+  const config = DOMAIN_CONFIGS[domain];
+  if (!config) {
+    return false;
+  }
+  return config.type === 'binomial';
 }
 
 /**
@@ -198,6 +205,9 @@ export function isSimpleModeCompatible(domain: InvestigationType): boolean {
  */
 export function getExpectedProportion(domain: InvestigationType): number {
   const config = DOMAIN_CONFIGS[domain];
+  if (!config) {
+    throw new Error(`No statistics configuration for domain: ${domain}`);
+  }
   if (config.type !== 'binomial') {
     throw new Error(`${domain} is not a binomial domain`);
   }
@@ -207,8 +217,12 @@ export function getExpectedProportion(domain: InvestigationType): number {
 /**
  * Get form fields required for a domain
  */
-export function getDomainFields(domain: InvestigationType): DomainConfig['fields'] {
-  return DOMAIN_CONFIGS[domain].fields;
+export function getDomainFields(domain: InvestigationType): DomainConfig['fields'] | null {
+  const config = DOMAIN_CONFIGS[domain];
+  if (!config) {
+    return null;
+  }
+  return config.fields;
 }
 
 /**
@@ -216,6 +230,9 @@ export function getDomainFields(domain: InvestigationType): DomainConfig['fields
  */
 export function getDomainMethodDescription(domain: InvestigationType): string {
   const config = DOMAIN_CONFIGS[domain];
+  if (!config) {
+    return 'No statistical method configured for this domain';
+  }
 
   switch (config.type) {
     case 'binomial':
@@ -234,6 +251,9 @@ export function getDomainMethodDescription(domain: InvestigationType): string {
  */
 export function validateDomainInput(domain: InvestigationType, input: DomainInput): string[] {
   const config = DOMAIN_CONFIGS[domain];
+  if (!config) {
+    return [`No validation configuration for domain: ${domain}`];
+  }
   const errors: string[] = [];
 
   switch (config.type) {

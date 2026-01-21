@@ -4,7 +4,7 @@
  */
 
 import type { InvestigationType } from '../types/database';
-import { FIELD_DESCRIPTIONS, SCHEMA_METADATA } from '../schemas';
+import { getFieldDescriptions, SCHEMA_METADATA } from '../schemas';
 
 export interface ParsedField {
   value: unknown;
@@ -27,7 +27,11 @@ export function generateParsePrompt(
   narrative: string
 ): string {
   const metadata = SCHEMA_METADATA[schemaType];
-  const fieldDescriptions = FIELD_DESCRIPTIONS[schemaType];
+  const fieldDescriptions = getFieldDescriptions(schemaType);
+
+  if (!metadata || !fieldDescriptions) {
+    throw new Error(`No schema configuration for type: ${schemaType}`);
+  }
 
   // Format field descriptions for the prompt
   const fieldList = Object.entries(fieldDescriptions)

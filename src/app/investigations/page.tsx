@@ -10,7 +10,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { SCHEMA_METADATA } from '@/schemas';
 import { getTriageScoreColor, getTriageStatusColor } from '@/lib/triage';
+import { ExploratoryDisclaimer, WeirdnessMini } from '@/components/exploratory';
 import type { InvestigationType, TriageStatus } from '@/types/database';
+
+type TierType = 'research' | 'exploratory';
 
 // Dynamically import map component to avoid SSR issues with Mapbox
 const UFOMap = dynamic(() => import('@/components/maps/UFOMap'), {
@@ -32,7 +35,14 @@ interface Investigation {
   triage_score: number;
   triage_status: TriageStatus;
   created_at: string;
+  tier?: TierType;
 }
+
+// Research tier domains (existing)
+const RESEARCH_DOMAINS: InvestigationType[] = ['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'];
+
+// Exploratory tier domains
+const EXPLORATORY_DOMAINS: InvestigationType[] = ['bigfoot', 'haunting', 'crop_circle', 'bermuda_triangle', 'hotspot', 'cryptid', 'cattle_mutilation', 'men_in_black'];
 
 type SortField = 'created_at' | 'triage_score' | 'title';
 type ViewMode = 'list' | 'map';
@@ -63,6 +73,11 @@ function InvestigationsPage() {
     (searchParams.get('view') as ViewMode) || 'list'
   );
 
+  // Tier filter (research vs exploratory)
+  const [tier, setTier] = useState<TierType>(
+    (searchParams.get('tier') as TierType) || 'research'
+  );
+
   // Filters
   const [filterType, setFilterType] = useState<InvestigationType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<TriageStatus | 'all'>('all');
@@ -81,6 +96,7 @@ function InvestigationsPage() {
           offset: String(page * limit),
           sort: sortField,
           order: sortOrder,
+          tier: tier,
         });
 
         if (filterType !== 'all') {
@@ -108,7 +124,7 @@ function InvestigationsPage() {
     }
 
     fetchInvestigations();
-  }, [filterType, filterStatus, sortField, sortOrder, page]);
+  }, [filterType, filterStatus, sortField, sortOrder, page, tier]);
 
   // Client-side search filter
   const filteredInvestigations = useMemo(() => {
@@ -123,14 +139,10 @@ function InvestigationsPage() {
     router.push(`/investigations/${investigation.id}`);
   };
 
+  // Dynamic types based on selected tier
   const types: (InvestigationType | 'all')[] = [
     'all',
-    'nde',
-    'ganzfeld',
-    'crisis_apparition',
-    'stargate',
-    'geophysical',
-    'ufo',
+    ...(tier === 'research' ? RESEARCH_DOMAINS : EXPLORATORY_DOMAINS),
   ];
 
   const statuses: (TriageStatus | 'all')[] = [
@@ -160,17 +172,89 @@ function InvestigationsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Tier Tabs */}
+      <div className="border-b border-zinc-800 bg-zinc-900/80">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="flex">
+            <button
+              onClick={() => {
+                setTier('research');
+                setFilterType('all');
+                setPage(0);
+                router.push('/investigations?tier=research', { scroll: false });
+              }}
+              className={`relative px-6 py-4 text-sm font-medium transition-colors ${
+                tier === 'research'
+                  ? 'text-blue-400'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span>🔬</span>
+                Research
+              </span>
+              {tier === 'research' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setTier('exploratory');
+                setFilterType('all');
+                setPage(0);
+                router.push('/investigations?tier=exploratory', { scroll: false });
+              }}
+              className={`relative px-6 py-4 text-sm font-medium transition-colors ${
+                tier === 'exploratory'
+                  ? 'text-purple-400'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span>👻</span>
+                Exploratory
+              </span>
+              {tier === 'exploratory' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Exploratory Disclaimer */}
+      {tier === 'exploratory' && (
+        <div className="mx-auto max-w-7xl px-4 pt-4">
+          <ExploratoryDisclaimer />
+        </div>
+      )}
+
       {/* Header */}
-      <header className="border-b border-zinc-800 bg-zinc-900/50">
+      <header className={`border-b ${tier === 'exploratory' ? 'border-purple-500/20 bg-purple-900/10' : 'border-zinc-800 bg-zinc-900/50'}`}>
         <div className="mx-auto max-w-7xl px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-zinc-100">Investigations</h1>
-              <p className="mt-1 text-zinc-400">
-                Browse {total} submitted research investigations
+              <h1 className={`text-3xl font-bold ${tier === 'exploratory' ? 'text-purple-100' : 'text-zinc-100'}`}>
+                {tier === 'exploratory' ? 'Exploratory Investigations' : 'Research Investigations'}
+              </h1>
+              <p className={`mt-1 ${tier === 'exploratory' ? 'text-purple-300/70' : 'text-zinc-400'}`}>
+                {tier === 'exploratory'
+                  ? `Browse ${total} exploratory submissions - fun patterns, no scientific claims`
+                  : `Browse ${total} submitted research investigations`
+                }
               </p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Full Anomaly Map Link */}
+              {tier === 'exploratory' && (
+                <a
+                  href="/anomaly-map"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 transition-all"
+                >
+                  <span>🗺️</span>
+                  Full Anomaly Map
+                </a>
+              )}
               {/* View Mode Toggle */}
               <div className="flex rounded-lg border border-zinc-700 overflow-hidden">
                 <button
@@ -254,7 +338,7 @@ function InvestigationsPage() {
             {(['nde', 'ganzfeld', 'crisis_apparition', 'stargate', 'geophysical', 'ufo'] as InvestigationType[]).map((type) => {
               const meta = SCHEMA_METADATA[type] || { name: type, icon: '❓', color: 'text-zinc-400' };
               const isActive = filterType === type;
-              const colorMap: Record<InvestigationType, string> = {
+              const colorMap: Partial<Record<InvestigationType, string>> = {
                 nde: 'bg-purple-600 shadow-purple-500/25',
                 ganzfeld: 'bg-blue-600 shadow-blue-500/25',
                 crisis_apparition: 'bg-amber-600 shadow-amber-500/25',
@@ -262,7 +346,7 @@ function InvestigationsPage() {
                 geophysical: 'bg-cyan-600 shadow-cyan-500/25',
                 ufo: 'bg-rose-600 shadow-rose-500/25',
               };
-              const hoverMap: Record<InvestigationType, string> = {
+              const hoverMap: Partial<Record<InvestigationType, string>> = {
                 nde: 'hover:bg-purple-600/20 hover:text-purple-300 hover:border-purple-500/50',
                 ganzfeld: 'hover:bg-blue-600/20 hover:text-blue-300 hover:border-blue-500/50',
                 crisis_apparition: 'hover:bg-amber-600/20 hover:text-amber-300 hover:border-amber-500/50',
@@ -280,8 +364,8 @@ function InvestigationsPage() {
                   }}
                   className={`flex items-center gap-2 rounded-xl px-5 py-3 text-base font-medium transition-all border ${
                     isActive
-                      ? `${colorMap[type]} text-white shadow-lg border-transparent`
-                      : `bg-zinc-800/50 text-zinc-400 border-zinc-700 ${hoverMap[type]}`
+                      ? `${colorMap[type] ?? 'bg-zinc-600'} text-white shadow-lg border-transparent`
+                      : `bg-zinc-800/50 text-zinc-400 border-zinc-700 ${hoverMap[type] ?? ''}`
                   }`}
                 >
                   <span className="text-lg">{meta.icon}</span>

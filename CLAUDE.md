@@ -4,12 +4,12 @@
 
 Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, and falsifiable prediction tracking.
 
-## Current Project State (Jan 2026)
+## Current Project State (Jan 21, 2026)
 
 ### What's Working
 - **Landing page** - Domain statistics, live counts
 - **Dashboard** - Overview with stats cards
-- **Investigations** - Browse/filter verified investigations (6,018 total records)
+- **Investigations** - Browse/filter verified investigations (166k+ records)
 - **Predictions** - List + detail pages with testing workflow
 - **Patterns** - Cross-domain pattern visualization
 - **Community Hypotheses** - Submit speculative ideas, AI-generated evidence suggestions
@@ -17,17 +17,20 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 - **Pre-registration** - Hash-locked methodology before testing
 - **Red Team Dashboard** - Skeptic tools for flagging flaws
 - **Auth** - Public + anonymous user system with verification levels
-- **UFO/UAP Schema** - Full schema with geophysical, temporal, and consciousness correlates
+- **Window Analysis Dashboard** - Geographic clustering analysis (John Keel's hypothesis)
+- **Data Ingestion Pipeline** - API for importing NUFORC, BFRO, and other datasets
 
-### Recent Additions (Jan 16, 2026)
-- **UFO/UAP Data Import** - 5,815 NUFORC sightings with parsed structured data
-- **Sixth Domain Schema** - UFO schema added to all components (PatternCard, PredictionCard, etc.)
-- **Dispute Resolution System** - Three-tier conflict resolution with blind jury voting
-- Trust architecture tables (preregistrations, flaw_flags, community_hypotheses, disputes, jury_pool, jury_votes)
-- Methodology points + credibility scoring
-- Community hypotheses with Claude-generated "evidence needed"
-- Onboarding documentation for data custodians (docs/onboarding/)
-- **Defensive SCHEMA_METADATA access** - Bulletproof null checks with optional chaining throughout
+### Recent Additions (Jan 21, 2026)
+- **Window Theory Analysis** - Full dashboard at `/analysis/windows` with:
+  - Spatial analysis (multi-resolution grid, scale-dependent clustering)
+  - Temporal analysis tab
+  - Geological correlates tab
+  - Pre-registered falsifiable predictions (15 active)
+  - Data status tracking
+- **Monte Carlo Co-occurrence Analysis** - Statistical validation of clustering patterns
+- **Prediction Generator** - Creates testable hypotheses from grid data
+- **Data Ingestion API** - `/api/data/ingest` for bulk imports
+- **Grid Builder** - Assigns investigations to 1246 geographic cells
 
 ## Tech Stack
 
@@ -54,33 +57,56 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 ```
 src/
 ├── app/
-│   ├── api/                # API routes (predictions, patterns, community, disputes, etc.)
-│   ├── community/          # Community hypotheses pages
-│   ├── dashboard/          # Main dashboard
-│   ├── disputes/           # Jury voting interface
-│   ├── investigations/     # Investigation browser
-│   ├── patterns/           # Pattern visualization
-│   ├── predictions/        # Prediction list + detail
-│   ├── preregister/        # Pre-registration flow
-│   ├── redteam/            # Red team/skeptic dashboard
-│   └── submit/             # Data submission wizard
+│   ├── api/
+│   │   ├── analysis/window/    # Window analysis APIs (grid, cooccurrence, predictions)
+│   │   ├── data/ingest/        # Data ingestion API
+│   │   ├── predictions/        # Prediction CRUD
+│   │   ├── patterns/           # Pattern matching
+│   │   └── ...
+│   ├── analysis/windows/       # Window Theory dashboard
+│   ├── community/              # Community hypotheses pages
+│   ├── dashboard/              # Main dashboard
+│   ├── disputes/               # Jury voting interface
+│   ├── investigations/         # Investigation browser
+│   ├── patterns/               # Pattern visualization
+│   ├── predictions/            # Prediction list + detail
+│   ├── preregister/            # Pre-registration flow
+│   ├── redteam/                # Red team/skeptic dashboard
+│   └── submit/                 # Data submission wizard
 ├── components/
-│   ├── auth/               # Auth UI components
-│   ├── community/          # Hypothesis cards
-│   ├── disputes/           # Jury voting components
-│   ├── layout/             # Navigation, PageWrapper
-│   ├── predictions/        # Prediction cards, quality assessment
-│   ├── patterns/           # Pattern visualization
-│   ├── submission/         # Submission wizard steps
-│   └── ui/                 # Shared UI primitives
-├── contexts/               # Auth context
-├── lib/                    # Utilities (supabase, auth, parser, triage, pattern-matcher, statistics)
-├── schemas/                # Zod validation schemas (5 domains)
-└── types/                  # TypeScript types
-docs/
-└── onboarding/             # Data custodian onboarding emails
-supabase/
-└── migrations/             # Database schema (SOURCE OF TRUTH)
+│   ├── window-analysis/        # Window dashboard components
+│   │   ├── SpatialAnalysisTab.tsx
+│   │   ├── TemporalAnalysisTab.tsx
+│   │   ├── GeologicalAnalysisTab.tsx
+│   │   ├── PredictionsPanel.tsx
+│   │   ├── DataStatusTab.tsx
+│   │   ├── TopWindowsTable.tsx
+│   │   └── WindowMap.tsx
+│   ├── auth/                   # Auth UI components
+│   ├── community/              # Hypothesis cards
+│   ├── disputes/               # Jury voting components
+│   ├── layout/                 # Navigation, PageWrapper
+│   └── ui/                     # Shared UI primitives
+├── lib/
+│   ├── window-analysis/        # Window theory logic
+│   │   ├── grid.ts             # Geographic grid assignment
+│   │   ├── monte-carlo.ts      # Statistical simulations
+│   │   ├── predictor.ts        # Prediction generation
+│   │   ├── temporal.ts         # Time-series analysis
+│   │   └── window-index.ts     # Window index calculations
+│   ├── data-ingestion/         # Data import utilities
+│   │   ├── ingest.ts           # Core ingestion logic
+│   │   ├── parsers.ts          # Source-specific parsers
+│   │   ├── geocode.ts          # Geocoding utilities
+│   │   └── types.ts            # Ingestion types
+│   └── ...
+├── schemas/                    # Zod validation schemas
+└── types/                      # TypeScript types
+scripts/
+├── rebuild-grid.ts             # Rebuild geographic grid
+├── generate-predictions.ts     # Generate new predictions
+├── import-nuforc.ts            # NUFORC data import
+└── ...
 ```
 
 ## Common Mistakes to Avoid
@@ -100,86 +126,19 @@ npx tsc --noEmit
 
 If there are type errors, fix them before declaring completion.
 
-## Verification Steps
-
-For UI changes:
-1. Check browser console for errors (user will provide screenshot or paste)
-2. Verify data loads by checking Network tab
-3. Test with actual database data, not mocks
-
-For database changes:
-1. Run migration
-2. Verify with: `SELECT * FROM table_name LIMIT 5;`
-3. Check RLS policies don't have recursion
-
-For API changes:
-1. Test endpoint with curl or browser
-2. Check error handling for null/undefined cases
-3. Verify auth middleware works
-
-## The Six Schemas
-
-| Schema | Focus | Records |
-|--------|-------|---------|
-| NDE | Biological triggers, veridicality | 2 |
-| Ganzfeld | Information transfer vs noise | 52 |
-| Crisis Apparition | Spontaneous transmission | 18 |
-| STARGATE | Remote viewing, edit filter | 104 |
-| Geophysical | Tectonic stress, EM anomalies | 27 |
-| UFO/UAP | Aerial anomalies, geophysical/consciousness correlates | 5,815 |
-
-## Core Hypothesis
-
-"Stress produces signal - at every scale"
-
-| Scale | System | Stressor | Signal |
-|-------|--------|----------|--------|
-| Micro | Neuron | Death/Trauma | NDE |
-| Meso | Human | Crisis/Grief | Apparitions |
-| Macro | Planet | Seismic pressure | UFO/EQ lights |
-
-## Pattern Matcher Logic
-
-Confidence Score = (Prevalence × 0.3) + (Reliability × 0.4) + (Stability × 0.3)
-
-- Prevalence: Pattern appears in 3+ domains
-- Reliability: p-value consistently < 0.05
-- Stability: Pattern holds when new data added
-- Threshold: C_s > 0.85 triggers prediction generation
-
-## Triage Scoring (0-10)
-
-| Criterion | Points |
-|-----------|--------|
-| Source traceable | 0-2 |
-| First-hand account | 0-2 |
-| Methodology documented | 0-2 |
-| Receiver profile present | 0-2 |
-| Raw data included | 0-2 |
-
-Score 7+ = Verified status
-
-## Auth System
-
-- Public users: Full attribution
-- Anonymous verified: ZKP credential claim
-- Anonymous unverified: Read-only + provisional submissions
-
-## Slash Commands
-
-- `/fix-ui` - Run tsc, check component errors
-- `/deploy` - Deploy to Vercel
-- `/test-db` - Query Supabase to verify data
-- `/commit-push` - Git add, commit, push
-
 ## Database Tables
 
 **Core:**
 - `aletheia_users` - User profiles with identity_type, verification_level, credibility_score
-- `aletheia_investigations` - Submitted research data with triage scoring
+- `aletheia_investigations` - Submitted research data with triage scoring (166k+ records)
 - `aletheia_predictions` - Falsifiable predictions from pattern matches
 - `aletheia_pattern_matches` - Cross-domain correlations
 - `aletheia_contributions` - Track user contributions for credibility
+
+**Window Analysis:**
+- `aletheia_grid_cells` - Geographic grid cells (1246 cells at 1° resolution)
+- `aletheia_cooccurrence_results` - Monte Carlo co-occurrence analysis results
+- `aletheia_window_predictions` - Pre-registered falsifiable predictions (15 active)
 
 **Trust Architecture:**
 - `aletheia_preregistrations` - Hash-locked methodologies before testing
@@ -193,45 +152,49 @@ Score 7+ = Verified status
 - `aletheia_jury_votes` - Individual juror votes
 - `aletheia_jury_pool` - Eligible jurors for disputes
 
-## Current Data (Jan 20, 2026)
+## Current Data (Jan 21, 2026)
 
-- **5,171 investigations** across 6 domains
-  - UFO/UAP: 4,968 (NUFORC import, deduplicated)
-  - STARGATE: 104
-  - Ganzfeld: 52
-  - Geophysical: 27
-  - Crisis Apparition: 18
-  - NDE: 2
-- **0 patterns** (seed data removed - awaiting real calculations)
-- **0 predictions** (fake predictions removed - awaiting real test results)
+- **166,808 investigations** across domains (UFO, Bigfoot, Haunting, etc.)
+- **1,246 grid cells** at 1° resolution
+- **6 co-occurrence analyses** completed
+- **15 active predictions** awaiting evaluation
 
-### IMPORTANT: earthquake_nearby Field
+## The Six Schemas
 
-The `earthquake_nearby` field in UFO records shows 53% = true. **This is NOT a validated correlation.**
+| Schema | Focus |
+|--------|-------|
+| NDE | Biological triggers, veridicality |
+| Ganzfeld | Information transfer vs noise |
+| Crisis Apparition | Spontaneous transmission |
+| STARGATE | Remote viewing, edit filter |
+| Geophysical | Tectonic stress, EM anomalies |
+| UFO/UAP | Aerial anomalies, geophysical/consciousness correlates |
 
-**Methodology:**
-- Time window: 7 days
-- Radius: 150-200km (inconsistent documentation)
-- Magnitude: M≥2.5
-- Source: USGS API
+## Core Hypothesis
 
-**Why it's meaningless:**
-The M≥2.5 threshold is too low. California has ~15,000 M≥2.5 earthquakes/year. Within 200km of any California location, there's almost always a recent earthquake.
+"Stress produces signal - at every scale"
 
-**Rigorous testing (specter-watch methodological_review.py) found:**
-- At M≥4.0 threshold: effect ratio drops from 8.32x to ~1.5x
-- After Bonferroni correction: most findings non-significant
-- Verdict: **SPECTER earthquake hypothesis FAILED**
+| Scale | System | Stressor | Signal |
+|-------|--------|----------|--------|
+| Micro | Neuron | Death/Trauma | NDE |
+| Meso | Human | Crisis/Grief | Apparitions |
+| Macro | Planet | Seismic pressure | UFO/EQ lights |
 
-Do NOT claim "53% seismic correlation" without this context.
+## Window Analysis APIs
+
+- `GET /api/analysis/window/grid` - Get all grid cells with window indices
+- `GET /api/analysis/window/cooccurrence` - Get latest co-occurrence analysis
+- `POST /api/analysis/window/cooccurrence` - Run new Monte Carlo analysis
+- `GET /api/analysis/window/predictions` - Get all predictions
+- `POST /api/analysis/window/predictions` - Generate new predictions
+- `GET /api/data/ingest` - Get sync status for data sources
+- `POST /api/data/ingest` - Ingest new data from JSON/URL
 
 ## Known Issues
 
-- **TypeScript**: Some new tables use `AnyClient` type assertions until Supabase types regenerated
-- **Upvote tracking**: No per-user vote tracking yet (users can upvote multiple times)
-- **Community hypothesis promotion**: Manual process, no auto-promotion triggers
-- **Jury selection**: Currently manual, needs random selection algorithm
-- **Vercel CLI permissions**: `vercel --prod` fails with git author error; workaround is to temporarily move `.git` folder before deploying
+- **TypeScript**: Some files use `@ts-nocheck` or `AnyClient` type assertions
+- **Scripts**: Standalone scripts in `/scripts` have TypeScript target warnings (harmless)
+- **Vercel CLI**: `vercel --prod` may fail with git author error; use Vercel dashboard or workaround
 
 ## External Repos That Feed This
 

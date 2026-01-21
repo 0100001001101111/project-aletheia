@@ -9,13 +9,18 @@ import Link from 'next/link';
 import type { CommunityHypothesis, InvestigationType } from '@/types/database';
 
 // Domain icons mapping
-const DOMAIN_ICONS: Record<InvestigationType, { icon: string; label: string; color: string }> = {
+const DOMAIN_ICONS: Partial<Record<InvestigationType, { icon: string; label: string; color: string }>> = {
   nde: { icon: '💀', label: 'NDE', color: 'bg-purple-500/20 text-purple-300' },
   ganzfeld: { icon: '👁️', label: 'Ganzfeld', color: 'bg-blue-500/20 text-blue-300' },
   crisis_apparition: { icon: '👻', label: 'Crisis', color: 'bg-pink-500/20 text-pink-300' },
   stargate: { icon: '🎯', label: 'STARGATE', color: 'bg-cyan-500/20 text-cyan-300' },
   geophysical: { icon: '🌍', label: 'Geophysical', color: 'bg-green-500/20 text-green-300' },
   ufo: { icon: '🛸', label: 'UFO/UAP', color: 'bg-rose-500/20 text-rose-300' },
+  bigfoot: { icon: '🦶', label: 'Bigfoot', color: 'bg-amber-500/20 text-amber-300' },
+  haunting: { icon: '🏚️', label: 'Haunting', color: 'bg-slate-500/20 text-slate-300' },
+  crop_circle: { icon: '🌾', label: 'Crop Circle', color: 'bg-lime-500/20 text-lime-300' },
+  bermuda_triangle: { icon: '🔺', label: 'Bermuda', color: 'bg-teal-500/20 text-teal-300' },
+  hotspot: { icon: '📍', label: 'Hotspot', color: 'bg-fuchsia-500/20 text-fuchsia-300' },
 };
 
 // Status badge styles

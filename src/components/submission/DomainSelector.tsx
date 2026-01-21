@@ -32,9 +32,14 @@ const INVESTIGATION_TYPES: InvestigationType[] = [
   'stargate',
   'geophysical',
   'ufo',
+  'bigfoot',
+  'haunting',
+  'crop_circle',
+  'bermuda_triangle',
+  'hotspot',
 ];
 
-const DOMAIN_EXAMPLES: Record<InvestigationType, string[]> = {
+const DOMAIN_EXAMPLES: Partial<Record<InvestigationType, string[]>> = {
   nde: [
     'Cardiac arrest survivor with verified perception during clinical death',
     'Out-of-body experience with veridical information',
@@ -64,6 +69,21 @@ const DOMAIN_EXAMPLES: Record<InvestigationType, string[]> = {
     'UAP sighting with multiple witnesses',
     'Close encounter with physical effects',
     'Entity observation with documentation',
+  ],
+  bigfoot: [
+    'Class A sighting with clear visual observation',
+    'Tracks found with measurements and photos',
+    'Audio recording of vocalizations',
+  ],
+  haunting: [
+    'Repeated apparition at specific location',
+    'Poltergeist activity with multiple witnesses',
+    'EVP recordings at documented haunted site',
+  ],
+  crop_circle: [
+    'Fresh formation with bent (not broken) stalks',
+    'Geometric pattern with documented measurements',
+    'Formation with anomalous readings',
   ],
 };
 

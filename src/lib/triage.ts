@@ -4,7 +4,7 @@
  */
 
 import type { InvestigationType } from '../types/database';
-import { TRIAGE_INDICATORS, getNestedValue } from '../schemas';
+import { getTriageIndicators, getNestedValue } from '../schemas';
 import { calculateUFOQualityScore, calculateConfoundScore, type UFOData } from '../schemas/ufo';
 
 export interface TriageBreakdown {
@@ -24,7 +24,7 @@ export function calculateTriageScore(
   data: Record<string, unknown>,
   schemaType: InvestigationType
 ): TriageBreakdown {
-  const indicators = TRIAGE_INDICATORS[schemaType];
+  const indicators = getTriageIndicators(schemaType);
 
   // Initialize breakdown
   const breakdown: TriageBreakdown = {
@@ -38,32 +38,32 @@ export function calculateTriageScore(
   };
 
   // Calculate source integrity (0-3)
-  const sourceFields = indicators.source_integrity || [];
-  const sourcePresent = sourceFields.filter((field) => hasValue(data, field));
+  const sourceFields = indicators?.source_integrity || [];
+  const sourcePresent = sourceFields.filter((field: string) => hasValue(data, field));
   breakdown.sourceIntegrity.score = Math.min(3, sourcePresent.length);
-  breakdown.sourceIntegrity.details = sourcePresent.map((f) => `✓ ${formatFieldName(f)}`);
+  breakdown.sourceIntegrity.details = sourcePresent.map((f: string) => `✓ ${formatFieldName(f)}`);
 
-  const sourceMissing = sourceFields.filter((field) => !hasValue(data, field));
+  const sourceMissing = sourceFields.filter((field: string) => !hasValue(data, field));
   if (sourceMissing.length > 0) {
     breakdown.recommendations.push(`Add source information: ${sourceMissing.map(formatFieldName).join(', ')}`);
   }
 
   // Calculate methodology (0-3)
-  const methodFields = indicators.methodology || [];
-  const methodPresent = methodFields.filter((field) => hasValue(data, field));
+  const methodFields = indicators?.methodology || [];
+  const methodPresent = methodFields.filter((field: string) => hasValue(data, field));
   breakdown.methodology.score = Math.min(3, methodPresent.length);
-  breakdown.methodology.details = methodPresent.map((f) => `✓ ${formatFieldName(f)}`);
+  breakdown.methodology.details = methodPresent.map((f: string) => `✓ ${formatFieldName(f)}`);
 
-  const methodMissing = methodFields.filter((field) => !hasValue(data, field));
+  const methodMissing = methodFields.filter((field: string) => !hasValue(data, field));
   if (methodMissing.length > 0) {
     breakdown.recommendations.push(`Document methodology: ${methodMissing.map(formatFieldName).join(', ')}`);
   }
 
   // Calculate variable capture (0-2)
-  const varFields = indicators.variable_capture || [];
-  const varPresent = varFields.filter((field) => hasValue(data, field));
+  const varFields = indicators?.variable_capture || [];
+  const varPresent = varFields.filter((field: string) => hasValue(data, field));
   breakdown.variableCapture.score = Math.min(2, Math.floor(varPresent.length / 2));
-  breakdown.variableCapture.details = varPresent.map((f) => `✓ ${formatFieldName(f)}`);
+  breakdown.variableCapture.details = varPresent.map((f: string) => `✓ ${formatFieldName(f)}`);
 
   if (varPresent.length < 2) {
     breakdown.recommendations.push('Add more subject/receiver profile variables');
@@ -71,10 +71,10 @@ export function calculateTriageScore(
 
   // Calculate data quality (0-2)
   // Check for raw data/transcripts/detailed info
-  const dataFields = indicators.data_quality || getDefaultDataQualityFields(schemaType);
-  const dataPresent = dataFields.filter((field) => hasValue(data, field));
+  const dataFields = indicators?.data_quality || getDefaultDataQualityFields(schemaType);
+  const dataPresent = dataFields.filter((field: string) => hasValue(data, field));
   breakdown.dataQuality.score = Math.min(2, dataPresent.length);
-  breakdown.dataQuality.details = dataPresent.map((f) => `✓ ${formatFieldName(f)}`);
+  breakdown.dataQuality.details = dataPresent.map((f: string) => `✓ ${formatFieldName(f)}`);
 
   if (dataPresent.length < 1) {
     breakdown.recommendations.push('Include raw data or transcripts when available');

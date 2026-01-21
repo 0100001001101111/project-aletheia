@@ -7,20 +7,25 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { SCHEMA_METADATA, flattenToDotNotation, FIELD_DESCRIPTIONS } from '@/schemas';
+import { SCHEMA_METADATA, flattenToDotNotation, getFieldDescriptions } from '@/schemas';
 import { getTriageScoreColor, getTriageStatusColor } from '@/lib/triage';
 import { formatFieldName, formatValue as formatVal } from '@/lib/format';
 import { InfoTooltip, JARGON_TOOLTIPS } from '@/components/ui/Tooltip';
 import type { InvestigationType, TriageStatus } from '@/types/database';
 
 // Investigation type explainers
-const TYPE_EXPLAINERS: Record<InvestigationType, string> = {
+const TYPE_EXPLAINERS: Partial<Record<InvestigationType, string>> = {
   ganzfeld: "In a Ganzfeld experiment, a 'receiver' in sensory deprivation tries to identify a hidden 'target' image or video being viewed by a 'sender.' A 'hit' means they correctly identified the target from a set of decoys. This tests whether information can transfer between isolated individuals.",
   nde: "Near-death experiences occur during clinical death or life-threatening crisis. Researchers document what subjects report seeing or experiencing, then verify whether any details could be confirmed (veridical perception). This tests whether consciousness can perceive information without normal sensory input.",
   crisis_apparition: "Crisis apparitions are reports of seeing or sensing someone at the moment they experience death or severe trauma - often before the observer could have known. This tests whether extreme stress creates a detectable signal between connected individuals.",
   stargate: "Remote viewing sessions task a 'viewer' with describing a hidden target location or object using only mental focus. Responses are rated on accuracy. This tests whether humans can perceive distant information without physical access.",
   geophysical: "Geophysical investigations correlate unusual phenomena (lights, sounds, equipment malfunctions) with environmental factors like seismic activity, electromagnetic fields, or geological composition. This tests whether tectonic stress produces observable effects.",
   ufo: "UFO/UAP investigations document unidentified aerial phenomena with attention to potential correlations with geomagnetic conditions and physiological effects on witnesses. Note: The SPECTER seismic hypothesis was tested but did not survive rigorous statistical analysis.",
+  bigfoot: "Bigfoot/Sasquatch sightings are reports of large, bipedal, ape-like creatures in wilderness areas. BFRO classifies sightings: Class A (clear visual), Class B (possible/obscured), Class C (secondhand report).",
+  haunting: "Haunted location reports document unexplained phenomena at specific places - apparitions, sounds, cold spots, object movement. Often correlate with historical trauma or death at the location.",
+  crop_circle: "Crop circles are geometric patterns of flattened crops, predominantly found in UK. While many are hoaxes, some exhibit unusual characteristics like bent (not broken) stalks and localized radiation.",
+  bermuda_triangle: "Bermuda Triangle incidents involve ships and aircraft that disappeared in the Atlantic region between Miami, Bermuda, and Puerto Rico. Most have mundane explanations, but some remain unexplained.",
+  hotspot: "High Strangeness Hotspots are locations with multiple types of anomalous reports - UFOs, cryptids, hauntings - often with unusual geological or magnetic properties.",
 };
 
 // Field-specific tooltips for investigation data
@@ -671,7 +676,7 @@ export default function InvestigationPage({ params }: PageProps) {
   }
 
   const metadata = SCHEMA_METADATA[investigation.type] || { name: investigation.type, icon: '❓', color: 'text-zinc-400', description: '' };
-  const fieldDescriptions = FIELD_DESCRIPTIONS[investigation.type];
+  const fieldDescriptions = getFieldDescriptions(investigation.type);
   const flatData = flattenToDotNotation(investigation.raw_data);
   const scoreColor = getTriageScoreColor(investigation.triage_score);
   const statusColor = getTriageStatusColor(investigation.triage_status);
@@ -813,7 +818,7 @@ export default function InvestigationPage({ params }: PageProps) {
                         return (
                           <div key={key} className="rounded-lg bg-zinc-800/50 p-3">
                             <div className="text-xs text-zinc-500 flex items-center gap-1">
-                              {fieldDescriptions[key] || formatFieldName(key)}
+                              {fieldDescriptions?.[key] || formatFieldName(key)}
                               {hasTooltip && (
                                 <InfoTooltip text={hasTooltip} position="top" />
                               )}

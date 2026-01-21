@@ -8,7 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import type { InvestigationType } from '@/types/database';
 import type { TriageBreakdown } from '@/lib/triage';
-import { validateData, formatZodErrors, SCHEMA_METADATA, REQUIRED_FIELDS } from '@/schemas';
+import { validateData, formatZodErrors, SCHEMA_METADATA, getRequiredFields } from '@/schemas';
 import { calculateTriageScore } from '@/lib/triage';
 
 interface ValidationResultsProps {
@@ -31,7 +31,7 @@ export function ValidationResults({
   const [triage, setTriage] = useState<TriageBreakdown | null>(null);
 
   const metadata = SCHEMA_METADATA[schemaType];
-  const requiredFields = REQUIRED_FIELDS[schemaType];
+  const requiredFields = getRequiredFields(schemaType) || [];
 
   // Run validation on mount
   useEffect(() => {
@@ -118,7 +118,7 @@ export function ValidationResults({
       <div className="space-y-3">
         <h4 className="text-sm font-medium text-zinc-300">Required Fields</h4>
         <div className="grid gap-2 md:grid-cols-2">
-          {requiredFields.map((field) => {
+          {requiredFields.map((field: string) => {
             const hasValue = checkFieldPresent(data, field);
             return (
               <div

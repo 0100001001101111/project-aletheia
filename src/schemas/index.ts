@@ -10,7 +10,8 @@ import { CrisisApparitionSchema, CRISIS_APPARITION_REQUIRED_FIELDS, CRISIS_APPAR
 import { StargateSchema, STARGATE_REQUIRED_FIELDS, STARGATE_TRIAGE_INDICATORS, STARGATE_FIELD_DESCRIPTIONS, type StargateData } from './stargate';
 import { GeophysicalSchema, GEOPHYSICAL_REQUIRED_FIELDS, GEOPHYSICAL_TRIAGE_INDICATORS, GEOPHYSICAL_FIELD_DESCRIPTIONS, type GeophysicalData } from './geophysical';
 import { UFOSchema, UFO_REQUIRED_FIELDS, UFO_TRIAGE_INDICATORS, UFO_FIELD_DESCRIPTIONS, type UFOData } from './ufo';
-import type { InvestigationType } from '../types/database';
+import type { InvestigationType, ResearchInvestigationType } from '../types/database';
+import { ALL_DOMAINS } from '@/lib/domain-config';
 
 // Re-export all schemas
 export { NDESchema, NDE_REQUIRED_FIELDS, NDE_TRIAGE_INDICATORS, NDE_FIELD_DESCRIPTIONS, type NDEData };
@@ -20,8 +21,8 @@ export { StargateSchema, STARGATE_REQUIRED_FIELDS, STARGATE_TRIAGE_INDICATORS, S
 export { GeophysicalSchema, GEOPHYSICAL_REQUIRED_FIELDS, GEOPHYSICAL_TRIAGE_INDICATORS, GEOPHYSICAL_FIELD_DESCRIPTIONS, type GeophysicalData };
 export { UFOSchema, UFO_REQUIRED_FIELDS, UFO_TRIAGE_INDICATORS, UFO_FIELD_DESCRIPTIONS, type UFOData };
 
-// Schema map by investigation type
-export const SCHEMAS: Record<InvestigationType, z.ZodSchema> = {
+// Schema map by research investigation type (exploratory types don't have schemas)
+export const SCHEMAS: Record<ResearchInvestigationType, z.ZodSchema> = {
   nde: NDESchema,
   ganzfeld: GanzfeldSchema,
   crisis_apparition: CrisisApparitionSchema,
@@ -30,8 +31,8 @@ export const SCHEMAS: Record<InvestigationType, z.ZodSchema> = {
   ufo: UFOSchema,
 };
 
-// Required fields map
-export const REQUIRED_FIELDS: Record<InvestigationType, readonly string[]> = {
+// Required fields map (research types only)
+export const REQUIRED_FIELDS: Record<ResearchInvestigationType, readonly string[]> = {
   nde: NDE_REQUIRED_FIELDS,
   ganzfeld: GANZFELD_REQUIRED_FIELDS,
   crisis_apparition: CRISIS_APPARITION_REQUIRED_FIELDS,
@@ -40,8 +41,8 @@ export const REQUIRED_FIELDS: Record<InvestigationType, readonly string[]> = {
   ufo: UFO_REQUIRED_FIELDS,
 };
 
-// Triage indicators map
-export const TRIAGE_INDICATORS: Record<InvestigationType, Record<string, string[]>> = {
+// Triage indicators map (research types only)
+export const TRIAGE_INDICATORS: Record<ResearchInvestigationType, Record<string, string[]>> = {
   nde: NDE_TRIAGE_INDICATORS,
   ganzfeld: GANZFELD_TRIAGE_INDICATORS,
   crisis_apparition: CRISIS_APPARITION_TRIAGE_INDICATORS,
@@ -50,8 +51,8 @@ export const TRIAGE_INDICATORS: Record<InvestigationType, Record<string, string[
   ufo: UFO_TRIAGE_INDICATORS,
 };
 
-// Field descriptions map
-export const FIELD_DESCRIPTIONS: Record<InvestigationType, Record<string, string>> = {
+// Field descriptions map (research types only)
+export const FIELD_DESCRIPTIONS: Record<ResearchInvestigationType, Record<string, string>> = {
   nde: NDE_FIELD_DESCRIPTIONS,
   ganzfeld: GANZFELD_FIELD_DESCRIPTIONS,
   crisis_apparition: CRISIS_APPARITION_FIELD_DESCRIPTIONS,
@@ -60,69 +61,87 @@ export const FIELD_DESCRIPTIONS: Record<InvestigationType, Record<string, string
   ufo: UFO_FIELD_DESCRIPTIONS,
 };
 
-// Schema metadata
+// Schema metadata - uses centralized domain config
 export const SCHEMA_METADATA: Record<InvestigationType, {
   name: string;
   description: string;
   icon: string;
   color: string;
-}> = {
-  nde: {
-    name: 'Near-Death Experience',
-    description: 'Cardiac arrest survivors, out-of-body experiences, veridical perceptions',
-    icon: '💫',
-    color: 'text-purple-400',
-  },
-  ganzfeld: {
-    name: 'Ganzfeld Experiment',
-    description: 'Controlled telepathy experiments with sensory isolation',
-    icon: '🎯',
-    color: 'text-blue-400',
-  },
-  crisis_apparition: {
-    name: 'Crisis Apparition',
-    description: 'Spontaneous apparitions at time of death or crisis',
-    icon: '👻',
-    color: 'text-emerald-400',
-  },
-  stargate: {
-    name: 'Remote Viewing',
-    description: 'Coordinate remote viewing, operational and research sessions',
-    icon: '🔮',
-    color: 'text-amber-400',
-  },
-  geophysical: {
-    name: 'Geophysical Anomaly',
-    description: 'EMF, temperature, and other instrumented environmental measurements',
-    icon: '📡',
-    color: 'text-cyan-400',
-  },
-  ufo: {
-    name: 'UFO/UAP Sighting',
-    description: 'Aerial anomalies with geophysical, temporal, and consciousness correlates',
-    icon: '🛸',
-    color: 'text-rose-400',
-  },
-};
+}> = Object.fromEntries(
+  Object.entries(ALL_DOMAINS).map(([type, meta]) => [
+    type,
+    {
+      name: meta.name,
+      description: meta.description,
+      icon: meta.icon,
+      color: `text-${meta.color}-400`,
+    },
+  ])
+) as Record<InvestigationType, { name: string; description: string; icon: string; color: string }>;
 
 // Union type for all schema data
 export type SchemaData = NDEData | GanzfeldData | CrisisApparitionData | StargateData | GeophysicalData | UFOData;
 
 /**
- * Get schema for investigation type
+ * Check if type has a schema (research types only)
  */
-export function getSchema(type: InvestigationType): z.ZodSchema {
-  return SCHEMAS[type];
+export function hasSchema(type: InvestigationType): type is ResearchInvestigationType {
+  return type in SCHEMAS;
 }
 
 /**
- * Validate data against schema
+ * Get schema for investigation type (research types only)
+ */
+export function getSchema(type: InvestigationType): z.ZodSchema | null {
+  if (hasSchema(type)) {
+    return SCHEMAS[type];
+  }
+  return null;
+}
+
+/**
+ * Get field descriptions for investigation type (research types only)
+ */
+export function getFieldDescriptions(type: InvestigationType): Record<string, string> | null {
+  if (hasSchema(type)) {
+    return FIELD_DESCRIPTIONS[type];
+  }
+  return null;
+}
+
+/**
+ * Get required fields for investigation type (research types only)
+ */
+export function getRequiredFields(type: InvestigationType): readonly string[] | null {
+  if (hasSchema(type)) {
+    return REQUIRED_FIELDS[type];
+  }
+  return null;
+}
+
+/**
+ * Get triage indicators for investigation type (research types only)
+ */
+export function getTriageIndicators(type: InvestigationType): Record<string, string[]> | null {
+  if (hasSchema(type)) {
+    return TRIAGE_INDICATORS[type];
+  }
+  return null;
+}
+
+/**
+ * Validate data against schema (research types only)
  */
 export function validateData(type: InvestigationType, data: unknown): {
   success: boolean;
   data?: SchemaData;
   errors?: z.ZodError;
 } {
+  if (!hasSchema(type)) {
+    // Exploratory types don't have schemas - always valid
+    return { success: true, data: data as SchemaData };
+  }
+
   const schema = SCHEMAS[type];
   const result = schema.safeParse(data);
 
@@ -134,9 +153,14 @@ export function validateData(type: InvestigationType, data: unknown): {
 }
 
 /**
- * Get empty data object for schema type
+ * Get empty data object for schema type (research types only)
  */
 export function getEmptyData(type: InvestigationType): Record<string, unknown> {
+  if (!hasSchema(type)) {
+    // Exploratory types don't have required fields
+    return {};
+  }
+
   // Return a minimal object with null values for required fields
   const requiredFields = REQUIRED_FIELDS[type];
   const data: Record<string, unknown> = {};

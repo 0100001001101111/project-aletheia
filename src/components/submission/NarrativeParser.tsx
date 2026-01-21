@@ -9,7 +9,7 @@ import { useState, useCallback } from 'react';
 import type { InvestigationType } from '@/types/database';
 import type { ParseResult } from '@/lib/parser';
 import type { TriageBreakdown } from '@/lib/triage';
-import { SCHEMA_METADATA, FIELD_DESCRIPTIONS } from '@/schemas';
+import { SCHEMA_METADATA, getFieldDescriptions } from '@/schemas';
 import { estimateTokens, isNarrativeTooLong, truncateNarrative } from '@/lib/parser';
 import { getConfidenceLevel } from '@/lib/parser';
 
@@ -50,7 +50,7 @@ export function NarrativeParser({
   const [parsePreview, setParsePreview] = useState<ParseApiResponse | null>(null);
 
   const metadata = SCHEMA_METADATA[schemaType];
-  const fieldDescriptions = FIELD_DESCRIPTIONS[schemaType];
+  const fieldDescriptions = getFieldDescriptions(schemaType) || {};
   const tokenCount = estimateTokens(narrative);
   const isTooLong = isNarrativeTooLong(narrative);
 
@@ -144,7 +144,7 @@ export function NarrativeParser({
             {Object.entries(fieldDescriptions).slice(0, 10).map(([field, description]) => (
               <div key={field} className="flex gap-2">
                 <code className="text-violet-400">{field}:</code>
-                <span className="text-zinc-400">{description}</span>
+                <span className="text-zinc-400">{String(description)}</span>
               </div>
             ))}
           </div>
