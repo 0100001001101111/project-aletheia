@@ -64,11 +64,23 @@ All NDE data is stored in Supabase in the `aletheia_investigations` table with:
 - `investigation_type = 'nde'`
 - `data_source = 'nderf'`
 
+## Additional Imports Queued (Running Overnight)
+After NDEs finish, these will run automatically:
+1. **OBERF** (Out of Body Experiences) - `scripts/import-oberf.ts`
+2. **ADCRF** (After Death Communications) - `scripts/import-adcrf.ts`
+
+Check progress: `tail -20 /tmp/all-imports.log`
+
 ## Next Steps / TODO
 1. Verify NDERF import completed successfully (should be ~5400 NDEs)
-2. Run `scripts/analyze-nde.ts` to see full pattern analysis
-3. Consider correlating NDE locations/dates with window analysis data
-4. The TODO.md file has other pending items (Supabase types, tests, etc.)
+2. Check OBERF and ADCRF imports completed
+3. Run `scripts/analyze-nde.ts` to see full pattern analysis
+4. Consider correlating NDE locations/dates with window analysis data
+5. The TODO.md file has other pending items (Supabase types, tests, etc.)
+
+## Missing Data Noted
+- Geological fault data file doesn't exist (`public/data/geological/us_faults.json`)
+- Code references it but file was never created/downloaded
 
 ## Files Changed (Not Committed)
 These helper scripts were created but not committed:
