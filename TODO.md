@@ -1,13 +1,19 @@
 # TODO.md - Project Aletheia
 
-*Last updated: January 22, 2026*
+*Last updated: January 23, 2026*
 
 ## Next Steps
 
-### 1. Evaluate Window Predictions
+### 1. Verify NDERF Import
+~5400 NDE accounts were imported from nderf.org. Verify count:
+```bash
+npx tsx scripts/count-nde.ts
+```
+
+### 2. Evaluate Window Predictions
 The 15 active predictions need evaluation against new data as it comes in.
 
-### 2. Regenerate Supabase Types
+### 3. Regenerate Supabase Types
 Some API routes still use @ts-nocheck due to missing Supabase type definitions.
 Run `supabase gen types typescript` when CLI is available.
 
@@ -16,9 +22,15 @@ Run `supabase gen types typescript` when CLI is available.
 ## Data Pipeline
 
 ### Current State
-- **166,808 investigations** loaded
+- **166,808+ investigations** loaded (including ~5400 new NDEs)
 - **1,246 grid cells** computed
-- Sources: NUFORC, BFRO, Haunted Places
+- Sources: NUFORC, BFRO, Haunted Places, **NDERF (new)**
+
+### NDERF Import (Jan 23, 2026)
+- [x] Imported ~160 recent NDEs via API (2024-2025)
+- [x] Imported ~5300 historical NDEs via HTML scraping (1998-2023)
+- Scripts created: `scripts/import-nderf*.ts`, `scripts/analyze-nde.ts`
+- See `SESSION_NOTES_2026-01-23.md` for full details
 
 ### Pending Imports
 - [ ] Update BFRO data (currently ends 2017)
