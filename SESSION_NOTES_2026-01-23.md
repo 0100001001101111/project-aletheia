@@ -28,33 +28,26 @@ All changes committed to main branch:
 - Added Window Analysis link to main navigation
 - Added get_investigations_page() migration for pagination fix
 
-### 2. NDERF Data Import (In Progress)
-Imported NDE (Near Death Experience) accounts from nderf.org into the database.
+### 2. Experience Data Imports (COMPLETED)
+Imported experience accounts from three research foundation sites:
+
+| Source | Site | Records Added | Success Rate |
+|--------|------|---------------|--------------|
+| NDERF | nderf.org | 5,479 NDEs | 100% |
+| OBERF | oberf.org | 714 OBEs | 91% |
+| ADCRF | adcrf.org | 1,121 ADCs | 94% |
+| **Total** | - | **7,314** | **98%** |
 
 **Scripts Created:**
-- `scripts/import-nderf.ts` - API-based importer for recent entries (2024-2025)
-- `scripts/import-nderf-v2.ts` - Improved version with archive page scraping
-- `scripts/import-nderf-html.ts` - HTML scraper for older archives (1998-2023)
+- `scripts/import-nderf-html.ts` - HTML scraper for NDERF archives
+- `scripts/import-oberf.ts` - OBE importer (fixed enum + blue span extraction)
+- `scripts/import-adcrf.ts` - ADC importer (fixed for pages without body tags)
 - `scripts/analyze-nde.ts` - Pattern analysis for NDE accounts
 - `scripts/count-nde.ts` - Quick count checker
-- `scripts/check-nde.ts` - Detailed NDE viewer
 
-**Import Status:**
-- Recent entries (API): ~160 imported
-- Historical entries (HTML scraping): ~5300 being imported
-- **Total expected: ~5400+ NDE accounts**
-
-The HTML import was running in background when session ended:
-```bash
-# Check if still running:
-ps aux | grep import-nderf-html
-
-# Check progress:
-tail -5 /tmp/nderf-html-import.log
-
-# Check count:
-npx tsx scripts/count-nde.ts
-```
+**Issues Fixed During Import:**
+1. OBERF: Changed `investigation_type: 'obe'` to `'nde'` (enum doesn't have 'obe')
+2. ADCRF: Pages have no `<body>` tag - fixed to extract from "Experience description:" marker
 
 ### 3. Environment Setup on This Machine
 Created `.env.local` with Supabase credentials (this file is gitignored).
@@ -64,19 +57,17 @@ All NDE data is stored in Supabase in the `aletheia_investigations` table with:
 - `investigation_type = 'nde'`
 - `data_source = 'nderf'`
 
-## Additional Imports Queued (Running Overnight)
-After NDEs finish, these will run automatically:
-1. **OBERF** (Out of Body Experiences) - `scripts/import-oberf.ts`
-2. **ADCRF** (After Death Communications) - `scripts/import-adcrf.ts`
-
-Check progress: `tail -20 /tmp/all-imports.log`
+## All Imports COMPLETED
+All three imports finished successfully:
+- NDERF: 5,479 NDEs ✓
+- OBERF: 714 OBEs ✓
+- ADCRF: 1,121 ADCs ✓
 
 ## Next Steps / TODO
-1. Verify NDERF import completed successfully (should be ~5400 NDEs)
-2. Check OBERF and ADCRF imports completed
-3. Run `scripts/analyze-nde.ts` to see full pattern analysis
-4. Consider correlating NDE locations/dates with window analysis data
-5. The TODO.md file has other pending items (Supabase types, tests, etc.)
+1. Run `scripts/analyze-nde.ts` to see full pattern analysis on 5479 NDEs
+2. Consider correlating NDE/OBE locations/dates with window analysis data
+3. The TODO.md file has other pending items (Supabase types, tests, etc.)
+4. Consider adding 'obe' and 'adc' to the investigation_type enum in a future migration
 
 ## Missing Data Noted
 - Geological fault data file doesn't exist (`public/data/geological/us_faults.json`)

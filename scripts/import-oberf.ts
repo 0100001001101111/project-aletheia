@@ -1,6 +1,6 @@
 /**
  * OBERF (Out of Body Experience Research Foundation) Importer
- * Same structure as NDERF, just different archive URLs
+ * Site: oberf.org
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -11,28 +11,20 @@ const supabase = createClient(
 );
 
 const DELAY_MS = 400;
+const BASE_URL = 'https://www.oberf.org';
+
+// Archive pages on oberf.org
+const ARCHIVE_PAGES = [
+  'sobe_stories.htm',
+  'sobe_stories3.htm',
+  'sobe_stories2.htm',
+  'sobe_stories1.htm',
+  'stories_obe.htm',
+  'obethru2013.htm',
+];
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function fetchArchivePage(url: string): Promise<string[]> {
-  try {
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Aletheia-Research/1.0' }
-    });
-    if (!response.ok) return [];
-    const html = await response.text();
-    const matches = html.matchAll(/href=["'](?:https?:\/\/www\.nderf\.org\/)?(?:\.\.\/)?Experiences\/(1[^"']+\.html)["']/gi);
-    const files = new Set<string>();
-    for (const match of matches) {
-      files.add(match[1]);
-    }
-    return Array.from(files);
-  } catch (error) {
-    console.error(`Error fetching ${url}:`, error);
-    return [];
-  }
 }
 
 function stripHtml(html: string): string {
@@ -50,6 +42,34 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+async function fetchArchivePage(page: string): Promise<string[]> {
+  const url = `${BASE_URL}/${page}`;
+  try {
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Aletheia-Research/1.0' }
+    });
+    if (!response.ok) return [];
+    const html = await response.text();
+
+    // Extract links to individual stories (.htm files)
+    // Patterns: name_sobe.htm, name_ste.htm, name_obe.htm, name_ndelike.htm, etc.
+    const matches = html.matchAll(/href=["']([^"']*?(?:_sobe|_obe|_ste|_ndelike|_prayer|_meditation)[^"']*\.htm)["']/gi);
+    const files = new Set<string>();
+    for (const match of matches) {
+      let file = match[1];
+      // Remove any leading path components
+      if (file.includes('/')) {
+        file = file.split('/').pop() || file;
+      }
+      files.add(file);
+    }
+    return Array.from(files);
+  } catch (error) {
+    console.error(`Error fetching ${page}:`, error);
+    return [];
+  }
+}
+
 interface ParsedOBE {
   sourceId: string;
   title: string;
@@ -60,7 +80,7 @@ interface ParsedOBE {
 }
 
 async function fetchAndParseOBE(filename: string): Promise<ParsedOBE | null> {
-  const url = `https://www.nderf.org/Experiences/${filename}`;
+  const url = `${BASE_URL}/${filename}`;
   try {
     const response = await fetch(url, {
       headers: { 'User-Agent': 'Aletheia-Research/1.0' }
@@ -71,47 +91,58 @@ async function fetchAndParseOBE(filename: string): Promise<ParsedOBE | null> {
     const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
     const pageTitle = titleMatch ? stripHtml(titleMatch[1]) : '';
 
-    const filenameMatch = filename.match(/^1([^_]+(?:_[a-z])?)/i);
-    let alias = filenameMatch ? filenameMatch[1].replace(/_/g, ' ') : 'Anonymous';
+    // Extract alias from filename (e.g., "kris_w_sobe.htm" -> "Kris W")
+    const nameMatch = filename.match(/^([a-z]+(?:_[a-z]+)?)_(?:sobe|obe|ste|ndelike|prayer|meditation)/i);
+    let alias = nameMatch ? nameMatch[1].replace(/_/g, ' ') : 'Anonymous';
     alias = alias.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
+    // Determine classification
     let classification = 'OBE';
-    if (filename.includes('_obe')) classification = 'OBE';
-    else if (filename.includes('_nde')) classification = 'NDE';
-    else if (filename.includes('_ste')) classification = 'STE';
+    if (filename.includes('_ste')) classification = 'STE';
+    else if (filename.includes('_ndelike')) classification = 'NDE-like';
+    else if (filename.includes('_prayer')) classification = 'Prayer';
+    else if (filename.includes('_meditation')) classification = 'Meditation';
 
+    // Extract narrative from page body
+    // OBERF stores narratives in blue-colored spans
     let narrative = '';
-    const contentPatterns = [
-      /<div[^>]*class="[^"]*content[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
-      /<p[^>]*>([\s\S]*?)<\/p>/gi,
-    ];
-    for (const pattern of contentPatterns) {
-      const matches = html.matchAll(pattern);
-      for (const match of matches) {
-        const text = stripHtml(match[1]);
-        if (text.length > narrative.length && text.length > 100) {
-          narrative = text;
+
+    // Method 1: Extract blue text spans (main narrative content)
+    const blueTextMatches = html.matchAll(/<span[^>]*color:\s*blue[^>]*>([\s\S]*?)<\/span>/gi);
+    const blueTexts: string[] = [];
+    for (const match of blueTextMatches) {
+      const text = stripHtml(match[1]);
+      if (text.length > 20) {
+        blueTexts.push(text);
+      }
+    }
+    narrative = blueTexts.join(' ');
+
+    // Method 2: Fallback to body if no blue text found
+    if (narrative.length < 200) {
+      const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      if (bodyMatch) {
+        // Look for text after "Experience description:"
+        const descMatch = bodyMatch[1].match(/experience\s*description[:\s]*([\s\S]*)/i);
+        if (descMatch) {
+          narrative = stripHtml(descMatch[1]).slice(0, 50000);
+        } else {
+          narrative = stripHtml(bodyMatch[1]);
         }
       }
     }
 
-    if (narrative.length < 200) {
-      const descIdx = html.search(/experience\s*description|narrative|account/i);
-      if (descIdx > 0) {
-        const portion = html.slice(descIdx, descIdx + 10000);
-        narrative = stripHtml(portion).slice(0, 5000);
-      }
-    }
+    narrative = narrative.slice(0, 50000);
 
-    const sourceId = `oberf_html_${filename.replace('.html', '')}`;
+    const sourceId = `oberf_${filename.replace('.htm', '')}`;
 
     return {
       sourceId,
       title: `${alias} - ${classification}`,
       alias,
       classification,
-      narrative: narrative.slice(0, 50000),
-      rawData: { filename, page_title: pageTitle, url, classification },
+      narrative,
+      rawData: { filename, page_title: pageTitle, url, classification, source: 'oberf.org' },
     };
   } catch (error) {
     console.error(`Error parsing ${filename}:`, error);
@@ -132,7 +163,7 @@ async function importOBE(parsed: ParsedOBE): Promise<'added' | 'skipped' | 'erro
   const { error } = await supabase
     .from('aletheia_investigations')
     .insert({
-      investigation_type: 'obe',
+      investigation_type: 'nde',  // OBE mapped to NDE (related phenomena)
       title: parsed.title,
       description: parsed.narrative,
       raw_data: parsed.rawData,
@@ -149,32 +180,28 @@ async function importOBE(parsed: ParsedOBE): Promise<'added' | 'skipped' | 'erro
 async function main() {
   console.log('=== OBERF (Out of Body Experience) Importer ===\n');
 
-  // OBERF archive page
-  const archiveUrl = 'https://www.nderf.org/OBERF/obe_stories.htm';
+  // Phase 1: Collect all story files from archive pages
+  console.log('Phase 1: Collecting story links from archive pages...\n');
 
-  console.log('Fetching OBERF archive...');
-  const response = await fetch(archiveUrl, { headers: { 'User-Agent': 'Aletheia-Research/1.0' } });
-  const html = await response.text();
-
-  // Get all experience links
-  const matches = html.matchAll(/href=["'](?:https?:\/\/www\.nderf\.org\/)?(?:\.\.\/)?(?:OBERF\/|Experiences\/)(1[^"']+\.html)["']/gi);
-  const files = new Set<string>();
-  for (const match of matches) {
-    files.add(match[1]);
+  const allFiles: string[] = [];
+  for (const page of ARCHIVE_PAGES) {
+    process.stdout.write(`  Fetching ${page}...`);
+    const files = await fetchArchivePage(page);
+    allFiles.push(...files);
+    console.log(` found ${files.length} stories`);
+    await sleep(500);
   }
 
-  const uniqueFiles = Array.from(files);
-  console.log(`Found ${uniqueFiles.length} OBE files\n`);
+  const uniqueFiles = [...new Set(allFiles)];
+  console.log(`\nTotal unique story files: ${uniqueFiles.length}\n`);
 
   if (uniqueFiles.length === 0) {
-    console.log('No files found. Trying alternate pattern...');
-    // Try finding any links to experience pages
-    const altMatches = html.matchAll(/href=["']([^"']*(?:obe|OBE)[^"']*\.html)["']/gi);
-    for (const match of altMatches) {
-      console.log(`  Found: ${match[1]}`);
-    }
+    console.log('No files found. Check archive page structure.');
     return;
   }
+
+  // Phase 2: Fetch and import each story
+  console.log('Phase 2: Fetching and importing OBEs...\n');
 
   let added = 0, skipped = 0, errors = 0, failed = 0;
 
@@ -182,7 +209,7 @@ async function main() {
     const file = uniqueFiles[i];
     const parsed = await fetchAndParseOBE(file);
 
-    if (!parsed) {
+    if (!parsed || parsed.narrative.length < 100) {
       failed++;
     } else {
       const result = await importOBE(parsed);
