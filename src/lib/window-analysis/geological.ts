@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Geological feature extraction and analysis
  * Tests whether window areas have distinct geological signatures
@@ -212,7 +212,7 @@ export function analyzeWindowIndexByFaultDistance(
     maxWindowIndex: number;
   }> = [];
 
-  for (const [bin, cells] of stratified) {
+  Array.from(stratified.entries()).forEach(([bin, cells]) => {
     if (cells.length === 0) {
       results.push({
         bin,
@@ -222,12 +222,12 @@ export function analyzeWindowIndexByFaultDistance(
         minWindowIndex: 0,
         maxWindowIndex: 0,
       });
-      continue;
+      return;
     }
 
-    const indices = cells.map(c => c.windowIndex);
-    const mean = indices.reduce((a, b) => a + b, 0) / indices.length;
-    const variance = indices.reduce((sum, x) => sum + Math.pow(x - mean, 2), 0) / indices.length;
+    const indices = cells.map((c: { windowIndex: number }) => c.windowIndex);
+    const mean = indices.reduce((a: number, b: number) => a + b, 0) / indices.length;
+    const variance = indices.reduce((sum: number, x: number) => sum + Math.pow(x - mean, 2), 0) / indices.length;
 
     results.push({
       bin,
@@ -237,7 +237,7 @@ export function analyzeWindowIndexByFaultDistance(
       minWindowIndex: Math.min(...indices),
       maxWindowIndex: Math.max(...indices),
     });
-  }
+  });
 
   return results;
 }
@@ -327,17 +327,17 @@ export function chiSquareTest(
   }
 
   // Get all categories
-  const categories = new Set([...observed1.keys(), ...observed2.keys()]);
+  const categories = new Set([...Array.from(observed1.keys()), ...Array.from(observed2.keys())]);
 
   let chiSquare = 0;
   let df = 0;
 
-  for (const cat of categories) {
+  Array.from(categories).forEach((cat) => {
     const o1 = observed1.get(cat) ?? 0;
     const o2 = observed2.get(cat) ?? 0;
     const colTotal = o1 + o2;
 
-    if (colTotal === 0) continue;
+    if (colTotal === 0) return;
 
     const e1 = (total1 * colTotal) / grandTotal;
     const e2 = (total2 * colTotal) / grandTotal;
@@ -345,7 +345,7 @@ export function chiSquareTest(
     if (e1 > 0) chiSquare += Math.pow(o1 - e1, 2) / e1;
     if (e2 > 0) chiSquare += Math.pow(o2 - e2, 2) / e2;
     df++;
-  }
+  });
 
   df = Math.max(df - 1, 1);
 

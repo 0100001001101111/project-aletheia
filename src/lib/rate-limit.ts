@@ -1,6 +1,13 @@
 /**
  * Rate Limiting Utility
- * Simple in-memory rate limiter for API routes
+ * In-memory rate limiter for API routes
+ *
+ * PRODUCTION WARNING: This implementation uses in-memory storage which:
+ * - Resets on server restart/deployment
+ * - Is not shared across multiple server instances
+ * - Should be replaced with Redis or similar for production use
+ *
+ * For Vercel deployment, consider using Vercel KV or Upstash Redis.
  */
 
 interface RateLimitEntry {
@@ -9,8 +16,16 @@ interface RateLimitEntry {
 }
 
 // In-memory store for rate limits
-// Note: This resets on server restart. For production, use Redis or similar.
 const rateLimitStore = new Map<string, RateLimitEntry>();
+
+// Log warning on initialization (server-side only)
+if (typeof process !== 'undefined' && process.env.NODE_ENV === 'production') {
+  console.warn(
+    '[RATE-LIMIT] Using in-memory rate limiting. ' +
+    'This will reset on deployment and is not shared across instances. ' +
+    'Consider using Redis for production.'
+  );
+}
 
 interface RateLimitOptions {
   /** Maximum number of requests allowed in the window */
@@ -54,21 +69,35 @@ export function checkRateLimit(key: string, options: RateLimitOptions): RateLimi
 
 /**
  * Get client identifier from request
- * Uses X-Forwarded-For header if behind proxy, otherwise falls back to a default
+ * Uses various headers to identify the client, with multiple fallbacks
  */
 export function getClientId(request: Request): string {
+  // Try X-Forwarded-For (common for proxies/load balancers)
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    return `ip:${forwarded.split(',')[0].trim()}`;
   }
 
+  // Try X-Real-IP (nginx)
   const realIp = request.headers.get('x-real-ip');
   if (realIp) {
-    return realIp;
+    return `ip:${realIp}`;
   }
 
-  // Fallback - in production, you'd want a more reliable method
-  return 'unknown-client';
+  // Try CF-Connecting-IP (Cloudflare)
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp) {
+    return `ip:${cfIp}`;
+  }
+
+  // Try to get from URL for some uniqueness
+  const url = new URL(request.url);
+  const userAgent = request.headers.get('user-agent') || 'unknown';
+
+  // Create a semi-unique identifier from available data
+  // This is NOT secure but provides some rate limiting for unknown clients
+  const hash = `${url.hostname}:${userAgent.slice(0, 50)}`;
+  return `fallback:${hash}`;
 }
 
 // Preset rate limit configurations

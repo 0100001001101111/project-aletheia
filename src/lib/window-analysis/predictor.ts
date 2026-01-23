@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Window area prediction generator
  * Creates FALSIFIABLE pre-registered predictions that test the window hypothesis

@@ -41,10 +41,21 @@ export async function PATCH(
       }
     );
 
-    // TODO: Add admin check
+    // Check if user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin (PhD verification level)
+    const { data: profile } = await supabase
+      .from('aletheia_users')
+      .select('verification_level')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (!profile || profile.verification_level !== 'phd') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Update the flag
@@ -119,6 +130,17 @@ export async function GET(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin (PhD verification level)
+    const { data: profile } = await supabase
+      .from('aletheia_users')
+      .select('verification_level')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (!profile || profile.verification_level !== 'phd') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const { data, error } = await supabase

@@ -84,12 +84,12 @@ export async function POST(request: NextRequest) {
       finalTriageStatus = triage.status;
     }
 
-    // Get user profile
+    // Get user profile with credibility score (single query instead of N+1)
     const { data: profile } = await supabase
       .from('aletheia_users')
-      .select('id')
+      .select('id, credibility_score')
       .eq('auth_id', user.id)
-      .single() as { data: { id: string } | null };
+      .single() as { data: { id: string; credibility_score: number } | null };
 
     if (!profile) {
       return NextResponse.json(
@@ -135,19 +135,11 @@ export async function POST(request: NextRequest) {
 
     // Auto-update user credibility score for verified submissions
     if (credibilityPoints > 0) {
-      const { data: currentUser } = await supabase
-        .from('aletheia_users')
-        .select('credibility_score')
-        .eq('id', profile.id)
-        .single() as { data: { credibility_score: number } | null };
-
-      if (currentUser) {
-        // Cap at 100
-        const newScore = Math.min(100, (currentUser.credibility_score || 0) + credibilityPoints);
-        await (supabase.from('aletheia_users') as ReturnType<typeof supabase.from>)
-          .update({ credibility_score: newScore } as never)
-          .eq('id', profile.id);
-      }
+      // Use credibility_score from initial profile fetch (no extra query needed)
+      const newScore = Math.min(100, (profile.credibility_score || 0) + credibilityPoints);
+      await (supabase.from('aletheia_users') as ReturnType<typeof supabase.from>)
+        .update({ credibility_score: newScore } as never)
+        .eq('id', profile.id);
     }
 
     // Trigger pattern analysis asynchronously (fire and forget)

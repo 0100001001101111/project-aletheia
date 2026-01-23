@@ -113,15 +113,19 @@ export default function DashboardPage() {
 
       try {
         // Fetch APIs independently so one failure doesn't block others
-        const [patternsRes, predictionsRes, investigationsRes] = await Promise.all([
+        const [patternsRes, predictionsRes, investigationsRes, statsRes, userStatsRes] = await Promise.all([
           fetch('/api/patterns?limit=5').catch(() => null),
           fetch('/api/predictions?status=open&limit=5').catch(() => null),
           fetch('/api/submissions?limit=1').catch(() => null),
+          fetch('/api/stats').catch(() => null),
+          fetch('/api/user/stats').catch(() => null),
         ]);
 
         const patternsData = patternsRes ? await patternsRes.json().catch(() => ({})) : {};
         const predictionsData = predictionsRes ? await predictionsRes.json().catch(() => ({})) : {};
         const investigationsData = investigationsRes ? await investigationsRes.json().catch(() => ({})) : {};
+        const statsData = statsRes ? await statsRes.json().catch(() => ({})) : {};
+        const userStatsData = userStatsRes ? await userStatsRes.json().catch(() => ({})) : {};
 
         const recentPatterns: DetectedPattern[] = (patternsData.data || []).map((p: Record<string, unknown>) => ({
           id: p.id as string,
@@ -137,29 +141,23 @@ export default function DashboardPage() {
           detectedAt: (p.detected_at || p.created_at) as string,
         }));
 
-        const domainCounts: Partial<Record<InvestigationType, number>> = {
-          nde: 45,
-          ganzfeld: 120,
-          crisis_apparition: 25,
-          stargate: 85,
-          geophysical: 30,
-          ufo: 15,
-        };
+        // Use real domain counts from API
+        const domainCounts: Partial<Record<InvestigationType, number>> = statsData.domainCounts || {};
 
         const dataNeeded = Object.entries(domainCounts)
-          .filter(([_, count]) => count < 50)
+          .filter(([_, count]) => (count as number) < 50)
           .map(([domain, count]) => ({
             domain: domain as InvestigationType,
             reason: `Only ${count} verified submissions`,
-            count: 50 - count,
+            count: 50 - (count as number),
           }));
 
         setData({
           userStats: {
-            investigationCount: user ? Math.floor(Math.random() * 10) + 1 : 0,
-            avgTriageScore: user ? 7.2 : 0,
-            credibilityScore: user ? 85 : 0,
-            contributionCount: user ? Math.floor(Math.random() * 20) + 1 : 0,
+            investigationCount: userStatsData.investigationCount || 0,
+            avgTriageScore: userStatsData.avgTriageScore || 0,
+            credibilityScore: userStatsData.credibilityScore || 0,
+            contributionCount: userStatsData.contributionCount || 0,
           },
           recentPatterns,
           activePredictions: predictionsData.data || [],

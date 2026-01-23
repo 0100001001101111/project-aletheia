@@ -29,11 +29,21 @@ export async function GET(request: Request) {
       }
     );
 
-    // TODO: Add admin check
-    // For now, just check if user is authenticated
+    // Check if user is authenticated
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin (PhD verification level)
+    const { data: profile } = await supabase
+      .from('aletheia_users')
+      .select('verification_level')
+      .eq('auth_id', user.id)
+      .single();
+
+    if (!profile || profile.verification_level !== 'phd') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Build query

@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Window Analysis Module
  * Statistical testing of John Keel's "window area" hypothesis

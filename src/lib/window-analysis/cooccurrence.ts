@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Co-occurrence analysis types and utilities
  */

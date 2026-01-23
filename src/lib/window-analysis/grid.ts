@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Grid system for window analysis
  * Uses simple lat/lng squares (~25km at mid-latitudes)
@@ -129,14 +128,14 @@ export function assignToGrid(
   }
 
   // Calculate types present for each cell
-  for (const cell of cells.values()) {
+  Array.from(cells.values()).forEach((cell) => {
     const types: string[] = [];
     if (cell.ufoCount > 0) types.push('ufo');
     if (cell.bigfootCount > 0) types.push('bigfoot');
     if (cell.hauntingCount > 0) types.push('haunting');
     cell.typesPresent = types;
     cell.typeCount = types.length;
-  }
+  });
 
   return cells;
 }
@@ -200,7 +199,7 @@ export function countCooccurrences(cells: Map<string, GridCell>): {
   let cellsWithBigfoot = 0;
   let cellsWithHaunting = 0;
 
-  for (const cell of cells.values()) {
+  Array.from(cells.values()).forEach((cell) => {
     const hasUfo = cell.ufoCount > 0;
     const hasBigfoot = cell.bigfootCount > 0;
     const hasHaunting = cell.hauntingCount > 0;
@@ -213,7 +212,7 @@ export function countCooccurrences(cells: Map<string, GridCell>): {
     if (hasUfo && hasHaunting) ufoHaunting++;
     if (hasBigfoot && hasHaunting) bigfootHaunting++;
     if (hasUfo && hasBigfoot && hasHaunting) triple++;
-  }
+  });
 
   return {
     ufoBigfoot,
@@ -238,7 +237,7 @@ export function assignPopulationQuartiles(cells: Map<string, GridCell>): void {
   const q2 = totalCounts[Math.floor(totalCounts.length * 0.5)];
   const q3 = totalCounts[Math.floor(totalCounts.length * 0.75)];
 
-  for (const cell of cells.values()) {
+  Array.from(cells.values()).forEach((cell) => {
     if (cell.totalCount <= q1) {
       cell.populationQuartile = 1;
     } else if (cell.totalCount <= q2) {
@@ -248,7 +247,7 @@ export function assignPopulationQuartiles(cells: Map<string, GridCell>): void {
     } else {
       cell.populationQuartile = 4;
     }
-  }
+  });
 }
 
 /**
@@ -259,11 +258,11 @@ export function getCellsByQuartile(
   quartile: number
 ): Map<string, GridCell> {
   const filtered = new Map<string, GridCell>();
-  for (const [id, cell] of cells) {
+  Array.from(cells.entries()).forEach(([id, cell]) => {
     if (cell.populationQuartile === quartile) {
       filtered.set(id, cell);
     }
-  }
+  });
   return filtered;
 }
 
@@ -279,9 +278,9 @@ export function buildMultiResolutionGrids(
   for (const resolution of resolutions) {
     const grid = assignToGrid(investigations, resolution);
     // Tag each cell with its resolution
-    for (const cell of grid.values()) {
+    Array.from(grid.values()).forEach((cell) => {
       cell.resolution = resolution;
-    }
+    });
     assignPopulationQuartiles(grid);
     grids.set(resolution, grid);
   }

@@ -141,15 +141,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: In production, log verification attempts to audit table
-    // For now, credential claims are stored in user metadata
+    // Log verification attempt for audit trail
+    // Store in contributions table as a special type for now
+    await (supabase
+      .from('aletheia_contributions') as ReturnType<typeof supabase.from>)
+      .insert({
+        user_id: profile.id,
+        contribution_type: 'submission', // Using existing enum value
+        credibility_points_earned: 0,
+        notes: `Credential claim: ${verificationLevel}${metadata?.institution ? ` (${metadata.institution})` : ''}${metadata?.degree ? `, ${metadata.degree}` : ''} - PENDING VERIFICATION`,
+      } as Record<string, unknown>);
+
+    console.log(`[AUDIT] User ${profile.id} claimed verification level: ${verificationLevel}`);
 
     return NextResponse.json({
       success: true,
-      message: 'Credential claim submitted. Verification is pending.',
+      message: 'Credential claim submitted. Verification is pending admin review.',
       verification_level: verificationLevel,
       status: 'pending',
-      note: 'In production, ZKP verification would be performed here.',
+      warning: 'Credentials are not automatically verified. False claims may result in account restrictions.',
     });
 
   } catch (error) {

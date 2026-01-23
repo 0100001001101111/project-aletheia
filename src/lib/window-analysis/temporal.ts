@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Temporal analysis - cross-correlation between phenomenon types over time
  * Tests whether sightings of one type predict sightings of another

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Window Index calculation
  * Measures how "window-like" a geographic cell is
@@ -76,14 +75,14 @@ export function rankWindowAreas(
 ): WindowRanking {
   const results: WindowIndexResult[] = [];
 
-  for (const cell of cells.values()) {
+  Array.from(cells.values()).forEach((cell) => {
     // Skip empty cells
-    if (cell.totalCount === 0) continue;
+    if (cell.totalCount === 0) return;
 
     const expected = expectedReportsMap?.get(cell.cellId) ?? null;
     const result = calculateWindowIndex(cell, expected);
     results.push(result);
-  }
+  });
 
   // Sort by window index descending
   results.sort((a, b) => b.windowIndex - a.windowIndex);

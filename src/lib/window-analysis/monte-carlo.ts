@@ -1,4 +1,4 @@
-// @ts-nocheck
+
 /**
  * Monte Carlo simulation engine for co-occurrence analysis
  * Tests null hypothesis: phenomenon types are randomly distributed

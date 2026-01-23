@@ -1,47 +1,15 @@
 # TODO.md - Project Aletheia
 
-*Last updated: January 21, 2026*
-
-## CRITICAL: Investigations Page Timeout
-
-**Status:** BROKEN
-
-The investigations page times out with 166k+ records:
-```
-Failed to fetch submissions: canceling statement due to statement timeout
-```
-
-**Fix needed:**
-- Add server-side pagination to `/api/submissions` route
-- Limit initial fetch to 50-100 records
-- Add "Load More" or infinite scroll
-
-**Affected URL:** `/investigations?tier=exploratory`
-
----
+*Last updated: January 22, 2026*
 
 ## Next Steps
 
-### 1. Fix Investigations Page Timeout (URGENT)
-Add pagination to handle 166k+ records without timeout.
-
-**Files to modify:**
-- `src/app/api/submissions/route.ts` - Add limit/offset params
-- `src/app/investigations/page.tsx` - Add pagination UI
-
-### 2. Add Navigation to Window Analysis
-Add link to Window Analysis dashboard in main navigation sidebar.
-
-**Files to modify:**
-- `src/components/layout/Sidebar.tsx` or equivalent nav component
-
-### 3. Evaluate Window Predictions
+### 1. Evaluate Window Predictions
 The 15 active predictions need evaluation against new data as it comes in.
 
-### 4. Temporal Analysis Implementation
-The TemporalAnalysisTab has working charts now but uses hardcoded data. Need to:
-- Connect to actual temporal data from database
-- Add time-series visualization
+### 2. Regenerate Supabase Types
+Some API routes still use @ts-nocheck due to missing Supabase type definitions.
+Run `supabase gen types typescript` when CLI is available.
 
 ---
 
@@ -62,12 +30,13 @@ The TemporalAnalysisTab has working charts now but uses hardcoded data. Need to:
 ## Technical Debt
 
 ### Performance (PRIORITY)
-- [ ] **Add pagination to investigations API** (causes timeout)
+- [x] **Add pagination to investigations API** (fixed - added `get_investigations_page()` function)
 - [ ] Implement virtual scrolling for large lists
 - [ ] Cache grid cell data (rarely changes)
 
 ### Type Safety
-- [ ] Replace `@ts-nocheck` with proper types
+- [x] Removed `@ts-nocheck` from window-analysis lib files (grid.ts, window-index.ts, geological.ts)
+- [ ] Replace remaining `@ts-nocheck` in API routes (needs Supabase types regeneration)
 - [ ] Replace `AnyClient` assertions after regenerating Supabase types
 
 ### Testing
@@ -78,6 +47,17 @@ The TemporalAnalysisTab has working charts now but uses hardcoded data. Need to:
 
 ## Completed This Session
 
+- [x] Added `get_investigations_page()` database function to fix investigations page timeout
+- [x] Added composite indexes on tier column for efficient pagination queries
+- [x] Fixed admin authorization bypass in gaming-flags endpoints (now requires PhD verification)
+- [x] Added Window Analysis link to main navigation
+- [x] Fixed hardcoded dashboard stats - now fetches real data from `/api/stats` and `/api/user/stats`
+- [x] Fixed hardcoded TemporalAnalysisTab - now fetches from `/api/analysis/window/temporal`
+- [x] Fixed N+1 query pattern in submissions route
+- [x] Added security headers (CSP, HSTS, X-Permitted-Cross-Domain-Policies)
+- [x] Improved rate limiting with better client identification and production warnings
+- [x] Added audit logging to credential verification route
+- [x] Removed @ts-nocheck from window-analysis lib files (grid.ts, window-index.ts, geological.ts)
 - [x] Fixed cooccurrence API response structure
 - [x] Fixed seasonal distribution charts (bar rendering)
 - [x] Added location names to Top Windows table
