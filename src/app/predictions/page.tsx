@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { PredictionsList } from '@/components/predictions/PredictionsList';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { generateDisplayTitle } from '@/lib/prediction-display';
 import type { InvestigationType } from '@/types/database';
 
 type PredictionStatus = 'open' | 'pending' | 'testing' | 'confirmed' | 'refuted' | 'inconclusive';
@@ -110,16 +111,21 @@ export default function PredictionsPage() {
     ? (stats.confirmed / (stats.confirmed + stats.refuted)) * 100
     : null;
 
-  // Filter predictions by search query
+  // Filter predictions by search query (searches display titles too)
   const filteredPredictions = useMemo(() => {
     if (!searchQuery.trim()) return predictions;
     const query = searchQuery.toLowerCase();
-    return predictions.filter((p) =>
-      p.hypothesis.toLowerCase().includes(query) ||
-      p.domains_involved?.some((d) => d.toLowerCase().includes(query)) ||
-      p.domains?.some((d) => d.toLowerCase().includes(query)) ||
-      p.status.toLowerCase().includes(query)
-    );
+    return predictions.filter((p) => {
+      const domains = p.domains_involved || p.domains || [];
+      const displayTitle = generateDisplayTitle(p.hypothesis, domains);
+      return (
+        p.hypothesis.toLowerCase().includes(query) ||
+        displayTitle.title.toLowerCase().includes(query) ||
+        displayTitle.subtitle.toLowerCase().includes(query) ||
+        domains.some((d) => d.toLowerCase().includes(query)) ||
+        p.status.toLowerCase().includes(query)
+      );
+    });
   }, [predictions, searchQuery]);
 
   if (loading) {

@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { SimpleModeStepper, type SimpleSubmissionData } from '@/components/predictions/SimpleModeStepper';
 import { QualityAssessment, type QualityScores, calculateQualityScore, hasZeroFactor } from '@/components/predictions/QualityAssessment';
 import { isSimpleModeCompatible, getExpectedProportion } from '@/lib/domain-statistics';
+import { generateDisplayTitle } from '@/lib/prediction-display';
 
 // Status styling
 const STATUS_STYLES: Record<string, { bg: string; text: string; border: string; label: string }> = {
@@ -32,6 +33,294 @@ const STATUS_EXPLANATIONS: Record<string, string> = {
   refuted: "Experiments showed this prediction was wrong - which is still valuable scientific progress.",
   inconclusive: "Testing was done but results were mixed. More experiments needed.",
 };
+
+// ELI5 explanations - what we're testing, why it matters, what you can do
+interface SimpleExplanation {
+  whatWereTesting: string;
+  whyItMatters: string;
+  whatYouCanDo: string;
+  evidenceNeeded: string[];
+}
+
+function generateSimpleExplanation(hypothesis: string, domains: string[]): SimpleExplanation {
+  const h = hypothesis.toLowerCase();
+  const primaryDomain = domains[0] || '';
+
+  // Crisis apparition timing
+  if (h.includes('crisis') && (h.includes('timing') || h.includes('temporal') || h.includes('cluster') || h.includes('12 hour'))) {
+    return {
+      whatWereTesting: "When someone has a \"crisis apparition\" experience (sensing a loved one at the moment they die or get hurt, even from far away), does it actually happen at the same time as the real event?",
+      whyItMatters: "If these experiences are just coincidence or false memories, we'd expect random timing. But historical reports show 90%+ happen within 12 hours of the actual crisis. If new cases show the same pattern, that's harder to explain as coincidence.",
+      whatYouCanDo: "If you've had an experience like this, you can submit it. We'll check if the timing matches historical patterns.",
+      evidenceNeeded: [
+        "Date and time you had the experience",
+        "Date and time of the actual crisis (death, injury, etc.)",
+        "Your relationship to the person",
+        "How far apart you were geographically",
+      ],
+    };
+  }
+
+  // Crisis apparition general
+  if (primaryDomain === 'crisis_apparition' || h.includes('crisis apparition')) {
+    return {
+      whatWereTesting: "Do people really sense when distant loved ones are in danger or dying? We're collecting and analyzing these \"crisis apparition\" reports to see if patterns emerge.",
+      whyItMatters: "If genuine, this would suggest some form of connection between people that defies conventional physics. If not, understanding why people report these experiences is still valuable.",
+      whatYouCanDo: "If you've ever sensed something was wrong with a loved one before you could have known, submit your experience.",
+      evidenceNeeded: [
+        "What you experienced (vision, feeling, dream, etc.)",
+        "When it happened and when the actual event occurred",
+        "Your relationship to the person involved",
+        "Any verifiable details",
+      ],
+    };
+  }
+
+  // Ganzfeld experiments
+  if (primaryDomain === 'ganzfeld' || h.includes('ganzfeld')) {
+    return {
+      whatWereTesting: "Can people receive mental images from a sender in another room? The Ganzfeld test puts receivers in sensory isolation and measures if they can identify the correct target image above chance (25%).",
+      whyItMatters: "Decades of experiments show hit rates around 32% - small but statistically significant. We're testing whether specific conditions (video vs. photos, emotional vs. neutral content) affect the results.",
+      whatYouCanDo: "Researchers can run their own Ganzfeld sessions and submit results. We provide the protocol.",
+      evidenceNeeded: [
+        "Number of trials run",
+        "Number of hits (correct identifications)",
+        "Experimental setup details",
+        "Any deviations from standard protocol",
+      ],
+    };
+  }
+
+  // Remote viewing / STARGATE
+  if (primaryDomain === 'stargate' || h.includes('remote viewing')) {
+    return {
+      whatWereTesting: "Can people describe distant locations without any normal sensory access? This technique was studied by the CIA/DIA for 20+ years in Project STARGATE.",
+      whyItMatters: "Declassified documents show some sessions with striking accuracy. We're testing if effect sizes differ by target type, distance, or viewer experience.",
+      whatYouCanDo: "You can practice remote viewing and submit your sessions. We compare your descriptions to the actual targets.",
+      evidenceNeeded: [
+        "Your written/drawn impressions before reveal",
+        "The actual target location or image",
+        "Session date and conditions",
+        "Blind judging results if available",
+      ],
+    };
+  }
+
+  // NDE
+  if (primaryDomain === 'nde' || h.includes('near-death') || h.includes('nde')) {
+    return {
+      whatWereTesting: "During cardiac arrest, some people report detailed perceptions of their surroundings while clinically dead. Are these perceptions accurate?",
+      whyItMatters: "If people can accurately perceive events while their brain shows no activity, it challenges our understanding of consciousness. We're collecting cases with verifiable details.",
+      whatYouCanDo: "If you had an NDE with specific details that were later confirmed (like hearing conversations or seeing objects), submit your experience.",
+      evidenceNeeded: [
+        "Medical records confirming cardiac arrest",
+        "Specific details you perceived during the experience",
+        "Verification of those details by witnesses/staff",
+        "Timeline of events",
+      ],
+    };
+  }
+
+  // Geophysical / UFO correlations
+  if (primaryDomain === 'geophysical' || h.includes('tectonic') || h.includes('seismic')) {
+    return {
+      whatWereTesting: "Do anomalous aerial phenomena (UAP/UFO sightings, strange lights) cluster near areas of geological stress? Some theories suggest tectonic pressure creates electromagnetic effects.",
+      whyItMatters: "If true, we might be able to predict when and where sightings occur based on geological data. This would move the phenomenon from \"unexplained\" to \"natural but poorly understood.\"",
+      whatYouCanDo: "Report sightings with precise location and time. We cross-reference with seismic data.",
+      evidenceNeeded: [
+        "Exact location (GPS coordinates if possible)",
+        "Date and time of observation",
+        "Description of what you saw",
+        "Weather conditions",
+      ],
+    };
+  }
+
+  // UFO/UAP
+  if (primaryDomain === 'ufo' || h.includes('ufo') || h.includes('uap')) {
+    return {
+      whatWereTesting: "Are aerial anomaly sightings random, or do they cluster in specific locations and times? We're looking for patterns that might reveal underlying causes.",
+      whyItMatters: "Understanding patterns helps separate signal from noise. If sightings cluster near military bases, airports, or geological features, that tells us something.",
+      whatYouCanDo: "Report your sighting with as much detail as possible. Every data point helps build the pattern.",
+      evidenceNeeded: [
+        "Exact location and time",
+        "Description of object/phenomenon",
+        "Duration and behavior",
+        "Photos/video if available",
+      ],
+    };
+  }
+
+  // Bigfoot/Sasquatch
+  if (primaryDomain === 'bigfoot' || h.includes('bigfoot') || h.includes('sasquatch')) {
+    return {
+      whatWereTesting: "Do Bigfoot sightings cluster in specific geographic areas or correlate with environmental factors? We're mapping reports to find patterns.",
+      whyItMatters: "If sightings cluster near specific habitats, watersheds, or terrain features, it either points to where to look for evidence—or reveals what environmental conditions trigger misidentifications.",
+      whatYouCanDo: "Report any sighting with precise location data. We cross-reference with terrain, wildlife, and other sighting data.",
+      evidenceNeeded: [
+        "Exact location (GPS coordinates ideal)",
+        "Date, time, and weather conditions",
+        "Detailed description of what you observed",
+        "Any physical evidence (tracks, hair, etc.)",
+        "Photos/video/audio if available",
+      ],
+    };
+  }
+
+  // Cryptids (general)
+  if (primaryDomain === 'cryptid' || h.includes('cryptid') || h.includes('creature')) {
+    return {
+      whatWereTesting: "Do reports of unidentified creatures follow patterns? We analyze sighting locations, times, and descriptions to find commonalities.",
+      whyItMatters: "Patterns could point to undiscovered species, misidentified known animals, or psychological/environmental factors that trigger reports.",
+      whatYouCanDo: "Submit detailed sighting reports. The more specific, the more useful for pattern analysis.",
+      evidenceNeeded: [
+        "Location and environmental conditions",
+        "Detailed physical description",
+        "Behavior observed",
+        "Duration of sighting",
+        "Any physical evidence or recordings",
+      ],
+    };
+  }
+
+  // Hauntings
+  if (primaryDomain === 'haunting' || h.includes('haunting') || h.includes('ghost') || h.includes('paranormal location')) {
+    return {
+      whatWereTesting: "Do reported hauntings correlate with environmental factors like electromagnetic fields, infrasound, or building materials? We're looking for natural explanations—or ruling them out.",
+      whyItMatters: "If hauntings cluster in buildings with specific characteristics (age, materials, electrical issues), that suggests environmental causes. If not, the mystery deepens.",
+      whatYouCanDo: "Report experiences with location details. Note any environmental factors you observed.",
+      evidenceNeeded: [
+        "Address or precise location",
+        "Building age and construction type",
+        "Description of experiences",
+        "Environmental readings if available (EMF, temperature)",
+        "History of the location",
+      ],
+    };
+  }
+
+  // Hotspots / Window areas
+  if (primaryDomain === 'hotspot' || h.includes('hotspot') || h.includes('window area') || h.includes('high strangeness')) {
+    return {
+      whatWereTesting: "Do certain geographic areas have unusually high concentrations of anomalous reports across multiple categories (UFOs, cryptids, hauntings)? We're mapping 'window areas.'",
+      whyItMatters: "If the same locations produce diverse anomalies, it suggests either an environmental trigger affecting perception, or something genuinely strange about those places.",
+      whatYouCanDo: "Report any unusual experience with precise location. We track multi-phenomenon clustering.",
+      evidenceNeeded: [
+        "Exact location",
+        "Type of anomaly experienced",
+        "Date and conditions",
+        "Whether you know of other reports from the area",
+      ],
+    };
+  }
+
+  // Crop circles
+  if (primaryDomain === 'crop_circle' || h.includes('crop circle') || h.includes('formation')) {
+    return {
+      whatWereTesting: "Do crop formations show patterns in their locations, timing, or physical characteristics that distinguish 'genuine anomalies' from known hoaxes?",
+      whyItMatters: "Documented formations show plant changes (bent vs. broken nodes, germination differences) that are hard to replicate by mechanical flattening. We're testing if these markers are consistent.",
+      whatYouCanDo: "Report new formations with photos, location data, and any physical samples if possible.",
+      evidenceNeeded: [
+        "GPS coordinates of formation",
+        "Date discovered and estimated age",
+        "Photos (aerial if possible)",
+        "Plant node analysis if conducted",
+        "Local witness reports",
+      ],
+    };
+  }
+
+  // Cattle mutilations
+  if (primaryDomain === 'cattle_mutilation' || h.includes('cattle') || h.includes('mutilation')) {
+    return {
+      whatWereTesting: "Do unexplained animal deaths show consistent patterns in location, timing, or pathology that distinguish them from predator activity or natural decomposition?",
+      whyItMatters: "Some cases show surgical precision, bloodlessness, and selective organ removal that veterinarians can't explain. We're testing if these patterns are consistent across cases.",
+      whatYouCanDo: "Ranchers and investigators can submit case reports with veterinary findings.",
+      evidenceNeeded: [
+        "Location and date of discovery",
+        "Veterinary examination report",
+        "Photos of the animal and wounds",
+        "Evidence of predator activity (or lack thereof)",
+        "Environmental conditions",
+      ],
+    };
+  }
+
+  // Bermuda Triangle
+  if (primaryDomain === 'bermuda_triangle' || h.includes('bermuda') || h.includes('triangle')) {
+    return {
+      whatWereTesting: "Is the rate of disappearances in the Bermuda Triangle region actually higher than comparable ocean areas, or is it a statistical illusion created by high traffic volume?",
+      whyItMatters: "If disappearance rates are genuinely elevated after controlling for traffic, weather, and geography, it points to an unexplained factor. If not, we've debunked a persistent myth.",
+      whatYouCanDo: "Submit documented incidents with dates, coordinates, and circumstances.",
+      evidenceNeeded: [
+        "Vessel/aircraft identification",
+        "Last known coordinates",
+        "Weather conditions",
+        "Official investigation reports if available",
+      ],
+    };
+  }
+
+  // Men in Black
+  if (primaryDomain === 'men_in_black' || h.includes('men in black') || h.includes('mib')) {
+    return {
+      whatWereTesting: "Do 'Men in Black' encounter reports share consistent characteristics that suggest a real phenomenon, or do they vary in ways that suggest cultural contamination?",
+      whyItMatters: "If MIB encounters have consistent, specific details across decades and cultures, that's interesting. If details shift with pop culture, it points to social contagion.",
+      whatYouCanDo: "Submit detailed encounter reports, especially older cases predating the MIB films.",
+      evidenceNeeded: [
+        "Date and location of encounter",
+        "Physical description of visitors",
+        "What they said or asked about",
+        "Vehicle description if applicable",
+        "Context (what event preceded the visit)",
+      ],
+    };
+  }
+
+  // Precognition / premonitions
+  if (h.includes('precognition') || h.includes('premonition') || h.includes('predict') && h.includes('future')) {
+    return {
+      whatWereTesting: "Can people accurately perceive future events before they happen? We're collecting documented cases where predictions were recorded before the event occurred.",
+      whyItMatters: "If people can genuinely perceive future events, it would overturn our understanding of time and causality. But most 'predictions' are only remembered after the fact—we need documented cases.",
+      whatYouCanDo: "If you've had a premonition that was documented before it came true, submit the evidence.",
+      evidenceNeeded: [
+        "The prediction (with timestamp proving when it was made)",
+        "The event that matched (with date)",
+        "How specific was the prediction",
+        "Documentation (emails, texts, diary entries) with timestamps",
+      ],
+    };
+  }
+
+  // Telepathy / mind reading
+  if (h.includes('telepathy') || h.includes('mind reading') || h.includes('thought transfer')) {
+    return {
+      whatWereTesting: "Can information transfer directly between minds without normal sensory channels? We test this with controlled experiments using standardized protocols.",
+      whyItMatters: "Even a small but consistent effect above chance would be revolutionary. We're looking for replicable results under controlled conditions.",
+      whatYouCanDo: "Researchers can run controlled telepathy experiments and submit results.",
+      evidenceNeeded: [
+        "Experimental protocol used",
+        "Number of trials",
+        "Hit rate vs. expected chance",
+        "Blinding and randomization procedures",
+        "Any deviations from protocol",
+      ],
+    };
+  }
+
+  // Default fallback - make it specific to the hypothesis
+  return {
+    whatWereTesting: hypothesis,
+    whyItMatters: "Testing this prediction helps us understand whether the observed pattern is real or just statistical noise. Either result advances our knowledge.",
+    whatYouCanDo: "If you have relevant data or experiences, you can contribute to the testing effort.",
+    evidenceNeeded: [
+      "Detailed description of your experience or data",
+      "Dates, times, and locations",
+      "Any corroborating evidence",
+      "Your relationship to the phenomenon",
+    ],
+  };
+}
 
 // Generate plain English explanation of what an experiment tests
 function generatePlainExplanation(hypothesis: string): { intro: string; bullets: string[]; conclusion: string } {
@@ -133,14 +422,135 @@ function generatePlainExplanation(hypothesis: string): { intro: string; bullets:
     };
   }
 
-  // Default fallback
+  // Crisis apparition temporal clustering (specific)
+  if (h.includes('crisis') && (h.includes('temporal') || h.includes('cluster') || h.includes('12 hour'))) {
+    return {
+      intro: "This analysis tests whether crisis apparitions cluster around the actual time of the crisis:",
+      bullets: [
+        "**Historical baseline:** ~90% of documented cases occurred within 12 hours of the actual event",
+        "**New submissions:** Cases submitted through this platform, verified independently"
+      ],
+      conclusion: "If new cases show the same tight temporal clustering as historical ones, it's evidence the pattern is real rather than reporting bias."
+    };
+  }
+
+  // Crisis apparition general
+  if (h.includes('crisis') || h.includes('apparition')) {
+    return {
+      intro: "This analysis examines crisis apparition reports:",
+      bullets: [
+        "**Crisis event:** A death, serious injury, or life-threatening situation",
+        "**Apparition experience:** Sensing the person's presence, seeing them, or having a vivid dream"
+      ],
+      conclusion: "We compare the details of what people experienced with what actually happened to look for patterns that can't be explained by coincidence."
+    };
+  }
+
+  // Bigfoot geographic clustering
+  if (h.includes('bigfoot') || h.includes('sasquatch')) {
+    return {
+      intro: "This analysis examines geographic patterns in Bigfoot sightings:",
+      bullets: [
+        "**Sighting locations:** GPS coordinates mapped against terrain and habitat",
+        "**Environmental factors:** Elevation, forest cover, water sources, wildlife corridors"
+      ],
+      conclusion: "If sightings cluster in specific habitat types, it either suggests where to search—or reveals what conditions lead to misidentifications."
+    };
+  }
+
+  // Haunting patterns
+  if (h.includes('haunting') || h.includes('ghost') || h.includes('paranormal')) {
+    return {
+      intro: "This analysis looks for patterns in haunting reports:",
+      bullets: [
+        "**Location characteristics:** Building age, construction materials, electrical systems",
+        "**Environmental factors:** EMF levels, infrasound, temperature variations"
+      ],
+      conclusion: "Finding correlations with environmental factors could explain hauntings naturally—or rule out those explanations."
+    };
+  }
+
+  // UFO/UAP patterns
+  if (h.includes('ufo') || h.includes('uap') || h.includes('aerial')) {
+    return {
+      intro: "This analysis examines UAP/UFO sighting patterns:",
+      bullets: [
+        "**Geographic clustering:** Do sightings concentrate in specific areas?",
+        "**Temporal patterns:** Are there time-of-day, seasonal, or multi-year cycles?"
+      ],
+      conclusion: "Understanding when and where sightings occur helps identify potential causes—natural phenomena, aircraft, or something else."
+    };
+  }
+
+  // Geophysical correlations
+  if (h.includes('tectonic') || h.includes('seismic') || h.includes('fault') || h.includes('earthquake')) {
+    return {
+      intro: "This analysis tests whether anomalies correlate with geological activity:",
+      bullets: [
+        "**Anomaly reports:** UFO sightings, strange lights, unusual phenomena",
+        "**Geological data:** Fault lines, seismic activity, tectonic stress measurements"
+      ],
+      conclusion: "If anomalies cluster near active fault zones or precede earthquakes, it suggests piezoelectric or plasma effects from tectonic stress."
+    };
+  }
+
+  // Hotspot/window areas
+  if (h.includes('hotspot') || h.includes('window') || h.includes('clustering')) {
+    return {
+      intro: "This analysis tests whether anomalies cluster in 'window areas':",
+      bullets: [
+        "**Multi-phenomenon clustering:** Do UFOs, cryptids, and hauntings overlap geographically?",
+        "**Statistical significance:** Are these clusters beyond what chance would predict?"
+      ],
+      conclusion: "If diverse anomalies cluster in the same locations, it suggests either an environmental trigger or a reporting bias we need to understand."
+    };
+  }
+
+  // Crop circle patterns
+  if (h.includes('crop') || h.includes('formation') || h.includes('circle')) {
+    return {
+      intro: "This analysis examines crop formation characteristics:",
+      bullets: [
+        "**Physical markers:** Plant node changes, soil composition, radiation levels",
+        "**Pattern complexity:** Design elements, mathematical properties, construction feasibility"
+      ],
+      conclusion: "Comparing physical evidence across formations helps distinguish anomalous cases from known hoaxes."
+    };
+  }
+
+  // Cattle mutilation patterns
+  if (h.includes('cattle') || h.includes('mutilation') || h.includes('livestock')) {
+    return {
+      intro: "This analysis examines unexplained animal death patterns:",
+      bullets: [
+        "**Pathology:** Wound characteristics, blood presence, organ removal patterns",
+        "**Geographic/temporal clustering:** Do cases cluster in space and time?"
+      ],
+      conclusion: "Consistent pathological findings across cases—especially those hard to replicate—would suggest a phenomenon worth investigating."
+    };
+  }
+
+  // Precognition
+  if (h.includes('precognition') || h.includes('premonition') || h.includes('predict')) {
+    return {
+      intro: "This analysis tests whether precognitive experiences show verifiable patterns:",
+      bullets: [
+        "**Documented predictions:** Recorded before the predicted event",
+        "**Specificity:** How precise was the prediction vs. how likely by chance"
+      ],
+      conclusion: "Only predictions documented before events count. We calculate the probability of each 'hit' occurring by chance."
+    };
+  }
+
+  // Default fallback - extract meaningful info from hypothesis
+  const shortHypothesis = hypothesis.length > 100 ? hypothesis.substring(0, 100) + '...' : hypothesis;
   return {
-    intro: "This experiment tests a specific prediction about how certain factors affect results:",
+    intro: `This prediction tests: "${shortHypothesis}"`,
     bullets: [
-      "**Condition A:** One set of experimental parameters",
-      "**Condition B:** Different parameters to compare against"
+      "**Evidence for:** Data or experiences that support this pattern",
+      "**Evidence against:** Cases that don't fit the predicted pattern"
     ],
-    conclusion: `The hypothesis is: "${hypothesis}" — researchers compare outcomes under different conditions to see if this prediction holds.`
+    conclusion: "By collecting standardized data from multiple sources, we can determine if this prediction holds up to scrutiny."
   };
 }
 
@@ -261,7 +671,7 @@ export default function PredictionDetailPage() {
   const [showTechnicalProtocol, setShowTechnicalProtocol] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Fetch all data
+  // Fetch public data (prediction, testers, results)
   const fetchData = useCallback(async () => {
     try {
       // Fetch prediction
@@ -276,14 +686,6 @@ export default function PredictionDetailPage() {
       if (testersRes.ok) {
         setTesters(testersData.data || []);
         setTesterCounts(testersData.counts || { active: 0, completed: 0, total: 0 });
-
-        // Check if current user is testing this prediction
-        if (user?.id) {
-          const userTester = testersData.data?.find(
-            (t: Tester) => t.user.id === user.id
-          );
-          setUserTestStatus(userTester?.status || null);
-        }
       }
 
       // Fetch results
@@ -298,13 +700,20 @@ export default function PredictionDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, user?.id]);
+  }, [id]);
 
+  // Fetch public data immediately (don't wait for auth)
   useEffect(() => {
-    if (!authLoading) {
-      fetchData();
+    fetchData();
+  }, [fetchData]);
+
+  // Update user test status when auth loads and testers are available
+  useEffect(() => {
+    if (!authLoading && user?.id && testers.length > 0) {
+      const userTester = testers.find((t: Tester) => t.user.id === user.id);
+      setUserTestStatus(userTester?.status || null);
     }
-  }, [fetchData, authLoading]);
+  }, [authLoading, user?.id, testers]);
 
   // Join testing
   const handleJoinTesting = async () => {
@@ -446,17 +855,52 @@ export default function PredictionDetailPage() {
             </svg>
             Back to Predictions
           </Link>
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-bold text-zinc-100">{prediction.hypothesis}</h1>
-            <span className={`shrink-0 rounded-full border px-3 py-1 text-sm font-medium ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
-              {statusStyle.label}
-            </span>
-          </div>
+          {(() => {
+            const displayTitle = generateDisplayTitle(prediction.hypothesis, prediction.domains_involved || []);
+            return (
+              <div className="flex items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h1 className="text-2xl md:text-3xl font-bold text-zinc-100">{displayTitle.title}</h1>
+                  <p className="text-sm text-zinc-500">{displayTitle.subtitle}</p>
+                </div>
+                <span className={`shrink-0 rounded-full border px-3 py-1 text-sm font-medium ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
+                  {statusStyle.label}
+                </span>
+              </div>
+            );
+          })()}
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
-        {/* Status Explanation for Normies */}
+        {/* The Simple Version - ELI5 Section */}
+        {(() => {
+          const simpleExp = generateSimpleExplanation(prediction.hypothesis, prediction.domains_involved || []);
+          return (
+            <div className="rounded-xl bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20 p-6">
+              <h2 className="text-lg font-bold text-zinc-100 mb-4 flex items-center gap-2">
+                <span className="text-2xl">💡</span>
+                The Simple Version
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-emerald-400 uppercase tracking-wide mb-1">What we&apos;re testing</h3>
+                  <p className="text-zinc-300">{simpleExp.whatWereTesting}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-teal-400 uppercase tracking-wide mb-1">Why it matters</h3>
+                  <p className="text-zinc-300">{simpleExp.whyItMatters}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-cyan-400 uppercase tracking-wide mb-1">What you can do</h3>
+                  <p className="text-zinc-300">{simpleExp.whatYouCanDo}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Status Badge */}
         <div className="rounded-xl bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-violet-500/20 p-4">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-violet-500/20">
@@ -465,7 +909,7 @@ export default function PredictionDetailPage() {
               </svg>
             </div>
             <div>
-              <h3 className="font-medium text-zinc-200">What does this mean?</h3>
+              <h3 className="font-medium text-zinc-200">Current Status</h3>
               <p className="mt-1 text-sm text-zinc-400">{STATUS_EXPLANATIONS[prediction.status]}</p>
             </div>
           </div>
@@ -476,22 +920,38 @@ export default function PredictionDetailPage() {
           <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
             <div className="text-2xl font-bold text-violet-400">{confidencePercent}%</div>
             <div className="text-sm text-zinc-500">Confidence</div>
-            <div className="mt-1 text-xs text-zinc-600">How sure we are this pattern is real</div>
+            <div className="mt-1 text-xs text-zinc-600">
+              {resultStats?.total_sample_size
+                ? `Based on ${resultStats.total_sample_size} data points`
+                : 'Based on historical pattern analysis'}
+            </div>
           </div>
           <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
             <div className="text-2xl font-bold text-amber-400">{testerCounts.active}</div>
-            <div className="text-sm text-zinc-500">Active Testers</div>
-            <div className="mt-1 text-xs text-zinc-600">People running experiments now</div>
+            <div className="text-sm text-zinc-500">Active Contributors</div>
+            <div className="mt-1 text-xs text-zinc-600">
+              {testerCounts.active > 0
+                ? 'Currently collecting data'
+                : 'Be the first to contribute'}
+            </div>
           </div>
           <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
             <div className="text-2xl font-bold text-emerald-400">{resultStats?.verified_count || 0}</div>
-            <div className="text-sm text-zinc-500">Results Submitted</div>
-            <div className="mt-1 text-xs text-zinc-600">Completed experiments</div>
+            <div className="text-sm text-zinc-500">Cases Submitted</div>
+            <div className="mt-1 text-xs text-zinc-600">
+              {(resultStats?.verified_count || 0) > 0
+                ? 'Verified and counted'
+                : 'Waiting for submissions'}
+            </div>
           </div>
           <div className="rounded-xl bg-zinc-800/50 p-4 text-center">
             <div className="text-2xl font-bold text-zinc-300">{resultStats?.total_sample_size || 0}</div>
-            <div className="text-sm text-zinc-500">Total Samples</div>
-            <div className="mt-1 text-xs text-zinc-600">Data points collected</div>
+            <div className="text-sm text-zinc-500">Total Data Points</div>
+            <div className="mt-1 text-xs text-zinc-600">
+              {(resultStats?.total_sample_size || 0) > 0
+                ? 'Combined from all submissions'
+                : 'Your data could be first'}
+            </div>
           </div>
         </div>
 
@@ -501,21 +961,24 @@ export default function PredictionDetailPage() {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-100">
-                  {userTestStatus === 'active' ? "You're testing this prediction!" : "Help test this prediction"}
+                  {userTestStatus === 'active' ? "You're contributing to this research!" : "Have something to share?"}
                 </h2>
                 <p className="mt-1 text-sm text-zinc-400">
                   {userTestStatus === 'active'
-                    ? "Submit your results when you're done, or withdraw if you can't complete."
-                    : "Join the testing effort to help verify or refute this scientific prediction."}
+                    ? "Submit your data when ready, or withdraw if circumstances change."
+                    : "Your experience or data could help answer this question. Every submission counts."}
                 </p>
               </div>
               <div className="flex gap-3">
                 {!isAuthenticated ? (
                   <button
                     onClick={() => setShowAuthModal(true)}
-                    className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500"
+                    className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 flex items-center gap-2"
                   >
-                    Sign in to Join
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Share Your Experience
                   </button>
                 ) : userTestStatus === 'active' ? (
                   <>
@@ -523,7 +986,7 @@ export default function PredictionDetailPage() {
                       onClick={() => setShowSubmitModal(true)}
                       className="rounded-lg bg-emerald-600 px-6 py-3 font-medium text-white hover:bg-emerald-500"
                     >
-                      Submit Results
+                      Submit Your Data
                     </button>
                     <button
                       onClick={handleWithdraw}
@@ -534,20 +997,52 @@ export default function PredictionDetailPage() {
                   </>
                 ) : userTestStatus === 'completed' ? (
                   <span className="rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-6 py-3 text-emerald-400">
-                    You submitted results
+                    Thanks for contributing!
                   </span>
                 ) : (
                   <button
                     onClick={() => setShowJoinModal(true)}
-                    className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500"
+                    className="rounded-lg bg-violet-600 px-6 py-3 font-medium text-white hover:bg-violet-500 flex items-center gap-2"
                   >
-                    Join Testing
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    Submit a Case
                   </button>
                 )}
               </div>
             </div>
           </div>
         )}
+
+        {/* What We're Looking For - Evidence Requirements */}
+        {(prediction.status === 'open' || prediction.status === 'testing') && (() => {
+          const simpleExp = generateSimpleExplanation(prediction.hypothesis, prediction.domains_involved || []);
+          return (
+            <div className="rounded-xl bg-zinc-800/50 border border-zinc-700/50 p-6">
+              <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+                <span className="text-xl">📋</span>
+                What We&apos;re Looking For
+              </h2>
+              <p className="text-sm text-zinc-400 mb-4">
+                A valid submission should include:
+              </p>
+              <ul className="space-y-2">
+                {simpleExp.evidenceNeeded.map((item, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-zinc-300">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 text-xs text-zinc-500 border-t border-zinc-700 pt-4">
+                We verify details independently when possible. All submissions are reviewed before being counted.
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Progress Tracker */}
         {resultStats && (resultStats.supporting_count > 0 || resultStats.opposing_count > 0) && (

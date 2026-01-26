@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { SCHEMA_METADATA } from '@/schemas';
 import { PatternCard } from '@/components/patterns/PatternCard';
@@ -102,6 +103,7 @@ function QuickLinkCard({
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -216,19 +218,58 @@ export default function DashboardPage() {
       title="Dashboard"
       description="Welcome to Project Aletheia - Cross-Domain Anomalous Phenomena Research"
     >
-      {/* Stats Overview */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in">
-        <StatCard
-          value={data?.systemStats.totalInvestigations || 0}
-          label="Investigations"
-          sublabel="Across all domains"
-          color="brand"
-        />
+      {/* Stats Overview - Two Tier Display */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-6 animate-fade-in">
+        <Link href="/investigations?tier=research" className="block">
+          <div className="p-5 rounded-xl bg-gradient-to-br from-blue-900/20 to-transparent border border-blue-500/20 hover:border-blue-500/40 transition-all">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔬</span>
+              <div>
+                <div className="text-3xl font-bold text-blue-400">Research</div>
+                <div className="text-zinc-400 text-sm">Quality-scored investigations</div>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-blue-300/70">
+              <span>NDE</span>
+              <span>•</span>
+              <span>Ganzfeld</span>
+              <span>•</span>
+              <span>Crisis Apparition</span>
+              <span>•</span>
+              <span>STARGATE</span>
+              <span>•</span>
+              <span>Geophysical</span>
+            </div>
+          </div>
+        </Link>
+        <Link href="/investigations?tier=exploratory" className="block">
+          <div className="p-5 rounded-xl bg-gradient-to-br from-purple-900/20 to-transparent border border-purple-500/20 hover:border-purple-500/40 transition-all">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">👻</span>
+              <div>
+                <div className="text-3xl font-bold text-purple-400">Exploratory</div>
+                <div className="text-zinc-400 text-sm">Pattern analysis records</div>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-purple-300/70">
+              <span>UFO/UAP</span>
+              <span>•</span>
+              <span>Bigfoot</span>
+              <span>•</span>
+              <span>Haunting</span>
+              <span>•</span>
+              <span>Experience Reports</span>
+            </div>
+          </div>
+        </Link>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-4 mb-8 animate-fade-in" style={{ animationDelay: '0.05s' }}>
         <StatCard
           value={data?.systemStats.totalPatterns || 0}
           label="Patterns Found"
           sublabel="Cross-domain correlations"
-          color="purple"
+          color="amber"
         />
         <StatCard
           value={`${data?.systemStats.confirmedPredictions || 0}/${data?.systemStats.totalPredictions || 0}`}
@@ -237,9 +278,9 @@ export default function DashboardPage() {
           color="green"
         />
         <StatCard
-          value="6"
+          value="5 + 3"
           label="Domains"
-          sublabel="Connected schemas"
+          sublabel="Research + Exploratory"
           color="cyan"
         />
       </div>
@@ -418,6 +459,7 @@ export default function DashboardPage() {
                   key={prediction.id}
                   prediction={prediction}
                   compact
+                  onClick={() => router.push(`/predictions/${prediction.id}`)}
                 />
               ))}
               {(!data?.activePredictions || data.activePredictions.length === 0) && (

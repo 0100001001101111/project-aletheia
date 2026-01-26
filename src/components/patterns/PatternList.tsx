@@ -10,6 +10,7 @@ import type { InvestigationType } from '@/types/database';
 import type { DetectedPattern } from '@/lib/pattern-matcher';
 import { SCHEMA_METADATA } from '@/schemas';
 import { getConfidenceLevel } from '@/lib/pattern-matcher';
+import { generatePatternDisplayTitle } from '@/lib/prediction-display';
 
 interface PatternListProps {
   patterns: DetectedPattern[];
@@ -245,14 +246,19 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
                     >
                       {/* Pattern column */}
                       <td className="px-4 py-4">
-                        <div className="max-w-xs">
-                          <p className="font-medium text-zinc-100 line-clamp-2">
-                            {pattern.description}
-                          </p>
-                          <p className="mt-1 text-xs text-zinc-500">
-                            <code className="text-violet-400/80">{pattern.variable}</code>
-                          </p>
-                        </div>
+                        {(() => {
+                          const displayTitle = generatePatternDisplayTitle(pattern.description, pattern.variable, pattern.domains);
+                          return (
+                            <div className="max-w-xs">
+                              <p className="font-medium text-zinc-100 line-clamp-2">
+                                {displayTitle.title}
+                              </p>
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {displayTitle.subtitle}
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Domains column */}

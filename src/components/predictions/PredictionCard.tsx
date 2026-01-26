@@ -7,6 +7,7 @@
 
 import { SCHEMA_METADATA } from '@/schemas';
 import { JARGON_TOOLTIPS } from '@/components/ui/Tooltip';
+import { generateDisplayTitle } from '@/lib/prediction-display';
 import type { InvestigationType } from '@/types/database';
 
 type PredictionStatus = 'open' | 'pending' | 'testing' | 'confirmed' | 'refuted' | 'inconclusive';
@@ -116,6 +117,9 @@ export function PredictionCard({ prediction, onClick, compact = false }: Predict
   // Bulletproof domains array
   const domains = (prediction?.domains_involved || prediction?.domains || []).filter(Boolean);
 
+  // Generate human-readable display title
+  const displayTitle = generateDisplayTitle(prediction.hypothesis, domains);
+
   if (compact) {
     return (
       <div
@@ -125,7 +129,10 @@ export function PredictionCard({ prediction, onClick, compact = false }: Predict
         }`}
       >
         <div className="flex items-start justify-between gap-3">
-          <p className="line-clamp-2 text-sm text-zinc-200 leading-relaxed flex-1">{prediction.hypothesis}</p>
+          <div className="flex-1 min-w-0">
+            <p className="line-clamp-2 text-sm font-medium text-zinc-200 leading-relaxed">{displayTitle.title}</p>
+            <p className="line-clamp-1 text-xs text-zinc-500 mt-1">{displayTitle.subtitle}</p>
+          </div>
           <span
             className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}
           >
@@ -175,7 +182,8 @@ export function PredictionCard({ prediction, onClick, compact = false }: Predict
       {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-lg font-medium text-zinc-100 leading-relaxed">{prediction.hypothesis}</h3>
+          <h3 className="text-lg font-semibold text-zinc-100 leading-relaxed">{displayTitle.title}</h3>
+          <p className="mt-1 text-sm text-zinc-500">{displayTitle.subtitle}</p>
           {prediction.explainer && (
             <p className="mt-2 text-sm text-zinc-400 italic leading-relaxed">{prediction.explainer}</p>
           )}

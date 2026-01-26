@@ -90,8 +90,8 @@ export const EXPLORATORY_DOMAINS: Record<ExploratoryInvestigationType, DomainMet
     tier: 'exploratory',
   },
   hotspot: {
-    name: 'High Strangeness Hotspots',
-    description: 'Locations with anomaly clustering',
+    name: 'Hotspots',
+    description: 'High strangeness locations with anomaly clustering',
     icon: '📍',
     color: 'fuchsia',
     tier: 'exploratory',
