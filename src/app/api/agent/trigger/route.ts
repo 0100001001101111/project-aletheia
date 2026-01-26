@@ -1,6 +1,10 @@
 /**
  * Agent Trigger API
  * POST /api/agent/trigger - Manually trigger an agent run
+ *
+ * Body parameters:
+ * - triggerType: 'manual' | 'scheduled' (default: 'manual')
+ * - mode: 'demo' | 'full' (default: 'full')
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -17,35 +21,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse request body for trigger type
+    // Parse request body for trigger type and mode
     let triggerType = 'manual';
+    let mode = 'full';
+
     try {
       const body = await request.json();
       if (body.triggerType) {
         triggerType = body.triggerType;
       }
+      if (body.mode) {
+        mode = body.mode;
+      }
     } catch {
-      // No body or invalid JSON, use default
+      // No body or invalid JSON, use defaults
     }
 
     // Create and run agent
     const agent = new AletheiaAgent();
 
-    // Run the demo session (non-blocking)
-    // In a real implementation, this would be handled by a background job
-    const sessionIdPromise = agent.runDemo(triggerType);
+    // Run the appropriate mode
+    let sessionIdPromise: Promise<string>;
 
-    // Return immediately with session ID
-    // The client can then subscribe to logs via Realtime
-    const sessionId = await agent.currentSessionId;
+    if (mode === 'demo') {
+      sessionIdPromise = agent.runDemo(triggerType);
+    } else {
+      sessionIdPromise = agent.run(triggerType);
+    }
 
-    // Wait for the demo to start (get session ID)
-    const finalSessionId = await sessionIdPromise;
+    // Wait for session to start and complete
+    const sessionId = await sessionIdPromise;
 
     return NextResponse.json({
       success: true,
-      sessionId: finalSessionId,
-      message: 'Agent run started',
+      sessionId,
+      mode,
+      message: mode === 'demo' ? 'Demo run completed' : 'Analysis run completed',
     });
   } catch (error) {
     console.error('Agent trigger error:', error);

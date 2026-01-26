@@ -101,3 +101,100 @@ export interface AgentStatus {
 export interface DomainCounts {
   [domain: string]: number;
 }
+
+// ============================================
+// Phase 2: Analysis Engine Types
+// ============================================
+
+export type PatternType = 'co-location' | 'temporal' | 'geographic' | 'attribute';
+
+export interface PatternCandidate {
+  type: PatternType;
+  description: string;
+  domains: string[];
+  evidence: Record<string, unknown>;
+  preliminary_strength: number; // 0-1 estimate
+}
+
+export interface TestResult {
+  test_type: string;
+  statistic: number;
+  p_value: number;
+  effect_size: number;
+  sample_size: number;
+  passed_threshold: boolean; // p < 0.01 AND effect > 0.3
+  interpretation: string;
+  raw_data?: Record<string, unknown>;
+}
+
+export interface ConfoundCheckResult {
+  confound_type: string;
+  controlled: boolean;
+  effect_survived: boolean;
+  notes: string;
+  stratified_results?: Record<string, unknown>;
+}
+
+export interface GeneratedHypothesis {
+  hypothesis_text: string;
+  display_title: string;
+  testable: boolean;
+  suggested_test: string;
+  required_sample_size: number;
+  domains: string[];
+  source_pattern: PatternCandidate;
+}
+
+export interface HoldoutSplit {
+  training_ids: string[];
+  holdout_ids: string[];
+  seed: number;
+}
+
+export interface FindingData {
+  title: string;
+  display_title: string;
+  summary: string;
+  technical_details: {
+    test_results: TestResult[];
+    confound_checks: ConfoundCheckResult[];
+    holdout_validation: TestResult;
+  };
+  confidence: number;
+  suggested_prediction: string;
+}
+
+export interface AgentConfigValues {
+  enabled: boolean;
+  run_interval_hours: number;
+  min_sample_size: number;
+  significance_threshold: number;
+  effect_size_threshold: number;
+  max_hypotheses_per_session: number;
+}
+
+// Investigation data for analysis
+export interface InvestigationRecord {
+  id: string;
+  investigation_type: string;
+  tier: string;
+  raw_data: Record<string, unknown> | null;
+  exploratory_data: Record<string, unknown> | null;
+  created_at: string;
+  triage_score: number | null;
+}
+
+// Grid cell for co-location analysis
+export interface GridCellData {
+  cell_id: string;
+  center_lat: number;
+  center_lng: number;
+  ufo_count: number;
+  bigfoot_count: number;
+  haunting_count: number;
+  total_count: number;
+  type_count: number;
+  types_present: string[];
+  window_index: number | null;
+  excess_ratio: number | null;
+}

@@ -3,6 +3,7 @@
 /**
  * Agent Terminal Page
  * View and trigger Aletheia Research Agent sessions
+ * Phase 2: Full analysis with pattern scanning, hypothesis testing, and findings
  */
 
 import { useEffect, useState, useCallback } from 'react';
@@ -15,6 +16,8 @@ import type { AgentSession, AgentLog, AgentStatus } from '@/lib/agent/types';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+type RunMode = 'full' | 'demo';
+
 export default function AgentPage() {
   const [status, setStatus] = useState<AgentStatus | null>(null);
   const [sessions, setSessions] = useState<AgentSession[]>([]);
@@ -23,6 +26,7 @@ export default function AgentPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [runMode, setRunMode] = useState<RunMode>('full');
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -114,16 +118,29 @@ export default function AgentPage() {
     };
   }, [selectedSessionId, status?.currentSession?.id, supabase]);
 
+  // Poll for session completion
+  useEffect(() => {
+    if (!status?.currentSession) return;
+
+    const interval = setInterval(async () => {
+      await fetchStatus();
+      await fetchSessions();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [status?.currentSession, fetchStatus, fetchSessions]);
+
   // Trigger agent run
   const triggerRun = async () => {
     setIsTriggering(true);
     setError(null);
+    setLogs([]); // Clear logs for new session
 
     try {
       const res = await fetch('/api/agent/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggerType: 'manual' }),
+        body: JSON.stringify({ triggerType: 'manual', mode: runMode }),
       });
 
       if (!res.ok) {
@@ -185,31 +202,73 @@ export default function AgentPage() {
             )}
           </div>
 
-          <button
-            onClick={triggerRun}
-            disabled={isTriggering || !status?.enabled || !!status?.currentSession}
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {isTriggering ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Starting...
-              </>
-            ) : status?.currentSession ? (
-              <>
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                Running
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Run Agent
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Mode selector */}
+            <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setRunMode('full')}
+                disabled={isTriggering || !!status?.currentSession}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  runMode === 'full'
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                } disabled:opacity-50`}
+              >
+                Full Analysis
+              </button>
+              <button
+                onClick={() => setRunMode('demo')}
+                disabled={isTriggering || !!status?.currentSession}
+                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                  runMode === 'demo'
+                    ? 'bg-brand-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
+                } disabled:opacity-50`}
+              >
+                Demo
+              </button>
+            </div>
+
+            {/* Run button */}
+            <button
+              onClick={triggerRun}
+              disabled={isTriggering || !status?.enabled || !!status?.currentSession}
+              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {isTriggering ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Starting...
+                </>
+              ) : status?.currentSession ? (
+                <>
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  Running
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Run Agent
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mode description */}
+        <div className="mt-3 text-xs text-zinc-500">
+          {runMode === 'full' ? (
+            <>
+              <span className="text-brand-400 font-medium">Full Analysis:</span> Scans patterns, generates hypotheses via Claude API, runs statistical tests, checks confounds, and queues validated findings for review.
+            </>
+          ) : (
+            <>
+              <span className="text-brand-400 font-medium">Demo Mode:</span> Quick foundation test that loads data and shows module readiness without running full analysis.
+            </>
+          )}
         </div>
 
         {error && (
@@ -277,7 +336,9 @@ export default function AgentPage() {
                   </div>
                   <div>
                     <span className="text-zinc-500">Findings:</span>{' '}
-                    <span className="text-zinc-300">{session.findings_queued}</span>
+                    <span className={session.findings_queued > 0 ? 'text-green-400 font-medium' : 'text-zinc-300'}>
+                      {session.findings_queued}
+                    </span>
                   </div>
                   {session.summary && (
                     <div className="w-full">
