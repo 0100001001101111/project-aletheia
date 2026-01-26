@@ -144,11 +144,28 @@ export default function WindowAnalysisPage() {
     );
   }
 
+  const totalRecords = gridCells.reduce((sum, c) => sum + c.total_count, 0);
+
   return (
     <PageWrapper
       title="Window Theory Analysis"
       description="Testing John Keel's hypothesis: Do anomalous phenomena cluster geographically?"
     >
+      {/* Data Source Note */}
+      <div className="mb-6 rounded-lg border border-purple-500/20 bg-purple-900/10 p-4">
+        <div className="flex items-start gap-3">
+          <span className="text-xl">👻</span>
+          <div>
+            <p className="text-sm text-purple-200">
+              <span className="font-medium">Exploratory Data Analysis:</span>{' '}
+              This analysis uses <span className="font-medium text-purple-300">{totalRecords.toLocaleString()}</span> bulk-imported
+              sighting records (UFO, Bigfoot, Haunting) for geographic pattern detection.
+              These records are not quality-scored like Research tier data.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Header Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in">
         <div className="p-5 rounded-xl bg-gradient-to-br from-brand-900/20 to-transparent border border-brand-500/20 text-center">

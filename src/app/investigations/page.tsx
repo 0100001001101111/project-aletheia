@@ -222,6 +222,19 @@ function InvestigationsPage() {
         </div>
       </div>
 
+      {/* Tier Explanation Banner */}
+      {tier === 'research' && (
+        <div className="mx-auto max-w-7xl px-4 pt-4">
+          <div className="rounded-lg border border-blue-500/20 bg-blue-900/10 p-4">
+            <p className="text-sm text-blue-200">
+              <span className="font-medium">Research Investigations:</span>{' '}
+              Structured research data with quality scoring. These support falsifiable predictions
+              in NDE, Ganzfeld, Crisis Apparition, STARGATE, and Geophysical domains.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Exploratory Disclaimer */}
       {tier === 'exploratory' && (
         <div className="mx-auto max-w-7xl px-4 pt-4">

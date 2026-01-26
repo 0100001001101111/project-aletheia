@@ -4,12 +4,23 @@
 
 Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, and falsifiable prediction tracking.
 
-## Current Project State (Jan 21, 2026)
+## Current Project State (Jan 25, 2026)
+
+### Two-Tier Data Architecture
+
+**Research Tier (~185 records):** Quality-scored investigations with structured schemas
+- NDE, Ganzfeld, Crisis Apparition, STARGATE, Geophysical
+- Supports falsifiable predictions and rigorous analysis
+
+**Exploratory Tier (~173,935 records):** Bulk-imported sighting data for pattern analysis
+- UFO/UAP, Bigfoot, Haunting, Experience Reports (NDE bulk imports)
+- Used for window theory testing and geographic correlation studies
+- Not quality-scored
 
 ### What's Working
-- **Landing page** - Domain statistics, live counts
-- **Dashboard** - Overview with stats cards
-- **Investigations** - Browse/filter verified investigations (166k+ records)
+- **Landing page** - Two-tier stats display (Research vs Exploratory)
+- **Dashboard** - Overview with tier breakdown links
+- **Investigations** - Browse/filter with Research and Exploratory tabs
 - **Predictions** - List + detail pages with testing workflow
 - **Patterns** - Cross-domain pattern visualization
 - **Community Hypotheses** - Submit speculative ideas, AI-generated evidence suggestions
@@ -17,10 +28,16 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 - **Pre-registration** - Hash-locked methodology before testing
 - **Red Team Dashboard** - Skeptic tools for flagging flaws
 - **Auth** - Public + anonymous user system with verification levels
-- **Window Analysis Dashboard** - Geographic clustering analysis (John Keel's hypothesis)
+- **Window Analysis Dashboard** - Geographic clustering (uses exploratory data)
 - **Data Ingestion Pipeline** - API for importing NUFORC, BFRO, and other datasets
 
-### Recent Additions (Jan 21, 2026)
+### Recent Additions (Jan 25, 2026)
+- **Two-tier architecture** - Clear separation between Research and Exploratory data
+- **Tier assignments fixed** - UFO data now correctly in exploratory tier
+- **Updated UI** - Landing page, dashboard, investigations show tier breakdown
+- **Experience reports imported** - 7,312 NDEs/OBEs/ADCs from nderf/oberf/adcrf
+
+### Previous Additions (Jan 21, 2026)
 - **Window Theory Analysis** - Full dashboard at `/analysis/windows` with:
   - Spatial analysis (multi-resolution grid, scale-dependent clustering)
   - Temporal analysis tab
@@ -152,9 +169,11 @@ If there are type errors, fix them before declaring completion.
 - `aletheia_jury_votes` - Individual juror votes
 - `aletheia_jury_pool` - Eligible jurors for disputes
 
-## Current Data (Jan 21, 2026)
+## Current Data (Jan 25, 2026)
 
-- **166,808 investigations** across domains (UFO, Bigfoot, Haunting, etc.)
+- **174,120 total records** (185 research + 173,935 exploratory)
+- **Research tier:** STARGATE (104), Ganzfeld (52), Geophysical (27), NDE (2)
+- **Exploratory tier:** UFO (152,858), Haunting (9,731), NDE bulk (6,191), Bigfoot (3,810), Crisis Apparition (1,139), others
 - **1,246 grid cells** at 1° resolution
 - **6 co-occurrence analyses** completed
 - **15 active predictions** awaiting evaluation

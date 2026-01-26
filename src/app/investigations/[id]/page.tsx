@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { SCHEMA_METADATA, flattenToDotNotation, getFieldDescriptions } from '@/schemas';
 import { getTriageScoreColor, getTriageStatusColor } from '@/lib/triage';
 import { formatFieldName, formatValue as formatVal } from '@/lib/format';
@@ -59,7 +60,7 @@ function formatPhenomenonType(type: string): string {
 }
 
 // Generate a human-readable summary of what happened in this specific investigation
-function generateInvestigationSummary(type: InvestigationType, data: Record<string, unknown>, description?: string): string {
+function generateInvestigationSummary(type: InvestigationType, data: Record<string, unknown>, description?: string, title?: string): string {
   switch (type) {
     case 'ganzfeld': {
       // Check if this is a multi-site replication study
@@ -578,7 +579,247 @@ function generateInvestigationSummary(type: InvestigationType, data: Record<stri
       return summary;
     }
 
+    case 'bigfoot': {
+      const classification = data.classification as Record<string, unknown> | undefined;
+      const classType = classification?.class as string;
+      const classDesc = classification?.class_description as string;
+      const reportMeta = data.report_metadata as Record<string, unknown> | undefined;
+      const source = reportMeta?.source || 'BFRO';
+      const reportNum = reportMeta?.report_number;
+      const location = data.location as Record<string, unknown> | undefined;
+
+      // Extract the sighting narrative from title (format: "Report XXXX: <description>")
+      const titleMatch = title?.match(/Report \d+:\s*(.+)$/i);
+      const narrative = titleMatch?.[1] || description || title || 'Sighting details not available';
+
+      let summary = `**${source} Report #${reportNum}**: ${narrative}`;
+
+      if (classType) {
+        const classExplain: Record<string, string> = {
+          'A': 'Class A sighting - clear, unambiguous visual observation at close range in good conditions.',
+          'B': 'Class B sighting - possible sighting but conditions (distance, lighting, foliage) leave some ambiguity.',
+          'C': 'Class C report - secondhand account or other less direct evidence.',
+        };
+        summary += ` ${classExplain[classType] || `Classification: ${classType} (${classDesc})`}`;
+      }
+
+      if (location?.lat && location?.lng) {
+        summary += ` Location: ${location.lat}, ${location.lng}.`;
+      }
+
+      return summary;
+    }
+
+    case 'haunting': {
+      const location = data.location as Record<string, unknown> | undefined;
+      const phenomena = data.phenomena as string[] | undefined;
+      const historicalContext = data.historical_context as string | undefined;
+      const witnesses = data.witness_count || data.witnesses;
+
+      // Extract location name from title (format: "Location Name, ST - Haunted Location")
+      const titleMatch = title?.match(/^([^-]+)\s*-/i);
+      const locationName = titleMatch?.[1]?.trim() || title || 'Haunted location';
+
+      let summary = `**${locationName}**: `;
+
+      if (phenomena && phenomena.length > 0) {
+        summary += `Reported phenomena include ${phenomena.join(', ')}. `;
+      } else {
+        summary += 'This location has documented reports of unexplained phenomena. ';
+      }
+
+      if (historicalContext) {
+        summary += `Historical context: ${historicalContext} `;
+      }
+
+      if (witnesses) {
+        summary += `Number of documented witnesses: ${witnesses}. `;
+      }
+
+      if (location?.lat && location?.lng) {
+        summary += `Coordinates: ${location.lat}, ${location.lng}.`;
+      }
+
+      return summary;
+    }
+
+    case 'bermuda_triangle': {
+      const vessel = data.vessel as string;
+      const vesselType = data.type as string;
+      const crew = data.crew as number;
+      const date = data.date || data.event_date;
+      const location = data.location as Record<string, unknown> | undefined;
+      const lastKnown = location?.last_known || location?.route;
+      const source = data.source as string;
+
+      let summary = '';
+
+      if (description) {
+        summary = description;
+      } else {
+        summary = `The ${vesselType || 'vessel'} ${vessel || 'unknown'}`;
+        if (crew) summary += ` with ${crew} aboard`;
+        summary += ' disappeared in the Bermuda Triangle region.';
+      }
+
+      if (lastKnown && !description?.includes(String(lastKnown))) {
+        summary += ` Last known position: ${lastKnown}.`;
+      }
+
+      if (date) {
+        summary += ` Date: ${date}.`;
+      }
+
+      if (source && !description?.includes(source)) {
+        summary += ` Source: ${source}.`;
+      }
+
+      return summary;
+    }
+
+    case 'cryptid': {
+      const cryptidType = data.cryptid_type || data.creature_type;
+      const location = data.location as Record<string, unknown> | undefined;
+      const witnesses = data.witness_count || data.witnesses;
+      const classification = data.classification as Record<string, unknown> | undefined;
+
+      let summary = description || `Sighting of ${cryptidType || 'unidentified creature'}`;
+
+      if (classification?.class) {
+        summary += ` Classification: ${classification.class}`;
+        if (classification.class_description) {
+          summary += ` (${classification.class_description})`;
+        }
+        summary += '.';
+      }
+
+      if (witnesses) {
+        summary += ` Witnesses: ${witnesses}.`;
+      }
+
+      if (location?.lat && location?.lng) {
+        summary += ` Location: ${location.lat}, ${location.lng}.`;
+      }
+
+      return summary;
+    }
+
+    case 'cattle_mutilation': {
+      const date = data.date || data.event_date;
+      const location = data.location as Record<string, unknown> | undefined;
+      const animalType = String(data.animal_type || 'cattle');
+      const characteristics = data.characteristics as string[] | undefined;
+      const source = data.source;
+
+      let summary = description || `${animalType.charAt(0).toUpperCase() + animalType.slice(1)} mutilation incident`;
+
+      if (date && !summary.includes(String(date))) {
+        summary += ` Date: ${date}.`;
+      }
+
+      if (characteristics && characteristics.length > 0) {
+        summary += ` Noted characteristics: ${characteristics.join(', ')}.`;
+      }
+
+      if (location?.lat && location?.lng) {
+        summary += ` Location: ${location.lat}, ${location.lng}.`;
+      }
+
+      if (source) {
+        summary += ` Source: ${source}.`;
+      }
+
+      return summary;
+    }
+
+    case 'crop_circle': {
+      const date = data.date || data.event_date;
+      const location = data.location as Record<string, unknown> | undefined;
+      const diameter = data.diameter || data.size;
+      const pattern = data.pattern_type || data.design;
+      const country = data.country || 'UK';
+
+      let summary = description || 'Crop circle formation discovered';
+
+      if (pattern && !summary.includes(String(pattern))) {
+        summary += ` Pattern: ${pattern}.`;
+      }
+
+      if (diameter) {
+        summary += ` Size: ${diameter}${typeof diameter === 'number' ? ' meters' : ''}.`;
+      }
+
+      if (date && !summary.includes(String(date))) {
+        summary += ` Date: ${date}.`;
+      }
+
+      if (location?.lat && location?.lng) {
+        summary += ` Location: ${location.lat}, ${location.lng} (${country}).`;
+      }
+
+      return summary;
+    }
+
+    case 'hotspot': {
+      const location = data.location as Record<string, unknown> | undefined;
+      const phenomena = (data.phenomena_types || data.phenomena) as string[] | undefined;
+      const incidentCount = data.incident_count || data.reports;
+      const notes = data.notes as string | undefined;
+      const sources = data.sources as string | undefined;
+
+      let summary = notes || description || 'High strangeness hotspot - location with multiple types of anomalous reports';
+
+      if (phenomena && phenomena.length > 0) {
+        summary += ` Reported phenomena: ${phenomena.join(', ')}.`;
+      }
+
+      if (incidentCount) {
+        summary += ` Total documented incidents: ${incidentCount}.`;
+      }
+
+      if (sources) {
+        summary += ` Sources: ${sources}.`;
+      }
+
+      if (location?.lat && location?.lng) {
+        summary += ` Coordinates: ${location.lat}, ${location.lng}.`;
+      }
+
+      return summary;
+    }
+
+    case 'men_in_black': {
+      const date = data.date || data.event_date;
+      const location = data.location as Record<string, unknown> | undefined;
+      const context = data.context || data.related_incident;
+      const witnesses = data.witness_count || data.witnesses;
+
+      let summary = description || 'Men in Black encounter reported';
+
+      if (context && !summary.includes(String(context))) {
+        summary += ` Context: ${context}.`;
+      }
+
+      if (date && !summary.includes(String(date))) {
+        summary += ` Date: ${date}.`;
+      }
+
+      if (witnesses) {
+        summary += ` Witnesses: ${witnesses}.`;
+      }
+
+      if (location?.lat && location?.lng) {
+        summary += ` Location: ${location.lat}, ${location.lng}.`;
+      }
+
+      return summary;
+    }
+
     default:
+      // For unknown types, try to construct something useful from available data
+      if (description) {
+        return description;
+      }
       return 'This investigation contains research data being analyzed for cross-domain patterns.';
   }
 }
@@ -687,6 +928,23 @@ export default function InvestigationPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {/* Top Navigation Bar */}
+      <nav className="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-sm sticky top-0 z-50">
+        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-100 transition-colors">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-600 to-blue-500 flex items-center justify-center">
+              <span className="text-white font-bold">A</span>
+            </div>
+            <span className="font-semibold text-zinc-100">Aletheia</span>
+          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/investigations" className="text-sm text-zinc-400 hover:text-zinc-100 transition-colors">
+              ← Back to Investigations
+            </Link>
+          </div>
+        </div>
+      </nav>
+
       {/* Header */}
       <header className="border-b border-zinc-800 bg-zinc-900/50">
         <div className="mx-auto max-w-6xl px-4 py-6">
@@ -750,7 +1008,7 @@ export default function InvestigationPage({ params }: PageProps) {
             What Happened
           </h2>
           <p className="text-zinc-300 leading-relaxed">
-            {generateInvestigationSummary(investigation.type, investigation.raw_data, investigation.description)}
+            {generateInvestigationSummary(investigation.type, investigation.raw_data, investigation.description, investigation.title)}
           </p>
         </div>
 

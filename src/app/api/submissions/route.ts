@@ -218,18 +218,28 @@ export async function GET(request: NextRequest) {
     const hasMore = data && data.length > limit;
     const results = hasMore ? data.slice(0, limit) : (data || []);
 
-    // Use cached tier counts (updated via background job)
-    const tierCounts: Record<string, number> = {
-      research: 153061,
-      exploratory: 13747,
-    };
+    // Get actual count for the current tier (with filters if applied)
+    let countQuery = supabase
+      .from('aletheia_investigations')
+      .select('id', { count: 'exact', head: true })
+      .eq('tier', effectiveTier);
+
+    if (type) {
+      countQuery = countQuery.eq('investigation_type', type);
+    }
+    if (status) {
+      countQuery = countQuery.eq('triage_status', status);
+    }
+
+    const { count: totalCount } = await countQuery;
 
     return NextResponse.json({
       data: results,
-      total: tierCounts[effectiveTier] || 0,
+      total: totalCount || 0,
       hasMore,
       limit,
       offset,
+      tier: effectiveTier,
     });
   } catch (error) {
     console.error('Submissions API error:', error);

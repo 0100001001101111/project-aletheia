@@ -95,19 +95,19 @@ async function getStats() {
   try {
     const supabase = await createServerClient();
 
-    // Get total investigation count efficiently
-    const { count: totalInvestigations } = await supabase
-      .from('aletheia_investigations')
-      .select('id', { count: 'exact', head: true });
+    // Get counts by tier (research vs exploratory)
+    const [researchCount, exploratoryCount] = await Promise.all([
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('tier', 'research'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('tier', 'exploratory'),
+    ]);
 
-    // Get counts by type using individual count queries (more efficient than fetching all rows)
-    const [ndeCount, ganzfeldCount, crisisCount, stargateCount, geophysicalCount, ufoCount] = await Promise.all([
-      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'nde'),
-      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'ganzfeld'),
-      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'crisis_apparition'),
-      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'stargate'),
-      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'geophysical'),
-      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'ufo'),
+    // Get counts by type for research tier only
+    const [ndeCount, ganzfeldCount, crisisCount, stargateCount, geophysicalCount] = await Promise.all([
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'nde').eq('tier', 'research'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'ganzfeld').eq('tier', 'research'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'crisis_apparition').eq('tier', 'research'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'stargate').eq('tier', 'research'),
+      supabase.from('aletheia_investigations').select('id', { count: 'exact', head: true }).eq('investigation_type', 'geophysical').eq('tier', 'research'),
     ]);
 
     const investigationCounts = {
@@ -116,8 +116,9 @@ async function getStats() {
       crisis: crisisCount.count || 0,
       stargate: stargateCount.count || 0,
       geophysical: geophysicalCount.count || 0,
-      ufo: ufoCount.count || 0,
-      total: totalInvestigations || 0,
+      research: researchCount.count || 0,
+      exploratory: exploratoryCount.count || 0,
+      total: (researchCount.count || 0) + (exploratoryCount.count || 0),
     };
 
     // Get pattern count
@@ -149,7 +150,7 @@ async function getStats() {
     };
   } catch {
     return {
-      investigations: { nde: 0, ganzfeld: 0, crisis: 0, stargate: 0, geophysical: 0, ufo: 0, total: 0 },
+      investigations: { nde: 0, ganzfeld: 0, crisis: 0, stargate: 0, geophysical: 0, research: 0, exploratory: 0, total: 0 },
       patterns: 0,
       predictions: { total: 0, confirmed: 0, refuted: 0, testing: 0, open: 0 },
     };
@@ -531,26 +532,63 @@ export default async function LandingPage() {
             <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Current State of Research</p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Investigations */}
-            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-brand-900/10 border border-brand-500/20 text-center">
-              <div className="text-5xl font-bold gradient-text mb-2">{stats.investigations.total}</div>
-              <div className="text-zinc-400 font-medium">Investigations</div>
-              <div className="text-xs text-zinc-500 mt-1">Across all domains</div>
+          {/* Two-Tier Data Display */}
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Research Tier */}
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-blue-900/10 border border-blue-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">🔬</span>
+                <div>
+                  <div className="text-3xl font-bold text-blue-400">{stats.investigations.research.toLocaleString()}</div>
+                  <div className="text-zinc-300 font-medium">Research Investigations</div>
+                </div>
+              </div>
+              <p className="text-sm text-zinc-400 mb-3">
+                Structured research with quality scoring. Supports falsifiable predictions.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">NDE</span>
+                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">Ganzfeld</span>
+                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">Crisis Apparition</span>
+                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">STARGATE</span>
+                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">Geophysical</span>
+              </div>
             </div>
 
+            {/* Exploratory Tier */}
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-purple-900/10 border border-purple-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-2xl">👻</span>
+                <div>
+                  <div className="text-3xl font-bold text-purple-400">{stats.investigations.exploratory.toLocaleString()}</div>
+                  <div className="text-zinc-300 font-medium">Exploratory Records</div>
+                </div>
+              </div>
+              <p className="text-sm text-zinc-400 mb-3">
+                Bulk-imported sighting data for pattern analysis and window theory testing.
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">UFO/UAP</span>
+                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">Bigfoot</span>
+                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">Haunting</span>
+                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">Experience Reports</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6">
             {/* Patterns */}
-            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-purple-900/10 border border-purple-500/20 text-center">
-              <div className="text-5xl font-bold text-purple-400 mb-2">{stats.patterns}</div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-amber-900/10 border border-amber-500/20 text-center">
+              <div className="text-4xl font-bold text-amber-400 mb-2">{stats.patterns}</div>
               <div className="text-zinc-400 font-medium">Patterns Found</div>
               <div className="text-xs text-zinc-500 mt-1">Cross-domain correlations</div>
             </div>
 
             {/* Predictions */}
             <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-green-900/10 border border-green-500/20 text-center">
-              <div className="text-5xl font-bold text-green-400 mb-2">
+              <div className="text-4xl font-bold text-green-400 mb-2">
                 {stats.predictions.confirmed}
-                <span className="text-2xl text-zinc-500">/{stats.predictions.total}</span>
+                <span className="text-xl text-zinc-500">/{stats.predictions.total}</span>
               </div>
               <div className="text-zinc-400 font-medium">Predictions</div>
               <div className="text-xs text-zinc-500 mt-1">Confirmed / Total</div>
@@ -558,9 +596,9 @@ export default async function LandingPage() {
 
             {/* Domains */}
             <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-cyan-900/10 border border-cyan-500/20 text-center">
-              <div className="text-5xl font-bold text-cyan-400 mb-2">{DOMAINS.length}</div>
+              <div className="text-4xl font-bold text-cyan-400 mb-2">5 + 3</div>
               <div className="text-zinc-400 font-medium">Domains</div>
-              <div className="text-xs text-zinc-500 mt-1">Connected schemas</div>
+              <div className="text-xs text-zinc-500 mt-1">Research + Exploratory</div>
             </div>
           </div>
         </div>

@@ -24,11 +24,11 @@ export function ExploratoryDisclaimer({ compact = false }: ExploratoryDisclaimer
       <div className="flex">
         <div className="flex-shrink-0 text-2xl">👻</div>
         <div className="ml-3">
-          <h3 className="text-sm font-medium text-purple-300">Exploratory Data</h3>
+          <h3 className="text-sm font-medium text-purple-300">Exploratory Records</h3>
           <p className="text-sm text-purple-200/70 mt-1">
-            This domain is for pattern exploration and entertainment. We make no
-            scientific claims about the phenomena. Correlations shown are interesting
-            but not rigorously validated. Have fun with it.
+            Bulk-imported sighting data (UFO, Bigfoot, Haunting, Experience Reports) used for
+            geographic pattern analysis and window theory testing. Not quality-scored like
+            Research tier data. Correlations are interesting but not rigorously validated.
           </p>
         </div>
       </div>
