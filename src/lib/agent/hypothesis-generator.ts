@@ -32,12 +32,18 @@ function getAnthropicClient(): Anthropic {
 
 /**
  * Generate a testable hypothesis from a pattern candidate using Claude
+ * Falls back to rule-based generation if API key not available
  */
 export async function generateHypothesis(
   pattern: PatternCandidate
 ): Promise<GeneratedHypothesis> {
-  const client = getAnthropicClient();
+  // Check if API key is available - use fallback if not
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('No ANTHROPIC_API_KEY - using fallback hypothesis generator');
+    return createFallbackHypothesis(pattern);
+  }
 
+  const client = getAnthropicClient();
   const prompt = buildHypothesisPrompt(pattern);
 
   try {

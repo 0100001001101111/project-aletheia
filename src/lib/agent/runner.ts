@@ -173,24 +173,37 @@ export class AletheiaAgent {
   }
 
   /**
-   * Get investigation counts by domain
+   * Get investigation counts by domain using SQL for accuracy
    */
   async getInvestigationCounts(): Promise<DomainCounts> {
-    const { data, error } = await this.supabase
-      .from('aletheia_investigations')
-      .select('investigation_type')
-      .not('investigation_type', 'is', null);
+    // Use RPC or direct SQL to avoid Supabase row limit
+    const { data, error } = await this.supabase.rpc('get_investigation_counts');
 
     if (error) {
-      throw new Error(`Failed to get investigation counts: ${error.message}`);
+      // Fallback: query with explicit high limit
+      const { data: fallbackData, error: fallbackError } = await this.supabase
+        .from('aletheia_investigations')
+        .select('investigation_type')
+        .not('investigation_type', 'is', null)
+        .limit(200000);
+
+      if (fallbackError) {
+        throw new Error(`Failed to get investigation counts: ${fallbackError.message}`);
+      }
+
+      const counts: DomainCounts = {};
+      for (const row of fallbackData || []) {
+        const type = row.investigation_type;
+        counts[type] = (counts[type] || 0) + 1;
+      }
+      return counts;
     }
 
+    // Convert RPC result to DomainCounts
     const counts: DomainCounts = {};
     for (const row of data || []) {
-      const type = row.investigation_type;
-      counts[type] = (counts[type] || 0) + 1;
+      counts[row.investigation_type] = parseInt(row.count);
     }
-
     return counts;
   }
 

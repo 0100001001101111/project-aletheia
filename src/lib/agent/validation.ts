@@ -74,24 +74,44 @@ export function splitData(
 
 /**
  * Get relevant investigation IDs for a hypothesis
+ * Uses RPC function to bypass RLS for performance
  */
 export async function getRelevantInvestigationIds(
   hypothesis: GeneratedHypothesis
 ): Promise<string[]> {
   const supabase = createAgentReadClient();
 
-  const { data, error } = await supabase
-    .from('aletheia_investigations')
-    .select('id')
-    .in('investigation_type', hypothesis.domains)
-    .limit(50000);
+  // Build query based on domains
+  const domains = hypothesis.domains;
+  if (!domains || domains.length === 0) {
+    console.log('No domains specified for hypothesis');
+    return [];
+  }
+
+  console.log(`Fetching IDs for domains: ${domains.join(', ')}`);
+
+  // Use RPC function to bypass RLS (much faster)
+  // Limit to 10,000 IDs - more than enough for statistical testing
+  const { data, error } = await supabase.rpc('get_agent_investigation_ids', {
+    p_domains: domains,
+    p_limit: 10000,
+  });
+
+  console.log('RPC response:', { data: data?.length || 0, error: error?.message });
 
   if (error) {
     console.error('Error fetching investigation IDs:', error);
     return [];
   }
 
-  return (data || []).map((d) => d.id);
+  if (!data || !Array.isArray(data)) {
+    console.error('Invalid data returned from RPC:', typeof data, data);
+    return [];
+  }
+
+  const allIds = data.map((d: { id: string }) => d.id);
+  console.log(`Found ${allIds.length} investigation IDs (first 3: ${allIds.slice(0, 3).join(', ')})`);
+  return allIds;
 }
 
 // ============================================
@@ -114,6 +134,8 @@ export async function runTestOnSubset(
   const supabase = createAgentReadClient();
   const { ids, hypothesis } = testData;
 
+  console.log(`runTestOnSubset called with ${ids.length} IDs`);
+
   if (ids.length === 0) {
     return {
       test_type: hypothesis.suggested_test,
@@ -126,13 +148,19 @@ export async function runTestOnSubset(
     };
   }
 
-  // Fetch the actual data for these IDs
-  const { data: investigations, error } = await supabase
-    .from('aletheia_investigations')
-    .select('id, investigation_type, raw_data, created_at')
-    .in('id', ids.slice(0, 5000)); // Limit for performance
+  // Fetch the actual data for these IDs using RPC function
+  const idsToFetch = ids.slice(0, 5000);
+  console.log(`Fetching data for ${idsToFetch.length} IDs...`);
+
+  const { data: investigations, error } = await supabase.rpc('get_agent_investigation_data', {
+    p_ids: idsToFetch,
+    p_limit: 5000,
+  });
+
+  console.log(`Data fetch result: ${investigations?.length || 0} records, error: ${error?.message || 'none'}`);
 
   if (error || !investigations) {
+    console.error('Error fetching investigation data:', error);
     return {
       test_type: hypothesis.suggested_test,
       statistic: 0,
@@ -526,8 +554,12 @@ export async function validateWithHoldout(
   holdout: TestResult;
   validated: boolean;
 }> {
+  console.log('validateWithHoldout called for:', hypothesis.display_title);
+  console.log('Hypothesis domains:', hypothesis.domains);
+
   // Get all relevant investigation IDs
   const allIds = await getRelevantInvestigationIds(hypothesis);
+  console.log(`validateWithHoldout: got ${allIds.length} IDs`);
 
   if (allIds.length < hypothesis.required_sample_size) {
     return {
@@ -555,6 +587,7 @@ export async function validateWithHoldout(
 
   // Split data
   const split = splitData(allIds, 42);
+  console.log(`Split: training=${split.training_ids.length}, holdout=${split.holdout_ids.length}`);
 
   // Run on training set
   const training = await runTestOnSubset(

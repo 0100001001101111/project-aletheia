@@ -90,6 +90,7 @@ export function calculateConfidence(
 
 /**
  * Generate a finding from a validated hypothesis
+ * Falls back to template-based generation if API key not available
  */
 export async function generateFinding(
   hypothesis: GeneratedHypothesis,
@@ -98,6 +99,12 @@ export async function generateFinding(
   confoundChecks: ConfoundCheckResult[]
 ): Promise<FindingData> {
   const confidence = calculateConfidence(trainingResult, holdoutResult, confoundChecks);
+
+  // Use fallback if no API key
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('No ANTHROPIC_API_KEY - using fallback finding generator');
+    return createFallbackFinding(hypothesis, trainingResult, holdoutResult, confoundChecks, confidence);
+  }
 
   // Generate summary and prediction using Claude
   const client = getAnthropicClient();
