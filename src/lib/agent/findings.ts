@@ -17,6 +17,7 @@ import type {
   GeneratedHypothesis,
   TestResult,
   ConfoundCheckResult,
+  AgentFinding,
 } from './types';
 
 // ============================================
@@ -388,4 +389,45 @@ export async function getPendingFindings(): Promise<
   }
 
   return data || [];
+}
+
+/**
+ * Get a finding by ID with full details
+ */
+export async function getFindingById(findingId: string): Promise<AgentFinding | null> {
+  const supabase = createAgentReadClient();
+
+  const { data, error } = await supabase
+    .from('aletheia_agent_findings')
+    .select('*')
+    .eq('id', findingId)
+    .single();
+
+  if (error) {
+    console.error('Failed to get finding:', error);
+    return null;
+  }
+
+  return data as AgentFinding;
+}
+
+/**
+ * Get findings that need additional information/research
+ */
+export async function getFindingsNeedingInfo(): Promise<AgentFinding[]> {
+  const supabase = createAgentReadClient();
+
+  const { data, error } = await supabase
+    .from('aletheia_agent_findings')
+    .select('*')
+    .eq('review_status', 'needs_info')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error('Failed to get findings needing info:', error);
+    return [];
+  }
+
+  return (data || []) as AgentFinding[];
 }

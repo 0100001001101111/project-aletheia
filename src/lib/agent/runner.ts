@@ -19,12 +19,15 @@ import type {
   TestResult,
   ConfoundCheckResult,
   AgentConfigValues,
+  AgentFinding,
 } from './types';
 import { scanForPatterns } from './scanner';
 import { generateHypothesis, saveHypothesis, updateHypothesisStatus } from './hypothesis-generator';
 import { validateWithHoldout } from './validation';
 import { checkAllConfounds, allConfoundsPassed } from './confounds';
-import { generateFinding, saveFinding } from './findings';
+import { generateFinding, saveFinding, getFindingById } from './findings';
+import { conductResearch, needsResearch } from './researcher';
+import { generateReport, saveReport } from './report-generator';
 
 // ============================================
 // Agent Configuration Defaults
@@ -55,6 +58,7 @@ export class AletheiaAgent {
     hypotheses_generated: 0,
     tests_run: 0,
     findings_queued: 0,
+    reports_generated: 0,
   };
 
   constructor() {
@@ -98,7 +102,7 @@ export class AletheiaAgent {
 
     this.sessionId = data.id;
     this.isRunning = true;
-    this.stats = { patterns_found: 0, hypotheses_generated: 0, tests_run: 0, findings_queued: 0 };
+    this.stats = { patterns_found: 0, hypotheses_generated: 0, tests_run: 0, findings_queued: 0, reports_generated: 0 };
     return data.id;
   }
 
@@ -444,6 +448,59 @@ export class AletheiaAgent {
 
         if (!allConfoundsPassed(confounds)) {
           await this.log('✗ Failed confound checks', 'warning');
+
+          // Phase 4: External Research - Finding shows promise but failed confounds
+          if (training.passed_threshold && holdout.passed_threshold) {
+            await this.log('', 'info');
+            await this.log('Pattern shows statistical promise but failed controls', 'research');
+            await this.log('Initiating external research protocol...', 'research');
+            await this.sleep(500);
+
+            // Generate a temporary finding for research
+            const tempFinding = await generateFinding(hypothesis, training, holdout, confounds);
+            const tempFindingId = await saveFinding(tempFinding, hypothesisId, this.sessionId!);
+            this.stats.findings_queued++;
+
+            // Get the saved finding with ID
+            const savedFinding = await getFindingById(tempFindingId);
+            if (savedFinding) {
+              try {
+                // Conduct research
+                const research = await conductResearch(savedFinding);
+
+                // Log research queries
+                for (const result of research.results) {
+                  await this.log(`Searching: "${result.query.query}"`, 'research');
+                  await this.log(`  Found ${result.sources.length} sources (${result.query.type})`, 'info');
+                  await this.sleep(200);
+                }
+
+                await this.log('Synthesizing research findings...', 'research');
+                await this.sleep(300);
+
+                // Generate and save report
+                const report = await generateReport(
+                  savedFinding,
+                  research.queries,
+                  research.results,
+                  research.synthesis,
+                  this.sessionId!
+                );
+                const reportId = await saveReport(report);
+                this.stats.reports_generated++;
+
+                await this.log('', 'info');
+                await this.log('★★★ RESEARCH REPORT GENERATED ★★★', 'result');
+                await this.log(`Title: ${report.display_title}`, 'result');
+                await this.log(`Verdict: ${report.verdict}`, 'result');
+                await this.log(`Confidence: ${(tempFinding.confidence * 100).toFixed(0)}% → ${(report.confidence_final * 100).toFixed(0)}%`, 'info');
+                await this.log(`Report ID: ${reportId}`, 'info');
+              } catch (researchError) {
+                await this.log(`Research failed: ${researchError instanceof Error ? researchError.message : 'Unknown'}`, 'warning');
+              }
+            }
+          }
+
           if (hypothesisId) {
             await updateHypothesisStatus(hypothesisId, 'rejected');
           }
@@ -484,9 +541,12 @@ export class AletheiaAgent {
       await this.log(`Hypotheses tested: ${this.stats.hypotheses_generated}`, 'info');
       await this.log(`Tests run:         ${this.stats.tests_run}`, 'info');
       await this.log(`Findings queued:   ${this.stats.findings_queued}`, 'info');
+      await this.log(`Reports generated: ${this.stats.reports_generated}`, 'info');
 
       const summaryText =
-        this.stats.findings_queued > 0
+        this.stats.reports_generated > 0
+          ? `Generated ${this.stats.reports_generated} research report(s) from ${this.stats.patterns_found} patterns`
+          : this.stats.findings_queued > 0
           ? `Found ${this.stats.findings_queued} potential finding(s) from ${this.stats.patterns_found} patterns`
           : `Analyzed ${this.stats.patterns_found} patterns, no findings met threshold`;
 

@@ -4,7 +4,7 @@
 
 export type AgentSessionStatus = 'running' | 'completed' | 'failed' | 'cancelled';
 
-export type LogType = 'info' | 'hypothesis' | 'test' | 'result' | 'warning' | 'error' | 'system';
+export type LogType = 'info' | 'hypothesis' | 'test' | 'result' | 'warning' | 'error' | 'system' | 'research';
 
 export interface AgentSession {
   id: string;
@@ -197,4 +197,67 @@ export interface GridCellData {
   types_present: string[];
   window_index: number | null;
   excess_ratio: number | null;
+}
+
+// ============================================
+// Phase 4: External Research Types
+// ============================================
+
+export type ResearchQueryType = 'prior_research' | 'alternative_data' | 'mechanism' | 'debunking';
+
+export interface ResearchQuery {
+  type: ResearchQueryType;
+  query: string;
+  context: string;
+}
+
+export interface SearchSource {
+  title: string;
+  url: string;
+  snippet: string;
+  relevance: number;
+}
+
+export interface ResearchResult {
+  query: ResearchQuery;
+  sources: SearchSource[];
+  synthesis: string;
+}
+
+export interface ResearchSynthesis {
+  summary: string;
+  key_sources: SearchSource[];
+  supports_finding: boolean | null;
+  confidence_adjustment: number; // -0.3 to +0.3
+  recommended_next_steps: string[];
+}
+
+export type ReportVerdict = 'supported' | 'refuted' | 'inconclusive' | 'needs_more_data';
+
+export interface AgentReport {
+  id?: string;
+  finding_id: string;
+  session_id: string;
+  title: string;
+  display_title: string;
+  slug: string;
+  summary: string;
+  statistical_evidence: {
+    pattern: string;
+    tests: TestResult[];
+    confounds: ConfoundCheckResult[];
+    interpretation: string;
+  };
+  research_queries: ResearchQuery[];
+  sources: SearchSource[];
+  synthesis: string;
+  conclusion: string;
+  recommended_actions: string[];
+  confidence_initial: number;
+  confidence_final: number;
+  verdict: ReportVerdict;
+  status: 'draft' | 'published';
+  published_at?: string;
+  created_at?: string;
+  updated_at?: string;
 }

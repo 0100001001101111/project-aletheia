@@ -185,17 +185,25 @@ export default function AgentPage() {
       title="Research Agent"
       description="Autonomous pattern discovery and hypothesis testing"
       headerAction={
-        <Link
-          href="/agent/review"
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-        >
-          Review Queue
-          {pendingCount > 0 && (
-            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full">
-              {pendingCount}
-            </span>
-          )}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/agent/reports"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+          >
+            Research Reports
+          </Link>
+          <Link
+            href="/agent/review"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            Review Queue
+            {pendingCount > 0 && (
+              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full">
+                {pendingCount}
+              </span>
+            )}
+          </Link>
+        </div>
       }
     >
       {/* Status bar */}

@@ -22,6 +22,7 @@ const LOG_COLORS: Record<LogType, string> = {
   warning: 'text-amber-400',
   error: 'text-red-400',
   system: 'text-brand-400',
+  research: 'text-teal-400',
 };
 
 const LOG_BG: Record<LogType, string> = {
@@ -32,6 +33,7 @@ const LOG_BG: Record<LogType, string> = {
   warning: 'bg-amber-500/5',
   error: 'bg-red-500/10',
   system: 'bg-brand-500/5',
+  research: 'bg-teal-500/5',
 };
 
 const LOG_PREFIXES: Record<LogType, string> = {
@@ -42,6 +44,7 @@ const LOG_PREFIXES: Record<LogType, string> = {
   warning: '[WARN]',
   error: '[ERROR]',
   system: '[SYSTEM]',
+  research: '[RESEARCH]',
 };
 
 function formatTimestamp(timestamp: string): string {
