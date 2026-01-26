@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/investigations', label: 'Investigations' },
   { href: '/analysis/windows', label: 'Window Analysis' },
   { href: '/community', label: 'Community' },
+  { href: '/agent', label: 'Agent' },
 ];
 
 interface NavigationProps {

@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { AgentTerminal } from '@/components/agent/AgentTerminal';
 import { SessionSelector } from '@/components/agent/SessionSelector';
+import Link from 'next/link';
 import type { AgentSession, AgentLog, AgentStatus } from '@/lib/agent/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -27,6 +28,7 @@ export default function AgentPage() {
   const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [runMode, setRunMode] = useState<RunMode>('full');
+  const [pendingCount, setPendingCount] = useState(0);
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -59,6 +61,18 @@ export default function AgentPage() {
     }
   }, []);
 
+  // Fetch pending findings count for review badge
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agent/findings?status=pending&limit=1');
+      if (!res.ok) return;
+      const data = await res.json();
+      setPendingCount(data.counts?.pending || 0);
+    } catch (err) {
+      console.error('Error fetching pending count:', err);
+    }
+  }, []);
+
   // Fetch logs for selected session
   const fetchLogs = useCallback(async (sessionId: string) => {
     try {
@@ -75,11 +89,11 @@ export default function AgentPage() {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchStatus(), fetchSessions()]);
+      await Promise.all([fetchStatus(), fetchSessions(), fetchPendingCount()]);
       setIsLoading(false);
     };
     loadData();
-  }, [fetchStatus, fetchSessions]);
+  }, [fetchStatus, fetchSessions, fetchPendingCount]);
 
   // Load logs when session changes
   useEffect(() => {
@@ -170,6 +184,19 @@ export default function AgentPage() {
     <PageWrapper
       title="Research Agent"
       description="Autonomous pattern discovery and hypothesis testing"
+      headerAction={
+        <Link
+          href="/agent/review"
+          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+        >
+          Review Queue
+          {pendingCount > 0 && (
+            <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full">
+              {pendingCount}
+            </span>
+          )}
+        </Link>
+      }
     >
       {/* Status bar */}
       <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">

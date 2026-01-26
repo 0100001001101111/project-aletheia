@@ -1,0 +1,182 @@
+'use client';
+
+/**
+ * Finding Review Queue Page
+ * Browse and filter agent findings awaiting human review
+ */
+
+import { useEffect, useState, useCallback } from 'react';
+import { PageWrapper } from '@/components/layout/PageWrapper';
+import { FindingCard } from '@/components/agent/FindingCard';
+import Link from 'next/link';
+
+interface Finding {
+  id: string;
+  title: string;
+  display_title: string;
+  confidence: number | null;
+  review_status: string | null;
+  created_at: string | null;
+  session_id: string | null;
+  domains: string[];
+}
+
+interface Counts {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  needs_info: number;
+}
+
+type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'needs_info';
+
+export default function ReviewQueuePage() {
+  const [findings, setFindings] = useState<Finding[]>([]);
+  const [counts, setCounts] = useState<Counts>({ total: 0, pending: 0, approved: 0, rejected: 0, needs_info: 0 });
+  const [filter, setFilter] = useState<FilterStatus>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchFindings = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const params = new URLSearchParams();
+      if (filter !== 'all') {
+        params.set('status', filter);
+      }
+
+      const res = await fetch(`/api/agent/findings?${params}`);
+      if (!res.ok) throw new Error('Failed to fetch findings');
+
+      const data = await res.json();
+      setFindings(data.findings || []);
+      setCounts(data.counts || { total: 0, pending: 0, approved: 0, rejected: 0, needs_info: 0 });
+    } catch (err) {
+      console.error('Error fetching findings:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load findings');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    fetchFindings();
+  }, [fetchFindings]);
+
+  const filterTabs: { key: FilterStatus; label: string; count: number }[] = [
+    { key: 'all', label: 'All', count: counts.total },
+    { key: 'pending', label: 'Pending', count: counts.pending },
+    { key: 'approved', label: 'Approved', count: counts.approved },
+    { key: 'rejected', label: 'Rejected', count: counts.rejected },
+    { key: 'needs_info', label: 'Needs Info', count: counts.needs_info },
+  ];
+
+  return (
+    <PageWrapper
+      title="Finding Review Queue"
+      description="Review and act on agent-discovered findings"
+      headerAction={
+        <Link
+          href="/agent"
+          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+        >
+          ← Back to Terminal
+        </Link>
+      }
+    >
+      {/* Stats bar */}
+      <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+        <div className="flex flex-wrap items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500 text-sm">Pending review:</span>
+            <span className={`font-medium ${counts.pending > 0 ? 'text-amber-400' : 'text-zinc-400'}`}>
+              {counts.pending}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500 text-sm">Approved:</span>
+            <span className="text-emerald-400 font-medium">{counts.approved}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500 text-sm">Rejected:</span>
+            <span className="text-red-400 font-medium">{counts.rejected}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-500 text-sm">Needs Info:</span>
+            <span className="text-blue-400 font-medium">{counts.needs_info}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {filterTabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setFilter(tab.key)}
+            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              filter === tab.key
+                ? 'bg-brand-600 text-white'
+                : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+            }`}
+          >
+            {tab.label}
+            {tab.count > 0 && (
+              <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${
+                filter === tab.key ? 'bg-white/20' : 'bg-zinc-700'
+              }`}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* Error state */}
+      {error && (
+        <div className="p-4 bg-red-900/20 border border-red-500/30 rounded-lg text-red-400">
+          {error}
+        </div>
+      )}
+
+      {/* Findings grid */}
+      {!isLoading && !error && (
+        <>
+          {findings.length === 0 ? (
+            <div className="py-12 text-center">
+              <div className="text-6xl mb-4">🔍</div>
+              <h3 className="text-xl font-medium text-zinc-300 mb-2">No findings to review</h3>
+              <p className="text-zinc-500 max-w-md mx-auto">
+                {filter === 'all'
+                  ? 'The agent hasn\'t discovered any findings yet. Run an analysis to generate findings.'
+                  : `No findings with status "${filter}".`}
+              </p>
+              <Link
+                href="/agent"
+                className="inline-block mt-6 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Go to Agent Terminal
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {findings.map((finding) => (
+                <FindingCard key={finding.id} finding={finding} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </PageWrapper>
+  );
+}
