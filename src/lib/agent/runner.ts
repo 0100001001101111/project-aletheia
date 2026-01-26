@@ -3,7 +3,7 @@
  * Phase 1: Foundation - Basic runner skeleton with logging
  */
 
-import { createAgentClient, createAgentReadClient } from './supabase-admin';
+import { createAgentReadClient } from './supabase-admin';
 import type { LogType, DomainCounts } from './types';
 
 export class AletheiaAgent {
@@ -12,7 +12,8 @@ export class AletheiaAgent {
   private isRunning = false;
 
   constructor() {
-    this.supabase = createAgentClient();
+    // Use anon key - RLS policies allow agent operations
+    this.supabase = createAgentReadClient();
   }
 
   /**

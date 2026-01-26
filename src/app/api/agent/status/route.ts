@@ -38,26 +38,26 @@ export async function GET() {
       .limit(1)
       .single();
 
-    // Get total sessions count
-    const { count: totalSessions } = await supabase
+    // Get total sessions count (using select id for efficiency)
+    const { data: sessionsData } = await supabase
       .from('aletheia_agent_sessions')
-      .select('*', { count: 'exact', head: true });
+      .select('id');
+    const totalSessions = sessionsData?.length || 0;
 
     // Get total hypotheses
-    const { count: totalHypotheses } = await supabase
+    const { data: hypothesesData } = await supabase
       .from('aletheia_agent_hypotheses')
-      .select('*', { count: 'exact', head: true });
+      .select('id');
+    const totalHypotheses = hypothesesData?.length || 0;
 
     // Get total findings
-    const { count: totalFindings } = await supabase
+    const { data: findingsData } = await supabase
       .from('aletheia_agent_findings')
-      .select('*', { count: 'exact', head: true });
+      .select('id, review_status');
+    const totalFindings = findingsData?.length || 0;
 
     // Get approved findings
-    const { count: approvedFindings } = await supabase
-      .from('aletheia_agent_findings')
-      .select('*', { count: 'exact', head: true })
-      .eq('review_status', 'approved');
+    const approvedFindings = findingsData?.filter(f => f.review_status === 'approved').length || 0;
 
     return NextResponse.json({
       enabled: config.enabled === true || config.enabled === 'true',
