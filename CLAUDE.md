@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, and falsifiable prediction tracking.
+Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, falsifiable prediction tracking, and an autonomous research agent.
 
-## Current Project State (Jan 25, 2026)
+## Current Project State (Jan 26, 2026)
 
 ### Two-Tier Data Architecture
 
@@ -30,24 +30,46 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 - **Auth** - Public + anonymous user system with verification levels
 - **Window Analysis Dashboard** - Geographic clustering (uses exploratory data)
 - **Data Ingestion Pipeline** - API for importing NUFORC, BFRO, and other datasets
+- **Research Agent** - Autonomous pattern discovery and hypothesis testing (see below)
 
-### Recent Additions (Jan 25, 2026)
-- **Two-tier architecture** - Clear separation between Research and Exploratory data
-- **Tier assignments fixed** - UFO data now correctly in exploratory tier
-- **Updated UI** - Landing page, dashboard, investigations show tier breakdown
-- **Experience reports imported** - 7,312 NDEs/OBEs/ADCs from nderf/oberf/adcrf
+### Recent Additions (Jan 26, 2026)
 
-### Previous Additions (Jan 21, 2026)
-- **Window Theory Analysis** - Full dashboard at `/analysis/windows` with:
-  - Spatial analysis (multi-resolution grid, scale-dependent clustering)
-  - Temporal analysis tab
-  - Geological correlates tab
-  - Pre-registered falsifiable predictions (15 active)
-  - Data status tracking
+#### Aletheia Research Agent (Phases 1-4)
+
+Full autonomous research agent with:
+
+**Phase 1: Foundation**
+- Agent terminal UI at `/agent` with real-time log streaming
+- Session management with trigger controls
+- Database tables for sessions, logs, hypotheses, findings
+
+**Phase 2: Analysis Engine**
+- Pattern scanning across investigation domains
+- Hypothesis generation via Claude API
+- Statistical testing with holdout validation (Chi-squared, permutation tests)
+- Confound checking (reporting bias, population density, temporal, geographic)
+- SECURITY DEFINER functions to bypass RLS timeouts
+
+**Phase 3: Review System**
+- Review queue at `/agent/review` with filter tabs
+- Finding detail pages with collapsible evidence panels
+- Approval workflow creates predictions with `source='agent'`
+- Rejection workflow with dropdown reasons
+- Request More Info workflow for additional agent analysis
+
+**Phase 4: External Research**
+- Research protocol triggers when findings show promise but fail confounds
+- Query generation: prior_research, alternative_data, mechanism, debunking
+- Web search integration (mock implementation - needs real API key)
+- Research synthesis using Claude API
+- Public reports at `/agent/reports` with full detail pages
+- Reports include: statistical evidence, external sources, synthesis, conclusions
+
+### Previous Additions
+- **Two-tier architecture** (Jan 25) - Clear separation between Research and Exploratory data
+- **Window Theory Analysis** (Jan 21) - Full dashboard with spatial/temporal/geological analysis
 - **Monte Carlo Co-occurrence Analysis** - Statistical validation of clustering patterns
-- **Prediction Generator** - Creates testable hypotheses from grid data
-- **Data Ingestion API** - `/api/data/ingest` for bulk imports
-- **Grid Builder** - Assigns investigations to 1246 geographic cells
+- **Data Ingestion API** - Bulk imports from NUFORC, BFRO, and other sources
 
 ## Tech Stack
 
@@ -55,7 +77,7 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 - Supabase (PostgreSQL + Auth + RLS)
 - Tailwind CSS (dark theme)
 - TypeScript
-- Claude API (LLM parsing, evidence generation)
+- Claude API (hypothesis generation, research synthesis, evidence suggestions)
 - Vercel (deployment)
 
 ## Critical Database Schema Rules
@@ -75,55 +97,65 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 src/
 ├── app/
 │   ├── api/
-│   │   ├── analysis/window/    # Window analysis APIs (grid, cooccurrence, predictions)
-│   │   ├── data/ingest/        # Data ingestion API
-│   │   ├── predictions/        # Prediction CRUD
-│   │   ├── patterns/           # Pattern matching
+│   │   ├── agent/               # Research Agent APIs
+│   │   │   ├── findings/        # Findings CRUD + approve/reject/request-info
+│   │   │   ├── reports/         # Research reports API
+│   │   │   ├── sessions/        # Session management
+│   │   │   ├── status/          # Agent status
+│   │   │   └── trigger/         # Trigger agent runs
+│   │   ├── analysis/window/     # Window analysis APIs
+│   │   ├── data/ingest/         # Data ingestion API
+│   │   ├── predictions/         # Prediction CRUD
+│   │   ├── patterns/            # Pattern matching
 │   │   └── ...
-│   ├── analysis/windows/       # Window Theory dashboard
-│   ├── community/              # Community hypotheses pages
-│   ├── dashboard/              # Main dashboard
-│   ├── disputes/               # Jury voting interface
-│   ├── investigations/         # Investigation browser
-│   ├── patterns/               # Pattern visualization
-│   ├── predictions/            # Prediction list + detail
-│   ├── preregister/            # Pre-registration flow
-│   ├── redteam/                # Red team/skeptic dashboard
-│   └── submit/                 # Data submission wizard
+│   ├── agent/                   # Research Agent pages
+│   │   ├── page.tsx             # Agent terminal
+│   │   ├── review/              # Finding review queue
+│   │   │   ├── page.tsx         # Review list
+│   │   │   └── [id]/page.tsx    # Finding detail
+│   │   └── reports/             # Research reports
+│   │       ├── page.tsx         # Reports list
+│   │       └── [slug]/page.tsx  # Report detail
+│   ├── analysis/windows/        # Window Theory dashboard
+│   ├── community/               # Community hypotheses pages
+│   ├── dashboard/               # Main dashboard
+│   ├── disputes/                # Jury voting interface
+│   ├── investigations/          # Investigation browser
+│   ├── patterns/                # Pattern visualization
+│   ├── predictions/             # Prediction list + detail
+│   ├── preregister/             # Pre-registration flow
+│   ├── redteam/                 # Red team/skeptic dashboard
+│   └── submit/                  # Data submission wizard
 ├── components/
-│   ├── window-analysis/        # Window dashboard components
-│   │   ├── SpatialAnalysisTab.tsx
-│   │   ├── TemporalAnalysisTab.tsx
-│   │   ├── GeologicalAnalysisTab.tsx
-│   │   ├── PredictionsPanel.tsx
-│   │   ├── DataStatusTab.tsx
-│   │   ├── TopWindowsTable.tsx
-│   │   └── WindowMap.tsx
-│   ├── auth/                   # Auth UI components
-│   ├── community/              # Hypothesis cards
-│   ├── disputes/               # Jury voting components
-│   ├── layout/                 # Navigation, PageWrapper
-│   └── ui/                     # Shared UI primitives
+│   ├── agent/                   # Agent UI components
+│   │   ├── AgentTerminal.tsx    # Terminal log display
+│   │   ├── SessionSelector.tsx  # Session picker
+│   │   ├── FindingCard.tsx      # Finding summary card
+│   │   └── ReportCard.tsx       # Report summary card
+│   ├── window-analysis/         # Window dashboard components
+│   ├── auth/                    # Auth UI components
+│   ├── community/               # Hypothesis cards
+│   ├── disputes/                # Jury voting components
+│   ├── layout/                  # Navigation, PageWrapper
+│   └── ui/                      # Shared UI primitives
 ├── lib/
-│   ├── window-analysis/        # Window theory logic
-│   │   ├── grid.ts             # Geographic grid assignment
-│   │   ├── monte-carlo.ts      # Statistical simulations
-│   │   ├── predictor.ts        # Prediction generation
-│   │   ├── temporal.ts         # Time-series analysis
-│   │   └── window-index.ts     # Window index calculations
-│   ├── data-ingestion/         # Data import utilities
-│   │   ├── ingest.ts           # Core ingestion logic
-│   │   ├── parsers.ts          # Source-specific parsers
-│   │   ├── geocode.ts          # Geocoding utilities
-│   │   └── types.ts            # Ingestion types
+│   ├── agent/                   # Research Agent logic
+│   │   ├── runner.ts            # Main agent orchestration
+│   │   ├── scanner.ts           # Pattern scanning
+│   │   ├── hypothesis-generator.ts # Generate hypotheses via Claude
+│   │   ├── validation.ts        # Holdout validation
+│   │   ├── confounds.ts         # Confound checking
+│   │   ├── findings.ts          # Finding generation/storage
+│   │   ├── researcher.ts        # External research protocol
+│   │   ├── web-search.ts        # Web search (mock)
+│   │   ├── report-generator.ts  # Research report generation
+│   │   ├── supabase-admin.ts    # Admin client for agent
+│   │   └── types.ts             # Agent type definitions
+│   ├── window-analysis/         # Window theory logic
+│   ├── data-ingestion/          # Data import utilities
 │   └── ...
-├── schemas/                    # Zod validation schemas
-└── types/                      # TypeScript types
-scripts/
-├── rebuild-grid.ts             # Rebuild geographic grid
-├── generate-predictions.ts     # Generate new predictions
-├── import-nuforc.ts            # NUFORC data import
-└── ...
+├── schemas/                     # Zod validation schemas
+└── types/                       # TypeScript types
 ```
 
 ## Common Mistakes to Avoid
@@ -147,10 +179,18 @@ If there are type errors, fix them before declaring completion.
 
 **Core:**
 - `aletheia_users` - User profiles with identity_type, verification_level, credibility_score
-- `aletheia_investigations` - Submitted research data with triage scoring (166k+ records)
-- `aletheia_predictions` - Falsifiable predictions from pattern matches
+- `aletheia_investigations` - Submitted research data with triage scoring (174k+ records)
+- `aletheia_predictions` - Falsifiable predictions (includes `source` and `agent_finding_id`)
 - `aletheia_pattern_matches` - Cross-domain correlations
 - `aletheia_contributions` - Track user contributions for credibility
+
+**Research Agent:**
+- `aletheia_agent_config` - Agent configuration key-value pairs
+- `aletheia_agent_sessions` - Agent run sessions with stats
+- `aletheia_agent_logs` - Real-time session logs
+- `aletheia_agent_hypotheses` - Generated hypotheses
+- `aletheia_agent_findings` - Validated findings for review
+- `aletheia_agent_reports` - Research reports with external sources
 
 **Window Analysis:**
 - `aletheia_grid_cells` - Geographic grid cells (1246 cells at 1° resolution)
@@ -169,7 +209,7 @@ If there are type errors, fix them before declaring completion.
 - `aletheia_jury_votes` - Individual juror votes
 - `aletheia_jury_pool` - Eligible jurors for disputes
 
-## Current Data (Jan 25, 2026)
+## Current Data (Jan 26, 2026)
 
 - **174,120 total records** (185 research + 173,935 exploratory)
 - **Research tier:** STARGATE (104), Ganzfeld (52), Geophysical (27), NDE (2)
@@ -199,6 +239,21 @@ If there are type errors, fix them before declaring completion.
 | Meso | Human | Crisis/Grief | Apparitions |
 | Macro | Planet | Seismic pressure | UFO/EQ lights |
 
+## Agent APIs
+
+- `GET /api/agent/status` - Agent status and stats
+- `POST /api/agent/trigger` - Trigger new agent session
+- `GET /api/agent/sessions` - List sessions
+- `GET /api/agent/sessions/[id]` - Session detail with logs
+- `GET /api/agent/findings` - List findings with filters
+- `GET /api/agent/findings/[id]` - Finding detail
+- `POST /api/agent/findings/[id]/approve` - Approve and create prediction
+- `POST /api/agent/findings/[id]/reject` - Reject with reason
+- `POST /api/agent/findings/[id]/request-info` - Request more analysis
+- `GET /api/agent/reports` - List research reports
+- `GET /api/agent/reports/[slug]` - Report detail
+- `POST /api/agent/reports/[slug]/publish` - Publish draft report
+
 ## Window Analysis APIs
 
 - `GET /api/analysis/window/grid` - Get all grid cells with window indices
@@ -227,21 +282,24 @@ SELECT * FROM get_investigations_page(
 );
 ```
 
-**Why this exists:** RLS policies prevent PostgreSQL from using composite indexes efficiently, causing queries to take 5+ seconds instead of ~50ms. This `SECURITY DEFINER` function runs with elevated privileges and uses proper enum type casting to enable index usage.
+### Agent SECURITY DEFINER Functions
 
-**Used by:** `/api/submissions` GET endpoint
+The agent uses `SECURITY DEFINER` functions to bypass RLS for efficient data retrieval:
+- `get_agent_investigation_ids()` - Get investigation IDs with counts
+- `get_investigation_counts()` - Count by type
 
 ## RLS Performance Warning
 
 When querying `aletheia_investigations` with RLS enabled (as `anon` or `authenticated` role), PostgreSQL may not use indexes efficiently. Direct queries can timeout even with proper indexes.
 
-**Solution:** Use `get_investigations_page()` function instead of direct table queries for paginated investigation lists.
+**Solution:** Use `SECURITY DEFINER` functions instead of direct table queries.
 
 ## Known Issues
 
 - **TypeScript**: Some files use `@ts-nocheck` or `AnyClient` type assertions
 - **Scripts**: Standalone scripts in `/scripts` have TypeScript target warnings (harmless)
 - **Vercel CLI**: `vercel --prod` fails with git author error; workaround: `mv .git .git-backup && vercel --prod --yes; mv .git-backup .git`
+- **Web Search**: Agent uses mock search results - needs real API key (Serper, Brave) for production
 
 ## External Repos That Feed This
 
