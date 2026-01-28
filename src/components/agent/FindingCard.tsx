@@ -14,10 +14,14 @@ interface FindingCardProps {
     display_title: string;
     confidence: number | null;
     review_status: string | null;
+    rejection_reason?: string | null;
     created_at: string | null;
     session_id: string | null;
     domains?: string[];
   };
+  selectable?: boolean;
+  selected?: boolean;
+  onSelect?: (id: string, selected: boolean) => void;
 }
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
@@ -25,6 +29,15 @@ const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }>
   approved: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', label: 'Approved' },
   rejected: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Rejected' },
   needs_info: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Needs Info' },
+};
+
+const REJECTION_REASON_LABELS: Record<string, string> = {
+  duplicate: 'Duplicate',
+  methodology: 'Methodology Issue',
+  insufficient_evidence: 'Insufficient Evidence',
+  already_known: 'Already Known',
+  not_actionable: 'Not Actionable',
+  other: 'Rejected',
 };
 
 const DOMAIN_COLORS: Record<string, string> = {
@@ -38,21 +51,57 @@ const DOMAIN_COLORS: Record<string, string> = {
   geophysical: 'bg-yellow-500/20 text-yellow-300',
 };
 
-export function FindingCard({ finding }: FindingCardProps) {
+export function FindingCard({ finding, selectable, selected, onSelect }: FindingCardProps) {
   const status = STATUS_STYLES[finding.review_status || 'pending'] || STATUS_STYLES.pending;
   const confidence = finding.confidence ?? 0;
   const confidencePercent = Math.round(confidence * 100);
 
+  // Get the appropriate label for rejected items
+  const getStatusLabel = () => {
+    if (finding.review_status === 'rejected' && finding.rejection_reason) {
+      return REJECTION_REASON_LABELS[finding.rejection_reason] || 'Rejected';
+    }
+    return status.label;
+  };
+
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect(finding.id, !selected);
+    }
+  };
+
   return (
     <Link href={`/agent/review/${finding.id}`}>
-      <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-zinc-700 hover:bg-zinc-900/70 transition-all cursor-pointer">
+      <div className={`p-4 bg-zinc-900/50 border rounded-lg hover:border-zinc-700 hover:bg-zinc-900/70 transition-all cursor-pointer ${
+        selected ? 'border-brand-500 bg-brand-500/10' : 'border-zinc-800'
+      }`}>
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-3">
-          <h3 className="text-lg font-medium text-zinc-100 line-clamp-2">
-            {finding.display_title}
-          </h3>
+          <div className="flex items-start gap-3">
+            {selectable && (
+              <div
+                onClick={handleCheckboxClick}
+                className={`mt-1 w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                  selected
+                    ? 'bg-brand-500 border-brand-500'
+                    : 'border-zinc-600 hover:border-zinc-500'
+                }`}
+              >
+                {selected && (
+                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </div>
+            )}
+            <h3 className="text-lg font-medium text-zinc-100 line-clamp-2">
+              {finding.display_title}
+            </h3>
+          </div>
           <span className={`shrink-0 px-2 py-1 text-xs font-medium rounded ${status.bg} ${status.text}`}>
-            {status.label}
+            {getStatusLabel()}
           </span>
         </div>
 

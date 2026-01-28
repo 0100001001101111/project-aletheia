@@ -478,6 +478,12 @@ export class DiscoveryAgent {
     const connections = await findCrossDomainConnections(recentLeads);
 
     for (const connection of connections) {
+      // Skip self-referential connections (same domain on both sides)
+      if (connection.source_a.domain === connection.source_b.domain) {
+        this.log(`  Skipping self-referential connection: ${connection.source_a.domain}`, 'warning');
+        continue;
+      }
+
       this.stats.connections_found++;
 
       // Create a connection lead

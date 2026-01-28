@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
         summary,
         confidence,
         review_status,
+        rejection_reason,
         reviewed_by,
         reviewed_at,
         review_notes,

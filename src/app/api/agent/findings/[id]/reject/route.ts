@@ -8,10 +8,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 
 const VALID_REJECTION_REASONS = [
-  'methodological_flaw',
+  'duplicate',
+  'methodology',
+  'insufficient_evidence',
   'already_known',
   'not_actionable',
-  'insufficient_evidence',
   'other',
 ] as const;
 
@@ -101,6 +102,7 @@ export async function POST(
       .from('aletheia_agent_findings')
       .update({
         review_status: 'rejected',
+        rejection_reason: reason,
         reviewed_by: profile.id,
         reviewed_at: new Date().toISOString(),
         review_notes: reviewNotes,

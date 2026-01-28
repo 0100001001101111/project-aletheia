@@ -54,35 +54,40 @@ export function calculateConfidence(
   holdoutResult: TestResult,
   confoundChecks: ConfoundCheckResult[]
 ): number {
-  // Base: effect size (0-1, capped at 1)
-  const effectScore = Math.min(1, trainingResult.effect_size);
+  // Base: effect size (0-1, capped at 0.8 to leave room for interpretation)
+  // Effect sizes above 0.5 are very large in social science
+  const effectScore = Math.min(0.8, trainingResult.effect_size * 0.8);
 
   // P-value contribution (stronger signal = lower p-value)
-  // Transform p to 0-1 where lower p = higher score
-  const pScore = Math.max(0, 1 - Math.log10(Math.max(trainingResult.p_value, 1e-10)) / 10);
+  // Use sigmoid-like transformation: p=0.05 → 0.5, p=0.001 → 0.8, p=0.0001 → 0.9
+  const pValue = Math.max(trainingResult.p_value, 1e-10);
+  const pScore = pValue < 0.05
+    ? 0.5 + 0.4 * (1 - pValue / 0.05) // 0.05 → 0.5, approaching 0.9 at p→0
+    : 0.3 * (1 - Math.min(1, (pValue - 0.05) / 0.45)); // Above 0.05, drops toward 0
 
-  // Confound survival rate
+  // Confound survival rate (penalize heavily if confounds explain the effect)
   const controlledChecks = confoundChecks.filter((c) => c.controlled);
+  const survivedChecks = controlledChecks.filter((c) => c.effect_survived);
   const confoundScore =
     controlledChecks.length > 0
-      ? controlledChecks.filter((c) => c.effect_survived).length / controlledChecks.length
-      : 0.5; // No checks = neutral
+      ? survivedChecks.length / controlledChecks.length
+      : 0.3; // No checks = low confidence, not neutral
 
-  // Holdout replication
-  const holdoutScore = holdoutResult.passed_threshold ? 1 : 0.3;
+  // Holdout replication (critical - if doesn't replicate, major penalty)
+  const holdoutScore = holdoutResult.passed_threshold ? 0.8 : 0.2;
 
-  // Sample size bonus (larger samples = more confidence)
-  const sampleBonus = Math.min(0.2, trainingResult.sample_size / 10000);
+  // Sample size bonus (capped lower)
+  const sampleBonus = Math.min(0.1, trainingResult.sample_size / 50000);
 
-  // Weighted combination
+  // Weighted combination - max possible now ~0.75 instead of 1.0+
   const confidence =
     effectScore * 0.25 +
-    pScore * 0.2 +
+    pScore * 0.25 +
     confoundScore * 0.25 +
-    holdoutScore * 0.25 +
-    sampleBonus;
+    holdoutScore * 0.25;
 
-  return Math.min(1, Math.max(0, confidence));
+  // Add small sample bonus but cap total at 0.85 (leave room for skepticism)
+  return Math.min(0.85, Math.max(0.1, confidence + sampleBonus));
 }
 
 // ============================================

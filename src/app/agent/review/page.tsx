@@ -16,6 +16,7 @@ interface Finding {
   display_title: string;
   confidence: number | null;
   review_status: string | null;
+  rejection_reason?: string | null;
   created_at: string | null;
   session_id: string | null;
   domains: string[];
@@ -31,12 +32,25 @@ interface Counts {
 
 type FilterStatus = 'all' | 'pending' | 'approved' | 'rejected' | 'needs_info';
 
+const REJECTION_REASONS = [
+  { value: 'duplicate', label: 'Duplicate' },
+  { value: 'methodology', label: 'Methodology Issue' },
+  { value: 'insufficient_evidence', label: 'Insufficient Evidence' },
+  { value: 'already_known', label: 'Already Known' },
+  { value: 'not_actionable', label: 'Not Actionable' },
+  { value: 'other', label: 'Other' },
+];
+
 export default function ReviewQueuePage() {
   const [findings, setFindings] = useState<Finding[]>([]);
   const [counts, setCounts] = useState<Counts>({ total: 0, pending: 0, approved: 0, rejected: 0, needs_info: 0 });
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkRejectReason, setBulkRejectReason] = useState('duplicate');
+  const [isBulkRejecting, setIsBulkRejecting] = useState(false);
 
   const fetchFindings = useCallback(async () => {
     setIsLoading(true);
@@ -65,6 +79,55 @@ export default function ReviewQueuePage() {
   useEffect(() => {
     fetchFindings();
   }, [fetchFindings]);
+
+  const handleSelect = (id: string, selected: boolean) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (selected) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const pendingFindings = findings.filter(f => f.review_status === 'pending');
+    if (selectedIds.size === pendingFindings.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingFindings.map(f => f.id)));
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedIds.size === 0) return;
+
+    setIsBulkRejecting(true);
+    try {
+      const promises = Array.from(selectedIds).map(id =>
+        fetch(`/api/agent/findings/${id}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reason: bulkRejectReason,
+            notes: `Bulk rejected as ${bulkRejectReason}`
+          }),
+        })
+      );
+
+      await Promise.all(promises);
+      setSelectedIds(new Set());
+      setBulkSelectMode(false);
+      fetchFindings();
+    } catch (err) {
+      console.error('Bulk reject failed:', err);
+      setError('Failed to reject selected findings');
+    } finally {
+      setIsBulkRejecting(false);
+    }
+  };
 
   const filterTabs: { key: FilterStatus; label: string; count: number }[] = [
     { key: 'all', label: 'All', count: counts.total },
@@ -111,29 +174,88 @@ export default function ReviewQueuePage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
-      <div className="mb-6 flex flex-wrap gap-2">
-        {filterTabs.map((tab) => (
+      {/* Filter tabs and bulk actions */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2">
+          {filterTabs.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                filter === tab.key
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+              }`}
+            >
+              {tab.label}
+              {tab.count > 0 && (
+                <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${
+                  filter === tab.key ? 'bg-white/20' : 'bg-zinc-700'
+                }`}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Bulk select toggle */}
+        {counts.pending > 0 && (
           <button
-            key={tab.key}
-            onClick={() => setFilter(tab.key)}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-              filter === tab.key
+            onClick={() => {
+              setBulkSelectMode(!bulkSelectMode);
+              setSelectedIds(new Set());
+            }}
+            className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+              bulkSelectMode
                 ? 'bg-brand-600 text-white'
                 : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
             }`}
           >
-            {tab.label}
-            {tab.count > 0 && (
-              <span className={`ml-2 px-1.5 py-0.5 text-xs rounded ${
-                filter === tab.key ? 'bg-white/20' : 'bg-zinc-700'
-              }`}>
-                {tab.count}
-              </span>
-            )}
+            {bulkSelectMode ? 'Cancel Selection' : 'Bulk Select'}
           </button>
-        ))}
+        )}
       </div>
+
+      {/* Bulk action toolbar */}
+      {bulkSelectMode && (
+        <div className="mb-6 p-4 bg-zinc-900/80 border border-zinc-700 rounded-lg flex flex-wrap items-center gap-4">
+          <button
+            onClick={handleSelectAll}
+            className="px-3 py-1.5 text-sm bg-zinc-700 hover:bg-zinc-600 text-zinc-200 rounded transition-colors"
+          >
+            {selectedIds.size === findings.filter(f => f.review_status === 'pending').length
+              ? 'Deselect All'
+              : 'Select All Pending'}
+          </button>
+
+          <span className="text-zinc-400 text-sm">
+            {selectedIds.size} selected
+          </span>
+
+          {selectedIds.size > 0 && (
+            <>
+              <select
+                value={bulkRejectReason}
+                onChange={(e) => setBulkRejectReason(e.target.value)}
+                className="px-3 py-1.5 text-sm bg-zinc-800 border border-zinc-700 text-zinc-200 rounded"
+              >
+                {REJECTION_REASONS.map(r => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+
+              <button
+                onClick={handleBulkReject}
+                disabled={isBulkRejecting}
+                className="px-4 py-1.5 text-sm bg-red-600 hover:bg-red-500 disabled:bg-red-800 disabled:cursor-not-allowed text-white rounded transition-colors"
+              >
+                {isBulkRejecting ? 'Rejecting...' : `Reject ${selectedIds.size} as ${bulkRejectReason}`}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Loading state */}
       {isLoading && (
@@ -171,7 +293,13 @@ export default function ReviewQueuePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {findings.map((finding) => (
-                <FindingCard key={finding.id} finding={finding} />
+                <FindingCard
+                  key={finding.id}
+                  finding={finding}
+                  selectable={bulkSelectMode && finding.review_status === 'pending'}
+                  selected={selectedIds.has(finding.id)}
+                  onSelect={handleSelect}
+                />
               ))}
             </div>
           )}

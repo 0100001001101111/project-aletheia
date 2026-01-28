@@ -4,7 +4,7 @@
 
 Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, falsifiable prediction tracking, and an autonomous research agent.
 
-## Current Project State (Jan 27, 2026)
+## Current Project State (Jan 27, 2026 - Evening Update)
 
 ### Two-Tier Data Architecture
 
@@ -120,8 +120,10 @@ Full autonomous research agent with:
 - Review queue at `/agent/review` with filter tabs
 - Finding detail pages with collapsible evidence panels
 - Approval workflow creates predictions with `source='agent'`
-- Rejection workflow with dropdown reasons
+- Rejection workflow with dropdown reasons (duplicate, methodology, insufficient_evidence, already_known, not_actionable, other)
+- Bulk select/reject for efficient queue management
 - Request More Info workflow for additional agent analysis
+- Confidence scores capped at 85% (epistemic humility)
 
 **Phase 4: External Research**
 - Research protocol triggers when findings show promise but fail confounds
@@ -411,6 +413,8 @@ When querying `aletheia_investigations` with RLS enabled (as `anon` or `authenti
 - **Vercel CLI**: `vercel --prod` fails with git author error; workaround: `mv .git .git-backup && vercel --prod --yes; mv .git-backup .git`
 - **Web Search**: Agent uses Tavily Search API (requires TAVILY_API_KEY env var)
 - **Dev Server**: After significant code changes, may need restart to clear module cache
+- **Data Acquisition**: Web scrapers for BFRO, NUFORC, NDERF are mocked (only USGS API works)
+- **Agent Scheduling**: No automatic cron - agents must be triggered manually or via API
 
 ## External Repos That Feed This
 

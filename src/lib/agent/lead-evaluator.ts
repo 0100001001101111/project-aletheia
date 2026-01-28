@@ -82,6 +82,40 @@ const DOMAIN_PATTERNS: { pattern: RegExp; domain: string }[] = [
 // ============================================
 
 /**
+ * Check if a title is garbage (not a real paper/document title)
+ */
+function isGarbageTitle(title: string): boolean {
+  // Too short
+  if (title.length < 10) return true;
+
+  // Mostly special characters or numbers
+  const alphaCount = (title.match(/[a-zA-Z]/g) || []).length;
+  if (alphaCount / title.length < 0.5) return true;
+
+  // Generic archive/list page titles
+  const garbagePatterns = [
+    /^all requests$/i,
+    /^fiscal year/i,
+    /^foia log/i,
+    /^freedom of information act log/i,
+    /^index of/i,
+    /^page \d+/i,
+    /^untitled/i,
+    /^document$/i,
+    /^file$/i,
+    /^download$/i,
+    /^view$/i,
+    /^search results/i,
+    /^results for/i,
+    /^\d+\s*[-–]\s*\d+$/,  // Just date ranges
+    /^[•·\-\s]+$/,  // Just bullets/dashes
+    /^rec'?d/i,  // Archive reference numbers
+  ];
+
+  return garbagePatterns.some(p => p.test(title.trim()));
+}
+
+/**
  * Evaluate a lead's quality
  */
 export function evaluateLead(
@@ -97,6 +131,12 @@ export function evaluateLead(
   const signals: string[] = [];
   const concerns: string[] = [];
   const domains: string[] = [];
+
+  // Check for garbage title
+  if (isGarbageTitle(title)) {
+    score -= 40;
+    concerns.push('Garbage or generic title');
+  }
 
   // Check quality signals
   for (const { pattern, signal, weight } of HIGH_QUALITY_SIGNALS) {

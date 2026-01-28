@@ -1,0 +1,130 @@
+ALETHEIA AGENT PIPELINE
+=======================
+
+Two autonomous agents with human-in-the-loop review at each stage.
+
+
+STAGE 1: DISCOVERY AGENT
+------------------------
+Runs autonomously to find external research leads.
+
+Sources monitored (28 total):
+  - Journals: JSE, J. Parapsychology, JNDS, EdgeScience, JCS
+  - Archives: CIA Reading Room, NSA, FBI Vault, UK National Archives, DIA FOIA
+  - Organizations: SSE, PA, IONS, IANDS, Rhine, UVA DOPS
+  - Preprints: arXiv (q-bio.NC), PsyArXiv, OSF
+  - Conferences: PA, SSE, MUFON, IANDS
+
+Researchers tracked (24 total):
+  - Parapsychology: Radin, Cardeña, Bem, Utts, Mossbridge, Tressoldi
+  - NDE: Greyson, Parnia, van Lommel, Sartori
+  - Skeptics: French, Wiseman, Blackmore
+  - UFO/UAP: Vallée, Nolan, Loeb, Pasulka
+  - Geophysical: Persinger, Derr
+  - Consciousness: Kastrup, Hoffman, Chalmers
+  - Remote Viewing: May, Schwartz
+
+Outputs:
+  - Papers from tracked researchers
+  - Cross-domain connections with hypotheses
+  - FOIA documents from government archives
+  - Citation trails (2 levels deep)
+
+                    ▼
+
+STAGE 2: LEADS REVIEW QUEUE (/agent/discovery/leads)
+----------------------------------------------------
+Human reviews discovered leads.
+
+Actions:
+  - APPROVE     → Hand off to Research Agent for testing
+  - INVESTIGATE → Flag for deeper research
+  - REJECT      → Discard
+
+Quality scored 0-100 based on:
+  - Source reliability
+  - Named authors
+  - Domain relevance
+  - Methodology indicators
+
+                    ▼
+
+STAGE 3: RESEARCH AGENT
+-----------------------
+Tests hypotheses against existing data (174k+ records).
+
+Process:
+  1. Pattern scanning across investigation domains
+  2. Hypothesis generation via Claude API
+  3. Statistical testing (Chi-squared, permutation tests)
+  4. Confound checking:
+     - Reporting bias
+     - Population density
+     - Temporal patterns
+     - Geographic clustering
+  5. Holdout validation (train/test split)
+
+Thresholds:
+  - p-value < 0.01
+  - Effect size > 0.3
+  - Must survive confound checks
+  - Must replicate on holdout
+
+                    ▼
+
+STAGE 4: FINDINGS REVIEW QUEUE (/agent/review)
+----------------------------------------------
+Human reviews validated findings.
+
+Actions:
+  - APPROVE      → Creates tracked Prediction
+  - REJECT       → With reason (duplicate, methodology, insufficient evidence, etc.)
+  - REQUEST INFO → Ask agent for more analysis
+
+Confidence scored based on:
+  - Effect size (25%)
+  - P-value strength (25%)
+  - Confound survival rate (25%)
+  - Holdout replication (25%)
+  - Max 85% (epistemic humility)
+
+                    ▼
+
+STAGE 5: PREDICTIONS (/predictions)
+-----------------------------------
+Approved findings become falsifiable predictions.
+
+Tracked with:
+  - Pre-registered methodology
+  - Test criteria
+  - Deadline
+  - Resolution status
+
+Can be:
+  - Tested by community
+  - Disputed via jury system
+  - Verified or falsified
+
+
+DATA ACQUISITION (parallel process)
+-----------------------------------
+When findings fail verification checks:
+
+  Research Agent detects gap
+           ▼
+  Creates acquisition request
+           ▼
+  Human approves source (/agent/acquire)
+           ▼
+  System fetches external data
+           ▼
+  Data ingested for re-testing
+
+
+SUMMARY
+-------
+Discovery Agent  →  Leads Queue    →  Research Agent  →  Findings Queue  →  Predictions
+(finds leads)       (human review)    (tests hypotheses)  (human review)     (tracked)
+
+Human-in-the-loop at EVERY decision point.
+No autonomous creation of public predictions.
