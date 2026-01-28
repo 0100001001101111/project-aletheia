@@ -28,6 +28,14 @@
 - [ ] Attribute correlation patterns (weather, moon phase)
 - [ ] Multi-variable regression analysis
 
+### Discovery Agent
+- [ ] Add more monitored sources (currently 28)
+- [ ] Add more tracked researchers (currently 24)
+- [ ] Foreign language research (Portuguese, German, Russian, Japanese)
+- [ ] Google Scholar integration for researcher tracking
+- [ ] Declassified document keyword alerts
+- [ ] Scheduled discovery runs (cron/Edge Function)
+
 ### Data Acquisition
 - [ ] Implement real scrapers for BFRO, NUFORC, NDERF (currently mocked)
 - [ ] Add more known sources to `known-sources.ts`
@@ -68,6 +76,16 @@
 
 ## Completed (Jan 27, 2026)
 
+- [x] **Phase 6: Discovery Agent**
+  - Second autonomous agent for hunting external research
+  - Source monitoring (28 curated sources across journals, archives, orgs, preprints)
+  - Researcher tracking (24 researchers across parapsychology, NDE, UFO, consciousness)
+  - Lead evaluation with quality scoring (signals/concerns)
+  - Cross-domain connection detection
+  - Citation trail following (2 levels deep)
+  - Agent handoff system (Discovery → Research)
+  - UI: terminal, leads queue, sources management, researcher tracking
+  - Database: sessions, leads, sources, researchers, handoffs tables
 - [x] **Phase 5: Data Acquisition System**
   - Gap detection (temporal, geographic, domain, verification)
   - Known sources database (NUFORC, MUFON, BFRO, NDERF, OBERF, Haunted Places, USGS)

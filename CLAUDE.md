@@ -34,6 +34,33 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 
 ### Recent Additions (Jan 27, 2026)
 
+#### Phase 6: Discovery Agent
+- **Second autonomous agent** that hunts for external research and cross-domain connections
+- Complements Research Agent: Discovery finds leads, Research tests hypotheses
+- **Source Monitoring** - Checks 28 curated sources across 7 types:
+  - Journals: JSE, J. Parapsychology, JNDS, EdgeScience, JCS
+  - Archives: CIA Reading Room, NSA, FBI Vault, UK National Archives, DIA FOIA
+  - Organizations: SSE, PA, IONS, IANDS, Rhine, UVA DOPS
+  - Preprints: arXiv (q-bio.NC), PsyArXiv, OSF
+  - Conferences: PA, SSE, MUFON, IANDS
+- **Researcher Tracking** - Follows 24 curated researchers:
+  - Parapsychology: Radin, Cardeña, Bem, Utts, Mossbridge, Tressoldi
+  - NDE: Greyson, Parnia, van Lommel, Sartori
+  - Skeptics: French, Wiseman, Blackmore
+  - UFO/UAP: Vallée, Nolan, Loeb, Pasulka
+  - Geophysical: Persinger, Derr
+  - Consciousness: Kastrup, Hoffman, Chalmers
+  - Remote Viewing: May, Schwartz
+- **Lead Evaluation** - Quality scoring (0-100) with signals/concerns
+- **Cross-Domain Analysis** - Detects connections across research domains
+- **Citation Trail Following** - Follows references 2 levels deep
+- **Agent Handoffs** - Discovery → Research hypothesis handoffs
+- **UI Pages**:
+  - `/agent/discovery` - Terminal with session management
+  - `/agent/discovery/leads` - Review queue with filtering
+  - `/agent/discovery/sources` - Manage monitored sources
+  - `/agent/discovery/researchers` - Track researchers
+
 #### Phase 5: Data Acquisition System
 - **Gap Detection** - Identifies temporal, geographic, domain, and verification gaps in data
   - Temporal: checks date ranges across investigation types
@@ -151,6 +178,11 @@ src/
 │   │   ├── page.tsx             # Agent terminal
 │   │   ├── acquire/             # Data acquisition queue
 │   │   │   └── page.tsx         # Acquisition review
+│   │   ├── discovery/           # Discovery Agent pages
+│   │   │   ├── page.tsx         # Discovery terminal
+│   │   │   ├── leads/page.tsx   # Leads review queue
+│   │   │   ├── sources/page.tsx # Monitored sources
+│   │   │   └── researchers/page.tsx # Tracked researchers
 │   │   ├── review/              # Finding review queue
 │   │   │   ├── page.tsx         # Review list
 │   │   │   └── [id]/page.tsx    # Finding detail
@@ -197,6 +229,13 @@ src/
 │   │   ├── source-discovery.ts  # Search for external sources
 │   │   ├── acquisition-manager.ts # Acquisition request CRUD
 │   │   ├── data-extractor.ts    # Execute data acquisitions
+│   │   ├── discovery-runner.ts  # Discovery Agent orchestration
+│   │   ├── discovery-manager.ts # Discovery CRUD operations
+│   │   ├── discovery-sources.ts # Seed data for monitored sources
+│   │   ├── tracked-researchers.ts # Seed data for researchers
+│   │   ├── source-monitor.ts    # Check sources for new content
+│   │   ├── cross-domain-analyzer.ts # Find connections across domains
+│   │   ├── lead-evaluator.ts    # Quality scoring and deduplication
 │   │   ├── supabase-admin.ts    # Admin client for agent
 │   │   └── types.ts             # Agent type definitions
 │   ├── window-analysis/         # Window theory logic
@@ -240,6 +279,11 @@ If there are type errors, fix them before declaring completion.
 - `aletheia_agent_findings` - Validated findings for review
 - `aletheia_agent_reports` - Research reports with external sources and suggested_contacts
 - `aletheia_acquisition_requests` - Data acquisition requests with gap tracking, source details, approval workflow
+- `aletheia_discovery_sessions` - Discovery Agent run sessions
+- `aletheia_discovery_leads` - Discovered papers, datasets, connections
+- `aletheia_discovery_sources` - Monitored journals, archives, organizations
+- `aletheia_researchers_tracked` - Researchers being followed
+- `aletheia_agent_handoffs` - Communication between Discovery and Research agents
 
 **Window Analysis:**
 - `aletheia_grid_cells` - Geographic grid cells (1246 cells at 1° resolution)
@@ -306,6 +350,19 @@ If there are type errors, fix them before declaring completion.
 - `GET /api/agent/acquisitions/[id]` - Acquisition request detail
 - `PATCH /api/agent/acquisitions/[id]` - Approve/reject request
 - `POST /api/agent/acquisitions/[id]/execute` - Execute approved acquisition
+
+## Discovery Agent APIs
+
+- `GET /api/agent/discovery/status` - Discovery Agent status and stats
+- `POST /api/agent/discovery/trigger` - Trigger discovery session
+- `GET /api/agent/discovery/sessions` - List discovery sessions
+- `GET /api/agent/discovery/leads` - List leads with filters
+- `GET /api/agent/discovery/leads/[id]` - Lead detail
+- `PATCH /api/agent/discovery/leads/[id]` - Approve/reject/investigate lead
+- `GET /api/agent/discovery/sources` - List monitored sources
+- `POST /api/agent/discovery/sources` - Add new source
+- `GET /api/agent/discovery/researchers` - List tracked researchers
+- `POST /api/agent/discovery/researchers` - Add new researcher
 
 ## Window Analysis APIs
 
