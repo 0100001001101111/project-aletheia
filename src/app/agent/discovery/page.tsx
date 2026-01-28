@@ -1,46 +1,70 @@
 'use client';
 
 /**
- * Agent Terminal Page
- * View and trigger Aletheia Research Agent sessions
- * Phase 2: Full analysis with pattern scanning, hypothesis testing, and findings
+ * Discovery Agent Terminal Page
+ * View and trigger Discovery Agent sessions
  */
 
 import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { AgentTerminal } from '@/components/agent/AgentTerminal';
-import { SessionSelector } from '@/components/agent/SessionSelector';
 import Link from 'next/link';
-import type { AgentSession, AgentLog, AgentStatus } from '@/lib/agent/types';
+import type { AgentLog, LogType } from '@/lib/agent/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+interface DiscoverySession {
+  id: string;
+  started_at: string;
+  ended_at: string | null;
+  status: string;
+  leads_found: number;
+  connections_found: number;
+  sources_scanned: number;
+  focus_areas: string[] | null;
+  summary: string | null;
+}
+
+interface DiscoveryStatus {
+  enabled: boolean;
+  currentSession: DiscoverySession | null;
+  lastSession: DiscoverySession | null;
+  stats: {
+    totalSessions: number;
+    totalLeads: number;
+    pendingLeads: number;
+    approvedLeads: number;
+    totalConnections: number;
+    sourcesMonitored: number;
+    researchersTracked: number;
+  };
+}
+
 type RunMode = 'full' | 'demo';
 
-export default function AgentPage() {
-  const [status, setStatus] = useState<AgentStatus | null>(null);
-  const [sessions, setSessions] = useState<AgentSession[]>([]);
+export default function DiscoveryAgentPage() {
+  const [status, setStatus] = useState<DiscoveryStatus | null>(null);
+  const [sessions, setSessions] = useState<DiscoverySession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isTriggering, setIsTriggering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [runMode, setRunMode] = useState<RunMode>('full');
-  const [pendingCount, setPendingCount] = useState(0);
+  const [focusArea, setFocusArea] = useState('');
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-  // Fetch agent status
+  // Fetch status
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch('/api/agent/status');
+      const res = await fetch('/api/agent/discovery/status');
       if (!res.ok) throw new Error('Failed to fetch status');
       const data = await res.json();
       setStatus(data);
 
-      // If there's a running session, auto-select it
       if (data.currentSession) {
         setSelectedSessionId(data.currentSession.id);
       }
@@ -49,10 +73,10 @@ export default function AgentPage() {
     }
   }, []);
 
-  // Fetch sessions list
+  // Fetch sessions
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await fetch('/api/agent/sessions?limit=50');
+      const res = await fetch('/api/agent/discovery/sessions?limit=20');
       if (!res.ok) throw new Error('Failed to fetch sessions');
       const data = await res.json();
       setSessions(data.sessions || []);
@@ -61,23 +85,11 @@ export default function AgentPage() {
     }
   }, []);
 
-  // Fetch pending findings count for review badge
-  const fetchPendingCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/agent/findings?status=pending&limit=1');
-      if (!res.ok) return;
-      const data = await res.json();
-      setPendingCount(data.counts?.pending || 0);
-    } catch (err) {
-      console.error('Error fetching pending count:', err);
-    }
-  }, []);
-
-  // Fetch logs for selected session
+  // Fetch logs for session
   const fetchLogs = useCallback(async (sessionId: string) => {
     try {
       const res = await fetch(`/api/agent/sessions/${sessionId}`);
-      if (!res.ok) throw new Error('Failed to fetch session');
+      if (!res.ok) return;
       const data = await res.json();
       setLogs(data.logs || []);
     } catch (err) {
@@ -89,11 +101,11 @@ export default function AgentPage() {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchStatus(), fetchSessions(), fetchPendingCount()]);
+      await Promise.all([fetchStatus(), fetchSessions()]);
       setIsLoading(false);
     };
     loadData();
-  }, [fetchStatus, fetchSessions, fetchPendingCount]);
+  }, [fetchStatus, fetchSessions]);
 
   // Load logs when session changes
   useEffect(() => {
@@ -104,14 +116,14 @@ export default function AgentPage() {
     }
   }, [selectedSessionId, fetchLogs]);
 
-  // Subscribe to realtime logs for running session
+  // Subscribe to realtime logs
   useEffect(() => {
     if (!selectedSessionId || status?.currentSession?.id !== selectedSessionId) {
       return;
     }
 
     const channel = supabase
-      .channel(`agent-logs-${selectedSessionId}`)
+      .channel(`discovery-logs-${selectedSessionId}`)
       .on(
         'postgres_changes',
         {
@@ -144,17 +156,21 @@ export default function AgentPage() {
     return () => clearInterval(interval);
   }, [status?.currentSession, fetchStatus, fetchSessions]);
 
-  // Trigger agent run
+  // Trigger run
   const triggerRun = async () => {
     setIsTriggering(true);
     setError(null);
-    setLogs([]); // Clear logs for new session
+    setLogs([]);
 
     try {
-      const res = await fetch('/api/agent/trigger', {
+      const res = await fetch('/api/agent/discovery/trigger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggerType: 'manual', mode: runMode }),
+        body: JSON.stringify({
+          triggerType: 'manual',
+          mode: runMode,
+          focusAreas: focusArea ? [focusArea] : [],
+        }),
       });
 
       if (!res.ok) {
@@ -163,11 +179,8 @@ export default function AgentPage() {
       }
 
       const data = await res.json();
-
-      // Refresh status and sessions
       await Promise.all([fetchStatus(), fetchSessions()]);
 
-      // Select the new session
       if (data.sessionId) {
         setSelectedSessionId(data.sessionId);
       }
@@ -182,38 +195,38 @@ export default function AgentPage() {
 
   return (
     <PageWrapper
-      title="Research Agent"
-      description="Autonomous pattern discovery and hypothesis testing"
+      title="Discovery Agent"
+      description="Hunt for external research and cross-domain connections"
       headerAction={
         <div className="flex items-center gap-3">
           <Link
-            href="/agent/reports"
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
-          >
-            Research Reports
-          </Link>
-          <Link
-            href="/agent/review"
+            href="/agent/discovery/leads"
             className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
           >
-            Review Queue
-            {pendingCount > 0 && (
+            Leads Queue
+            {(status?.stats?.pendingLeads || 0) > 0 && (
               <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full">
-                {pendingCount}
+                {status?.stats?.pendingLeads}
               </span>
             )}
           </Link>
           <Link
-            href="/agent/acquire"
+            href="/agent/discovery/sources"
             className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
           >
-            Data Acquisition
+            Sources
           </Link>
           <Link
-            href="/agent/discovery"
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
+            href="/agent/discovery/researchers"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
           >
-            Discovery Agent
+            Researchers
+          </Link>
+          <Link
+            href="/agent"
+            className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+          >
+            Research Agent
           </Link>
         </div>
       }
@@ -224,9 +237,7 @@ export default function AgentPage() {
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <span className="text-zinc-500 text-sm">Status:</span>
-              <span className={`font-medium ${status?.enabled ? 'text-green-400' : 'text-red-400'}`}>
-                {status?.enabled ? 'Enabled' : 'Disabled'}
-              </span>
+              <span className="font-medium text-green-400">Active</span>
             </div>
 
             {status?.stats && (
@@ -236,20 +247,32 @@ export default function AgentPage() {
                   <span className="text-zinc-300">{status.stats.totalSessions}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 text-sm">Hypotheses:</span>
-                  <span className="text-zinc-300">{status.stats.totalHypotheses}</span>
+                  <span className="text-zinc-500 text-sm">Leads:</span>
+                  <span className="text-zinc-300">{status.stats.totalLeads}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 text-sm">Findings:</span>
-                  <span className="text-zinc-300">
-                    {status.stats.approvedFindings}/{status.stats.totalFindings}
-                  </span>
+                  <span className="text-zinc-500 text-sm">Connections:</span>
+                  <span className="text-zinc-300">{status.stats.totalConnections}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-500 text-sm">Sources:</span>
+                  <span className="text-zinc-300">{status.stats.sourcesMonitored}</span>
                 </div>
               </>
             )}
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Focus area input */}
+            <input
+              type="text"
+              placeholder="Focus area (optional)"
+              value={focusArea}
+              onChange={(e) => setFocusArea(e.target.value)}
+              className="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 placeholder:text-zinc-500 w-48"
+              disabled={isTriggering || !!status?.currentSession}
+            />
+
             {/* Mode selector */}
             <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden">
               <button
@@ -257,18 +280,18 @@ export default function AgentPage() {
                 disabled={isTriggering || !!status?.currentSession}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   runMode === 'full'
-                    ? 'bg-brand-600 text-white'
+                    ? 'bg-purple-600 text-white'
                     : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
                 } disabled:opacity-50`}
               >
-                Full Analysis
+                Full Discovery
               </button>
               <button
                 onClick={() => setRunMode('demo')}
                 disabled={isTriggering || !!status?.currentSession}
                 className={`px-3 py-1.5 text-sm font-medium transition-colors ${
                   runMode === 'demo'
-                    ? 'bg-brand-600 text-white'
+                    ? 'bg-purple-600 text-white'
                     : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
                 } disabled:opacity-50`}
               >
@@ -279,8 +302,8 @@ export default function AgentPage() {
             {/* Run button */}
             <button
               onClick={triggerRun}
-              disabled={isTriggering || !status?.enabled || !!status?.currentSession}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              disabled={isTriggering || !!status?.currentSession}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isTriggering ? (
                 <>
@@ -295,10 +318,9 @@ export default function AgentPage() {
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
-                  Run Agent
+                  Run Discovery
                 </>
               )}
             </button>
@@ -309,11 +331,11 @@ export default function AgentPage() {
         <div className="mt-3 text-xs text-zinc-500">
           {runMode === 'full' ? (
             <>
-              <span className="text-brand-400 font-medium">Full Analysis:</span> Scans patterns, generates hypotheses via Claude API, runs statistical tests, checks confounds, and queues validated findings for review.
+              <span className="text-purple-400 font-medium">Full Discovery:</span> Checks monitored sources, scans researchers, follows citations, finds cross-domain connections, queues leads for review.
             </>
           ) : (
             <>
-              <span className="text-brand-400 font-medium">Demo Mode:</span> Quick foundation test that loads data and shows module readiness without running full analysis.
+              <span className="text-purple-400 font-medium">Demo Mode:</span> Quick test of all capabilities without full web scanning.
             </>
           )}
         </div>
@@ -328,16 +350,24 @@ export default function AgentPage() {
       {/* Session selector and terminal */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <SessionSelector
-            sessions={sessions}
-            currentSessionId={selectedSessionId}
-            onSelectSession={setSelectedSessionId}
-            isLoading={isLoading}
-          />
+          <select
+            value={selectedSessionId || ''}
+            onChange={(e) => setSelectedSessionId(e.target.value || null)}
+            className="px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300"
+            disabled={isLoading}
+          >
+            <option value="">Select a session...</option>
+            {sessions.map((session) => (
+              <option key={session.id} value={session.id}>
+                {new Date(session.started_at).toLocaleString()} - {session.status}
+                {session.leads_found > 0 && ` (${session.leads_found} leads)`}
+              </option>
+            ))}
+          </select>
 
           {isLiveSession && (
-            <span className="text-green-400 text-sm flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-purple-400 text-sm flex items-center gap-1.5">
+              <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" />
               Live streaming
             </span>
           )}
@@ -359,7 +389,7 @@ export default function AgentPage() {
                     <span className={`font-medium ${
                       session.status === 'completed' ? 'text-green-400' :
                       session.status === 'failed' ? 'text-red-400' :
-                      session.status === 'running' ? 'text-blue-400' :
+                      session.status === 'running' ? 'text-purple-400' :
                       'text-zinc-400'
                     }`}>
                       {session.status}
@@ -374,17 +404,19 @@ export default function AgentPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-zinc-500">Hypotheses:</span>{' '}
-                    <span className="text-zinc-300">{session.hypotheses_generated}</span>
+                    <span className="text-zinc-500">Sources:</span>{' '}
+                    <span className="text-zinc-300">{session.sources_scanned}</span>
                   </div>
                   <div>
-                    <span className="text-zinc-500">Tests:</span>{' '}
-                    <span className="text-zinc-300">{session.tests_run}</span>
+                    <span className="text-zinc-500">Leads:</span>{' '}
+                    <span className={session.leads_found > 0 ? 'text-green-400 font-medium' : 'text-zinc-300'}>
+                      {session.leads_found}
+                    </span>
                   </div>
                   <div>
-                    <span className="text-zinc-500">Findings:</span>{' '}
-                    <span className={session.findings_queued > 0 ? 'text-green-400 font-medium' : 'text-zinc-300'}>
-                      {session.findings_queued}
+                    <span className="text-zinc-500">Connections:</span>{' '}
+                    <span className={session.connections_found > 0 ? 'text-purple-400 font-medium' : 'text-zinc-300'}>
+                      {session.connections_found}
                     </span>
                   </div>
                   {session.summary && (
