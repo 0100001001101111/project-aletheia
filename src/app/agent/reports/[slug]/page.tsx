@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import Link from 'next/link';
-import type { ReportVerdict, TestResult, ConfoundCheckResult, SearchSource, ResearchQuery } from '@/lib/agent/types';
+import type { ReportVerdict, TestResult, ConfoundCheckResult, SearchSource, ResearchQuery, SuggestedContact } from '@/lib/agent/types';
 
 interface Report {
   id: string;
@@ -32,6 +32,7 @@ interface Report {
   confidence_final: number | null;
   verdict: ReportVerdict | null;
   status: string;
+  suggested_contacts: SuggestedContact[] | null;
   published_at: string | null;
   created_at: string | null;
   finding?: {
@@ -420,6 +421,66 @@ export default function ReportDetailPage({ params }: { params: { slug: string } 
                 </li>
               ))}
             </ul>
+          </CollapsibleSection>
+        )}
+
+        {/* Suggested Contacts */}
+        {report.suggested_contacts && report.suggested_contacts.length > 0 && (
+          <CollapsibleSection title="Suggested Contacts" defaultOpen={true}>
+            <p className="text-sm text-zinc-400 mb-4">
+              Researchers who may be interested in reviewing this finding based on their published work.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {report.suggested_contacts.map((contact, i) => (
+                <div key={i} className="p-4 bg-zinc-800/30 border border-zinc-700/50 rounded-lg">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      {contact.contact_url ? (
+                        <a
+                          href={contact.contact_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-brand-400 hover:underline font-medium"
+                        >
+                          {contact.name}
+                        </a>
+                      ) : (
+                        <span className="text-zinc-200 font-medium">{contact.name}</span>
+                      )}
+                      <p className="text-sm text-zinc-400">{contact.affiliation}</p>
+                    </div>
+                    <span className="text-xs px-2 py-1 bg-zinc-700/50 text-zinc-400 rounded">
+                      {contact.score}%
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 mt-3">
+                    <div>
+                      <span className="text-xs text-zinc-500">Why relevant:</span>
+                      <p className="text-sm text-zinc-300">{contact.relevance}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-zinc-500">Related work:</span>
+                      <p className="text-sm text-zinc-300">{contact.related_work}</p>
+                    </div>
+                    {contact.email && (
+                      <div>
+                        <a
+                          href={`mailto:${contact.email}`}
+                          className="text-sm text-brand-400 hover:underline"
+                        >
+                          {contact.email}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-zinc-500 mt-4 p-3 bg-zinc-800/30 rounded-lg">
+              These contacts were identified based on their published work related to this finding.
+              Review their research before reaching out.
+            </p>
           </CollapsibleSection>
         )}
       </div>

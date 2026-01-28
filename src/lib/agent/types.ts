@@ -234,6 +234,29 @@ export interface ResearchSynthesis {
 
 export type ReportVerdict = 'supported' | 'refuted' | 'inconclusive' | 'needs_more_data';
 
+// ============================================
+// Suggested Contacts Types
+// ============================================
+
+export interface SuggestedContact {
+  name: string;
+  affiliation: string;
+  relevance: string;  // Why this person is relevant to the finding
+  related_work: string;  // Paper or work that connects them
+  contact_url?: string;  // Link to their faculty page, ResearchGate, etc.
+  email?: string;  // If publicly available
+  score: number;  // Relevance score 0-100
+}
+
+export interface KnownResearcher {
+  name: string;
+  affiliation: string;
+  domains: string[];
+  email?: string;
+  contact_url?: string;
+  expertise: string;
+}
+
 export interface AgentReport {
   id?: string;
   finding_id: string;
@@ -257,6 +280,7 @@ export interface AgentReport {
   confidence_final: number;
   verdict: ReportVerdict;
   status: 'draft' | 'published';
+  suggested_contacts: SuggestedContact[];
   published_at?: string;
   created_at?: string;
   updated_at?: string;

@@ -8,6 +8,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { createAgentReadClient } from './supabase-admin';
+import { discoverContacts } from './contact-discovery';
 import type {
   AgentFinding,
   AgentReport,
@@ -15,6 +16,7 @@ import type {
   ResearchResult,
   ResearchSynthesis,
   SearchSource,
+  SuggestedContact,
   ReportVerdict,
   TestResult,
   ConfoundCheckResult,
@@ -198,6 +200,15 @@ export async function generateReport(
   // Generate statistical interpretation
   const statisticalInterpretation = generateStatisticalInterpretation(testResults, confoundChecks);
 
+  // Discover relevant contacts
+  let suggestedContacts: SuggestedContact[] = [];
+  try {
+    suggestedContacts = await discoverContacts(finding, results);
+  } catch (error) {
+    console.error('Error discovering contacts:', error);
+    // Continue without contacts if discovery fails
+  }
+
   // Build the report
   const report: AgentReport = {
     finding_id: finding.id,
@@ -221,6 +232,7 @@ export async function generateReport(
     confidence_final: confidenceFinal,
     verdict,
     status: 'draft',
+    suggested_contacts: suggestedContacts,
   };
 
   return report;
@@ -251,6 +263,7 @@ export async function saveReport(report: AgentReport): Promise<string> {
       confidence_final: report.confidence_final,
       verdict: report.verdict,
       status: report.status,
+      suggested_contacts: report.suggested_contacts || [],
     })
     .select('id')
     .single();
