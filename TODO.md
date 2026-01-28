@@ -1,6 +1,6 @@
 # TODO.md - Project Aletheia
 
-*Last updated: January 26, 2026*
+*Last updated: January 27, 2026*
 
 ## High Priority
 
@@ -37,6 +37,8 @@
 - [ ] Social sharing (Twitter/X cards, Open Graph)
 - [ ] PDF export for reports
 - [ ] Citation generation (BibTeX, APA)
+- [ ] Email suggested contacts directly from report page
+- [ ] Expand known researchers database (currently ~15)
 
 ---
 
@@ -59,6 +61,14 @@
 
 ---
 
+## Completed (Jan 27, 2026)
+
+- [x] **Suggested Contacts** - Known researchers database with ~15 experts
+- [x] Contact discovery module with domain matching and scoring
+- [x] Report detail page displays contacts with links and emails
+- [x] Fixed agent reports page filtering (status=all works correctly)
+- [x] Fixed report detail page params handling for Next.js 14
+
 ## Completed (Jan 26, 2026)
 
 - [x] **Phase 1: Agent Foundation** - Terminal UI, sessions, logs, database tables
@@ -69,6 +79,7 @@
 - [x] Added 'research' log type with teal styling
 - [x] Predictions show "Discovered by Agent" badge when source='agent'
 - [x] Agent link added to main navigation
+- [x] Tavily Search API integration for real web searches
 
 ## Completed (Jan 25, 2026)
 

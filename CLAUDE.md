@@ -4,7 +4,7 @@
 
 Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, falsifiable prediction tracking, and an autonomous research agent.
 
-## Current Project State (Jan 26, 2026)
+## Current Project State (Jan 27, 2026)
 
 ### Two-Tier Data Architecture
 
@@ -32,7 +32,22 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 - **Data Ingestion Pipeline** - API for importing NUFORC, BFRO, and other datasets
 - **Research Agent** - Autonomous pattern discovery and hypothesis testing (see below)
 
-### Recent Additions (Jan 26, 2026)
+### Recent Additions (Jan 27, 2026)
+
+#### Suggested Contacts for Research Reports
+- Known researchers database (`known-researchers.ts`) with ~15 curated experts
+  - NDE/Consciousness: Greyson, Parnia, van Lommel
+  - Parapsychology: Cardeña, Radin, Bem, Utts
+  - UFO/UAP: Nolan, Vallée, Pasulka
+  - Cryptozoology: Meldrum
+  - Geophysical: Persinger, Derr
+  - Skeptical: French
+- Contact discovery module extracts domains from findings and matches researchers
+- Scoring system (0-100) based on domain match, citations, and accessibility
+- Report detail page shows contacts with name, affiliation, relevance, related work, email
+- Limit of 5 contacts per report with score >= 50
+
+### Previous Additions (Jan 26, 2026)
 
 #### Aletheia Research Agent (Phases 1-4)
 
@@ -147,8 +162,10 @@ src/
 │   │   ├── confounds.ts         # Confound checking
 │   │   ├── findings.ts          # Finding generation/storage
 │   │   ├── researcher.ts        # External research protocol
-│   │   ├── web-search.ts        # Web search (mock)
+│   │   ├── web-search.ts        # Tavily web search integration
 │   │   ├── report-generator.ts  # Research report generation
+│   │   ├── contact-discovery.ts # Discover relevant researchers
+│   │   ├── known-researchers.ts # Curated researcher database
 │   │   ├── supabase-admin.ts    # Admin client for agent
 │   │   └── types.ts             # Agent type definitions
 │   ├── window-analysis/         # Window theory logic
@@ -190,7 +207,7 @@ If there are type errors, fix them before declaring completion.
 - `aletheia_agent_logs` - Real-time session logs
 - `aletheia_agent_hypotheses` - Generated hypotheses
 - `aletheia_agent_findings` - Validated findings for review
-- `aletheia_agent_reports` - Research reports with external sources
+- `aletheia_agent_reports` - Research reports with external sources and suggested_contacts
 
 **Window Analysis:**
 - `aletheia_grid_cells` - Geographic grid cells (1246 cells at 1° resolution)
@@ -299,7 +316,8 @@ When querying `aletheia_investigations` with RLS enabled (as `anon` or `authenti
 - **TypeScript**: Some files use `@ts-nocheck` or `AnyClient` type assertions
 - **Scripts**: Standalone scripts in `/scripts` have TypeScript target warnings (harmless)
 - **Vercel CLI**: `vercel --prod` fails with git author error; workaround: `mv .git .git-backup && vercel --prod --yes; mv .git-backup .git`
-- **Web Search**: Agent uses Tavily Search API for real web searches
+- **Web Search**: Agent uses Tavily Search API (requires TAVILY_API_KEY env var)
+- **Dev Server**: After significant code changes, may need restart to clear module cache
 
 ## External Repos That Feed This
 
