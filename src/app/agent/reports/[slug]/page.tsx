@@ -5,7 +5,7 @@
  * Displays a full research report with all sections
  */
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import Link from 'next/link';
@@ -78,8 +78,7 @@ function CollapsibleSection({ title, defaultOpen = false, children }: Collapsibl
   );
 }
 
-export default function ReportDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = use(params);
+export default function ReportDetailPage({ params }: { params: { slug: string } }) {
   const router = useRouter();
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,7 +88,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ slug: s
   useEffect(() => {
     const fetchReport = async () => {
       try {
-        const res = await fetch(`/api/agent/reports/${resolvedParams.slug}`);
+        const res = await fetch(`/api/agent/reports/${params.slug}`);
         if (!res.ok) {
           if (res.status === 404) {
             setError('Report not found');
@@ -110,7 +109,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ slug: s
     };
 
     fetchReport();
-  }, [resolvedParams.slug]);
+  }, [params.slug]);
 
   const handlePublish = async () => {
     if (!report) return;

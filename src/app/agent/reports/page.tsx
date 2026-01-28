@@ -48,9 +48,8 @@ export default function ReportsPage() {
 
     try {
       const params = new URLSearchParams();
-      if (statusFilter !== 'all') {
-        params.set('status', statusFilter);
-      }
+      // Always send status param - API defaults to 'published' without it
+      params.set('status', statusFilter);
       if (verdictFilter !== 'all') {
         params.set('verdict', verdictFilter);
       }
