@@ -5,10 +5,10 @@
 ## High Priority
 
 ### Agent Web Search Integration
-- [ ] Get API key for Serper or Brave Search
-- [ ] Implement real search in `src/lib/agent/web-search.ts`
-- [ ] Replace mock results with actual web queries
-- [ ] Add rate limiting and error handling
+- [x] Get API key for Tavily Search
+- [x] Implement real search in `src/lib/agent/web-search.ts`
+- [x] Replace mock results with actual web queries
+- [x] Add rate limiting and error handling
 
 ### Agent Scheduling
 - [ ] Set up cron job or Vercel Edge Function for scheduled agent runs

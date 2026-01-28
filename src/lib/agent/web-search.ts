@@ -2,9 +2,8 @@
  * Web Search Module for Aletheia Research Agent
  * Phase 4: External Research
  *
- * Provides web search capabilities for the agent's research protocol.
- * Currently uses a mock implementation - TODO: integrate real search API
- * (Serper, Brave Search, or similar)
+ * Uses Tavily Search API for web searches optimized for AI agents.
+ * https://tavily.com
  */
 
 import type { SearchSource, ResearchQuery } from './types';
@@ -12,17 +11,35 @@ import type { SearchSource, ResearchQuery } from './types';
 // Configuration
 const SEARCH_CONFIG = {
   maxResultsPerQuery: 5,
-  relevanceThreshold: 0.3,
-  // TODO: Set these environment variables when integrating real search API
-  apiKey: process.env.SEARCH_API_KEY,
-  apiEndpoint: process.env.SEARCH_API_ENDPOINT,
+  apiKey: process.env.TAVILY_API_KEY,
+  apiEndpoint: 'https://api.tavily.com/search',
+  searchDepth: 'basic' as const, // 'basic' or 'advanced'
+  rateLimitMs: 200, // Minimum delay between requests
 };
 
+// Rate limiting state
+let lastRequestTime = 0;
+
 /**
- * Execute a web search query
- *
- * Currently returns mock results. When a real search API is configured,
- * this will make actual web requests.
+ * Tavily API Response Types
+ */
+interface TavilyResult {
+  title: string;
+  url: string;
+  content: string;
+  score: number;
+  published_date?: string;
+}
+
+interface TavilyResponse {
+  query: string;
+  answer?: string;
+  results: TavilyResult[];
+  response_time: number;
+}
+
+/**
+ * Execute a web search query using Tavily API
  *
  * @param query - The search query string
  * @param context - Context about what we're searching for
@@ -32,53 +49,73 @@ export async function executeSearch(
   query: string,
   context: string
 ): Promise<SearchSource[]> {
-  // Check if real search API is configured
-  if (SEARCH_CONFIG.apiKey && SEARCH_CONFIG.apiEndpoint) {
-    return executeRealSearch(query);
+  // Check if API key is configured
+  if (!SEARCH_CONFIG.apiKey) {
+    console.warn('[WebSearch] TAVILY_API_KEY not configured, using mock results');
+    return generateMockResults(query, context);
   }
 
-  // Use mock implementation
-  console.log(`[WebSearch] Mock search: "${query}"`);
-  console.log(`[WebSearch] Context: ${context}`);
+  // Rate limiting
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  if (timeSinceLastRequest < SEARCH_CONFIG.rateLimitMs) {
+    await new Promise(resolve =>
+      setTimeout(resolve, SEARCH_CONFIG.rateLimitMs - timeSinceLastRequest)
+    );
+  }
+  lastRequestTime = Date.now();
 
-  return generateMockResults(query, context);
-}
+  try {
+    console.log(`[WebSearch] Tavily search: "${query}"`);
 
-/**
- * Execute real web search using configured API
- * TODO: Implement when API is available
- */
-async function executeRealSearch(query: string): Promise<SearchSource[]> {
-  // Placeholder for real API implementation
-  // Example using Serper API:
-  // const response = await fetch(SEARCH_CONFIG.apiEndpoint, {
-  //   method: 'POST',
-  //   headers: {
-  //     'X-API-KEY': SEARCH_CONFIG.apiKey,
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify({ q: query, num: SEARCH_CONFIG.maxResultsPerQuery }),
-  // });
-  // const data = await response.json();
-  // return data.organic.map(r => ({
-  //   title: r.title,
-  //   url: r.link,
-  //   snippet: r.snippet,
-  //   relevance: calculateRelevance(r, query),
-  // }));
+    const response = await fetch(SEARCH_CONFIG.apiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        api_key: SEARCH_CONFIG.apiKey,
+        query: query,
+        search_depth: SEARCH_CONFIG.searchDepth,
+        include_answer: false,
+        max_results: SEARCH_CONFIG.maxResultsPerQuery,
+      }),
+    });
 
-  console.warn('[WebSearch] Real search API not yet implemented');
-  return generateMockResults(query, '');
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[WebSearch] Tavily API error: ${response.status} - ${errorText}`);
+
+      // Fall back to mock results on API error
+      if (response.status === 429) {
+        console.warn('[WebSearch] Rate limited, falling back to mock results');
+      }
+      return generateMockResults(query, context);
+    }
+
+    const data: TavilyResponse = await response.json();
+    console.log(`[WebSearch] Got ${data.results.length} results in ${data.response_time}s`);
+
+    // Transform Tavily results to our format
+    return data.results.map(result => ({
+      title: result.title,
+      url: result.url,
+      snippet: result.content.substring(0, 500), // Truncate long content
+      relevance: result.score,
+    }));
+
+  } catch (error) {
+    console.error('[WebSearch] Error executing search:', error);
+    return generateMockResults(query, context);
+  }
 }
 
 /**
  * Generate mock search results for development/testing
- * These results simulate what a real search might return
+ * Used as fallback when API is unavailable
  */
 function generateMockResults(query: string, context: string): SearchSource[] {
   const queryLower = query.toLowerCase();
-
-  // Generate contextually relevant mock results based on query type
   const mockResults: SearchSource[] = [];
 
   // UFO/Bigfoot correlation queries
@@ -168,7 +205,7 @@ function generateMockResults(query: string, context: string): SearchSource[] {
     mockResults.push({
       title: `Research Results for: ${query.substring(0, 50)}...`,
       url: 'https://example.com/mock/generic-result-1',
-      snippet: 'Mock search result. TODO: Configure real search API to get actual web results for this query.',
+      snippet: 'Mock search result. Tavily API not available for this query.',
       relevance: 0.5,
     });
     mockResults.push({
@@ -196,9 +233,6 @@ export async function executeSearches(
   for (const q of queries) {
     const searchResults = await executeSearch(q.query, q.context);
     results.set(q.query, searchResults);
-
-    // Small delay between searches to avoid rate limiting (when using real API)
-    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   return results;
@@ -213,7 +247,6 @@ export function consolidateSources(
   const seenUrls = new Set<string>();
   const allSources: SearchSource[] = [];
 
-  // Convert Map values to array for iteration
   const valuesArray = Array.from(searchResults.values());
   for (const sources of valuesArray) {
     for (const source of sources) {

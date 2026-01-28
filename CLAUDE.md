@@ -299,7 +299,7 @@ When querying `aletheia_investigations` with RLS enabled (as `anon` or `authenti
 - **TypeScript**: Some files use `@ts-nocheck` or `AnyClient` type assertions
 - **Scripts**: Standalone scripts in `/scripts` have TypeScript target warnings (harmless)
 - **Vercel CLI**: `vercel --prod` fails with git author error; workaround: `mv .git .git-backup && vercel --prod --yes; mv .git-backup .git`
-- **Web Search**: Agent uses mock search results - needs real API key (Serper, Brave) for production
+- **Web Search**: Agent uses Tavily Search API for real web searches
 
 ## External Repos That Feed This
 
