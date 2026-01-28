@@ -129,11 +129,15 @@ function parseHypothesisResponse(
 
     const parsed = JSON.parse(jsonStr);
 
+    // IMPORTANT: Override LLM test suggestion with pattern-appropriate test
+    // This ensures data compatibility (e.g., co-location uses chi-square, not correlation)
+    const appropriateTest = getTestForPatternType(pattern.type);
+
     return {
       hypothesis_text: parsed.hypothesis_text || 'Unable to generate hypothesis',
       display_title: parsed.display_title || pattern.description,
       testable: parsed.testable !== false,
-      suggested_test: validateTestType(parsed.suggested_test),
+      suggested_test: appropriateTest,
       required_sample_size: Math.max(30, parseInt(parsed.required_sample_size) || 100),
       domains: pattern.domains,
       source_pattern: pattern,
@@ -141,6 +145,38 @@ function parseHypothesisResponse(
   } catch (error) {
     console.error('Error parsing hypothesis response:', error);
     return createFallbackHypothesis(pattern);
+  }
+}
+
+/**
+ * Get the appropriate statistical test for a pattern type
+ * This overrides any LLM suggestion to ensure data compatibility
+ */
+function getTestForPatternType(patternType: string): string {
+  switch (patternType) {
+    case 'co-location':
+      // Co-location = categorical comparison (does X occur with Y?)
+      // Chi-square tests if observed frequencies differ from expected
+      return 'chi-square';
+
+    case 'temporal':
+      // Temporal = time series patterns
+      // Binomial tests if anomalous periods exceed chance
+      return 'binomial';
+
+    case 'geographic':
+      // Geographic = spatial clustering patterns
+      // Chi-square tests distribution across regions
+      return 'chi-square';
+
+    case 'attribute':
+      // Attribute = comparing categories or groups
+      // Chi-square for categorical, but we use chi-square as default
+      // since our data is mostly categorical
+      return 'chi-square';
+
+    default:
+      return 'chi-square';
   }
 }
 
@@ -157,37 +193,34 @@ function validateTestType(testType: string): string {
  * Create a fallback hypothesis when Claude API fails
  */
 function createFallbackHypothesis(pattern: PatternCandidate): GeneratedHypothesis {
-  let suggestedTest: string;
   let hypothesisText: string;
   let displayTitle: string;
 
+  // Use the centralized test selection function
+  const suggestedTest = getTestForPatternType(pattern.type);
+
   switch (pattern.type) {
     case 'co-location':
-      suggestedTest = 'chi-square';
       hypothesisText = `The co-occurrence of ${pattern.domains.join(' and ')} phenomena in geographic clusters exceeds what would be expected by chance, suggesting a common underlying mechanism or reporting bias.`;
       displayTitle = `Are ${pattern.domains.join(' and ')} sightings clustered together?`;
       break;
 
     case 'temporal':
-      suggestedTest = 'binomial';
       hypothesisText = `The temporal clustering observed in ${pattern.domains[0]} data represents a genuine increase in phenomena rather than variation in reporting rates.`;
       displayTitle = `Do ${pattern.domains[0]} reports spike during certain time periods?`;
       break;
 
     case 'geographic':
-      suggestedTest = 'monte-carlo';
       hypothesisText = `Geographic "window" areas show elevated multi-phenomenon activity beyond population-adjusted expectations, suggesting location-specific factors.`;
       displayTitle = `Are there geographic hotspots for multiple phenomenon types?`;
       break;
 
     case 'attribute':
-      suggestedTest = 'correlation';
       hypothesisText = `The observed correlation between attributes in ${pattern.domains.join(' and ')} data reflects a genuine relationship rather than confounding factors.`;
       displayTitle = `Is there a real connection between these characteristics?`;
       break;
 
     default:
-      suggestedTest = 'chi-square';
       hypothesisText = pattern.description;
       displayTitle = pattern.description;
   }
