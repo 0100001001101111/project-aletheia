@@ -203,6 +203,12 @@ export default function AgentPage() {
               </span>
             )}
           </Link>
+          <Link
+            href="/agent/acquire"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+          >
+            Data Acquisition
+          </Link>
         </div>
       }
     >

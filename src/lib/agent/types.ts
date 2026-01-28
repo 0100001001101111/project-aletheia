@@ -285,3 +285,105 @@ export interface AgentReport {
   created_at?: string;
   updated_at?: string;
 }
+
+// ============================================
+// Data Acquisition Types (Phase 5)
+// ============================================
+
+export type GapType = 'temporal' | 'geographic' | 'domain' | 'verification';
+export type SourceType = 'database' | 'api' | 'scrape' | 'rss' | 'archive';
+export type QualityEstimate = 'high' | 'medium' | 'low';
+export type AcquisitionStatus = 'pending' | 'approved' | 'rejected' | 'in_progress' | 'completed' | 'failed';
+
+export interface DataGap {
+  type: GapType;
+  description: string;
+  domain?: string;
+  severity: 'critical' | 'moderate' | 'minor';
+  details: {
+    // For temporal gaps
+    data_ends?: string;
+    comparison_ends?: string;
+    // For geographic gaps
+    missing_regions?: string[];
+    predicted_window?: string;
+    // For domain gaps
+    domain_count?: number;
+    comparison_count?: number;
+    // For verification gaps
+    pattern_id?: string;
+    needs_independent_source?: boolean;
+  };
+}
+
+export interface DataSource {
+  id?: string;
+  name: string;
+  url: string;
+  type: SourceType;
+  domain: string;
+  coverage: {
+    temporal?: { start: string; end: string };
+    geographic?: string[];
+  };
+  estimated_records: number;
+  quality_estimate: QualityEstimate;
+  quality_reasoning: string;
+  access_method: string;
+  discovered_at?: string;
+}
+
+export interface AcquisitionRequest {
+  id?: string;
+  session_id?: string;
+  gap_type: GapType;
+  gap_description: string;
+  source_name: string;
+  source_url: string;
+  source_type?: SourceType;
+  domain?: string;
+  estimated_records?: number;
+  quality_estimate?: QualityEstimate;
+  quality_reasoning?: string;
+  access_method?: string;
+  extraction_notes?: string;
+  status: AcquisitionStatus;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  records_acquired?: number;
+  acquisition_log?: string;
+  completed_at?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ExtractionResult {
+  source_id: string;
+  records_found: number;
+  records_valid: number;
+  records_duplicate: number;
+  records_ingested: number;
+  errors: string[];
+  sample_records: Record<string, unknown>[];
+}
+
+export interface KnownDataSource {
+  name: string;
+  url: string;
+  domain: string;
+  type: SourceType;
+  quality: QualityEstimate;
+  description: string;
+  scrape_config?: {
+    list_url: string;
+    pagination?: string;
+    record_selector: string;
+    field_mappings: Record<string, string>;
+  };
+  api_config?: {
+    endpoint: string;
+    auth_type?: 'none' | 'api_key' | 'oauth';
+    rate_limit?: number;
+  };
+}

@@ -28,6 +28,9 @@ import { checkAllConfounds, allConfoundsPassed, anyConfoundFailed } from './conf
 import { generateFinding, saveFinding, getFindingById } from './findings';
 import { conductResearch, needsResearch } from './researcher';
 import { generateReport, saveReport } from './report-generator';
+import { detectDataGaps, summarizeGaps } from './gap-detection';
+import { discoverSources, getBestSource, formatSourceRecommendations } from './source-discovery';
+import { createAcquisitionRequest } from './acquisition-manager';
 
 // ============================================
 // Agent Configuration Defaults
@@ -59,6 +62,8 @@ export class AletheiaAgent {
     tests_run: 0,
     findings_queued: 0,
     reports_generated: 0,
+    gaps_detected: 0,
+    acquisitions_queued: 0,
   };
 
   constructor() {
@@ -102,7 +107,15 @@ export class AletheiaAgent {
 
     this.sessionId = data.id;
     this.isRunning = true;
-    this.stats = { patterns_found: 0, hypotheses_generated: 0, tests_run: 0, findings_queued: 0, reports_generated: 0 };
+    this.stats = {
+      patterns_found: 0,
+      hypotheses_generated: 0,
+      tests_run: 0,
+      findings_queued: 0,
+      reports_generated: 0,
+      gaps_detected: 0,
+      acquisitions_queued: 0,
+    };
     return data.id;
   }
 
@@ -537,16 +550,70 @@ export class AletheiaAgent {
         }
       }
 
+      // Phase 6: Data Gap Detection (Phase 5 in spec)
+      await this.log('', 'info');
+      await this.log('▸ PHASE 6: Data Gap Detection', 'system');
+      await this.log('─────────────────────────────────────────────────────────────', 'info');
+
+      try {
+        await this.log('Analyzing data coverage and identifying gaps...', 'info');
+        const gaps = await detectDataGaps();
+        this.stats.gaps_detected = gaps.length;
+
+        if (gaps.length === 0) {
+          await this.log('No significant data gaps detected', 'result');
+        } else {
+          await this.log(summarizeGaps(gaps), 'result');
+
+          // Discover sources for top gaps (up to 3)
+          const topGaps = gaps.slice(0, 3);
+          await this.log('Searching for sources to fill gaps...', 'info');
+          const gapSources = await discoverSources(topGaps);
+
+          // Queue acquisition requests for best sources
+          for (const [gap, sources] of Array.from(gapSources.entries())) {
+            if (sources.length === 0) {
+              await this.log(`  No sources found for: ${gap.description.substring(0, 50)}...`, 'warning');
+              continue;
+            }
+
+            const bestSource = getBestSource(sources);
+            if (bestSource) {
+              await this.log(`  Found source for ${gap.domain || gap.type} gap: ${bestSource.name}`, 'info');
+
+              try {
+                const requestId = await createAcquisitionRequest(gap, bestSource, sessionId);
+                this.stats.acquisitions_queued++;
+                await this.log(`  ✓ Acquisition request queued (ID: ${requestId.substring(0, 8)}...)`, 'result');
+              } catch (error) {
+                await this.log(`  Warning: Could not queue acquisition: ${error instanceof Error ? error.message : 'Unknown'}`, 'warning');
+              }
+            }
+          }
+
+          if (this.stats.acquisitions_queued > 0) {
+            await this.log('', 'info');
+            await this.log(`★ ${this.stats.acquisitions_queued} acquisition request(s) queued for review at /agent/acquire`, 'result');
+          }
+        }
+      } catch (gapError) {
+        await this.log(`Gap detection error: ${gapError instanceof Error ? gapError.message : 'Unknown'}`, 'warning');
+      }
+
+      await this.updateSessionStats();
+
       // Session Summary
       await this.log('', 'info');
       await this.log('═══════════════════════════════════════════════════════════', 'system');
       await this.log('                    SESSION COMPLETE                        ', 'system');
       await this.log('═══════════════════════════════════════════════════════════', 'system');
-      await this.log(`Patterns found:    ${this.stats.patterns_found}`, 'info');
-      await this.log(`Hypotheses tested: ${this.stats.hypotheses_generated}`, 'info');
-      await this.log(`Tests run:         ${this.stats.tests_run}`, 'info');
-      await this.log(`Findings queued:   ${this.stats.findings_queued}`, 'info');
-      await this.log(`Reports generated: ${this.stats.reports_generated}`, 'info');
+      await this.log(`Patterns found:      ${this.stats.patterns_found}`, 'info');
+      await this.log(`Hypotheses tested:   ${this.stats.hypotheses_generated}`, 'info');
+      await this.log(`Tests run:           ${this.stats.tests_run}`, 'info');
+      await this.log(`Findings queued:     ${this.stats.findings_queued}`, 'info');
+      await this.log(`Reports generated:   ${this.stats.reports_generated}`, 'info');
+      await this.log(`Data gaps detected:  ${this.stats.gaps_detected}`, 'info');
+      await this.log(`Acquisitions queued: ${this.stats.acquisitions_queued}`, 'info');
 
       const summaryText =
         this.stats.reports_generated > 0
