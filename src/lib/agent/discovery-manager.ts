@@ -4,11 +4,11 @@
  * CRUD operations for Discovery Agent entities.
  */
 
-import { createAgentClient } from './supabase-admin';
+import { createAgentReadClient } from './supabase-admin';
 
-// Helper to get admin client
+// Helper to get admin client (uses anon key with RLS)
 function getSupabaseAdmin() {
-  return createAgentClient();
+  return createAgentReadClient();
 }
 import type {
   DiscoverySession,

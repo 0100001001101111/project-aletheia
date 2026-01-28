@@ -5,11 +5,11 @@
  * Scours the internet for research, follows citations, finds connections.
  */
 
-import { createAgentClient } from './supabase-admin';
+import { createAgentReadClient } from './supabase-admin';
 
-// Helper to get admin client
+// Helper to get supabase client (uses anon key with RLS)
 function getSupabaseAdmin() {
-  return createAgentClient();
+  return createAgentReadClient();
 }
 import {
   createDiscoverySession,
