@@ -34,6 +34,30 @@ Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigor
 
 ### Recent Additions (Jan 27, 2026)
 
+#### Phase 5: Data Acquisition System
+- **Gap Detection** - Identifies temporal, geographic, domain, and verification gaps in data
+  - Temporal: checks date ranges across investigation types
+  - Geographic: checks US state coverage
+  - Domain: compares record counts across types
+  - Verification: flags findings that failed confound checks
+- **Source Discovery** - Finds external data sources to fill gaps
+  - Known sources database (`known-sources.ts`): NUFORC, MUFON, BFRO, NDERF, OBERF, Haunted Places, USGS
+  - Web search via Tavily for additional sources
+  - Quality scoring (high/medium/low) based on indicators
+- **Acquisition Queue** (`/agent/acquire`) - Human-in-the-loop approval workflow
+  - Review pending requests with gap context
+  - Approve/reject with notes
+  - Execute approved acquisitions
+  - Stats: pending, approved, completed, failed, total records
+- **Data Extractor** - Executes approved acquisitions
+  - USGS Earthquake API integration (working)
+  - Mock implementations for BFRO, NUFORC, NDERF (real scraping not implemented)
+  - Validates, deduplicates, and ingests records
+  - Tracks source provenance on ingested records
+- **Agent Integration** - Phase 6 in runner detects gaps after analysis
+  - Queues top 5 gaps by severity
+  - Creates acquisition requests for best matching sources
+
 #### Suggested Contacts for Research Reports
 - Known researchers database (`known-researchers.ts`) with ~15 curated experts
   - NDE/Consciousness: Greyson, Parnia, van Lommel
@@ -125,6 +149,8 @@ src/
 │   │   └── ...
 │   ├── agent/                   # Research Agent pages
 │   │   ├── page.tsx             # Agent terminal
+│   │   ├── acquire/             # Data acquisition queue
+│   │   │   └── page.tsx         # Acquisition review
 │   │   ├── review/              # Finding review queue
 │   │   │   ├── page.tsx         # Review list
 │   │   │   └── [id]/page.tsx    # Finding detail
@@ -166,6 +192,11 @@ src/
 │   │   ├── report-generator.ts  # Research report generation
 │   │   ├── contact-discovery.ts # Discover relevant researchers
 │   │   ├── known-researchers.ts # Curated researcher database
+│   │   ├── gap-detection.ts     # Detect data gaps (Phase 5)
+│   │   ├── known-sources.ts     # Curated data sources database
+│   │   ├── source-discovery.ts  # Search for external sources
+│   │   ├── acquisition-manager.ts # Acquisition request CRUD
+│   │   ├── data-extractor.ts    # Execute data acquisitions
 │   │   ├── supabase-admin.ts    # Admin client for agent
 │   │   └── types.ts             # Agent type definitions
 │   ├── window-analysis/         # Window theory logic
@@ -208,6 +239,7 @@ If there are type errors, fix them before declaring completion.
 - `aletheia_agent_hypotheses` - Generated hypotheses
 - `aletheia_agent_findings` - Validated findings for review
 - `aletheia_agent_reports` - Research reports with external sources and suggested_contacts
+- `aletheia_acquisition_requests` - Data acquisition requests with gap tracking, source details, approval workflow
 
 **Window Analysis:**
 - `aletheia_grid_cells` - Geographic grid cells (1246 cells at 1° resolution)
@@ -270,6 +302,10 @@ If there are type errors, fix them before declaring completion.
 - `GET /api/agent/reports` - List research reports
 - `GET /api/agent/reports/[slug]` - Report detail
 - `POST /api/agent/reports/[slug]/publish` - Publish draft report
+- `GET /api/agent/acquisitions` - List acquisition requests with filters
+- `GET /api/agent/acquisitions/[id]` - Acquisition request detail
+- `PATCH /api/agent/acquisitions/[id]` - Approve/reject request
+- `POST /api/agent/acquisitions/[id]/execute` - Execute approved acquisition
 
 ## Window Analysis APIs
 

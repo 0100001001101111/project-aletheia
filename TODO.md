@@ -28,6 +28,11 @@
 - [ ] Attribute correlation patterns (weather, moon phase)
 - [ ] Multi-variable regression analysis
 
+### Data Acquisition
+- [ ] Implement real scrapers for BFRO, NUFORC, NDERF (currently mocked)
+- [ ] Add more known sources to `known-sources.ts`
+- [ ] Automated scheduling for approved acquisitions
+
 ### Review System
 - [ ] Bulk approval/rejection actions
 - [ ] Export findings to CSV/JSON
@@ -63,6 +68,14 @@
 
 ## Completed (Jan 27, 2026)
 
+- [x] **Phase 5: Data Acquisition System**
+  - Gap detection (temporal, geographic, domain, verification)
+  - Known sources database (NUFORC, MUFON, BFRO, NDERF, OBERF, Haunted Places, USGS)
+  - Source discovery via Tavily web search
+  - Acquisition queue at `/agent/acquire` with approve/reject/execute workflow
+  - Data extractor with USGS API integration (mock implementations for others)
+  - Agent Phase 6 integration - auto-queues acquisition requests
+  - Database migration for `aletheia_acquisition_requests` table
 - [x] **Suggested Contacts** - Known researchers database with ~15 experts
 - [x] Contact discovery module with domain matching and scoring
 - [x] Report detail page displays contacts with links and emails
