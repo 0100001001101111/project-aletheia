@@ -24,7 +24,7 @@ import type {
 import { scanForPatterns } from './scanner';
 import { generateHypothesis, saveHypothesis, updateHypothesisStatus } from './hypothesis-generator';
 import { validateWithHoldout } from './validation';
-import { checkAllConfounds, allConfoundsPassed } from './confounds';
+import { checkAllConfounds, allConfoundsPassed, anyConfoundFailed } from './confounds';
 import { generateFinding, saveFinding, getFindingById } from './findings';
 import { conductResearch, needsResearch } from './researcher';
 import { generateReport, saveReport } from './report-generator';
@@ -446,61 +446,66 @@ export class AletheiaAgent {
           }
         }
 
-        if (!allConfoundsPassed(confounds)) {
-          await this.log('✗ Failed confound checks', 'warning');
+        // Check if any confound failed (for research trigger)
+        const hasFailedConfound = anyConfoundFailed(confounds);
+        const confoundsPassed = allConfoundsPassed(confounds);
 
-          // Phase 4: External Research - Finding shows promise but failed confounds
-          if (training.passed_threshold && holdout.passed_threshold) {
-            await this.log('', 'info');
-            await this.log('Pattern shows statistical promise but failed controls', 'research');
-            await this.log('Initiating external research protocol...', 'research');
-            await this.sleep(500);
+        // Phase 4: External Research - Trigger when ANY confound fails but stats are solid
+        // This runs regardless of whether 75% threshold is met
+        if (hasFailedConfound && training.passed_threshold && holdout.passed_threshold) {
+          await this.log('', 'info');
+          await this.log('Pattern shows statistical promise but some controls failed', 'research');
+          await this.log('Initiating external research protocol...', 'research');
+          await this.sleep(500);
 
-            // Generate a temporary finding for research
-            const tempFinding = await generateFinding(hypothesis, training, holdout, confounds);
-            const tempFindingId = await saveFinding(tempFinding, hypothesisId, this.sessionId!);
-            this.stats.findings_queued++;
+          // Generate a finding for research
+          const researchFinding = await generateFinding(hypothesis, training, holdout, confounds);
+          const researchFindingId = await saveFinding(researchFinding, hypothesisId, this.sessionId!);
+          this.stats.findings_queued++;
 
-            // Get the saved finding with ID
-            const savedFinding = await getFindingById(tempFindingId);
-            if (savedFinding) {
-              try {
-                // Conduct research
-                const research = await conductResearch(savedFinding);
+          // Get the saved finding with ID
+          const savedFinding = await getFindingById(researchFindingId);
+          if (savedFinding) {
+            try {
+              // Conduct research
+              const research = await conductResearch(savedFinding);
 
-                // Log research queries
-                for (const result of research.results) {
-                  await this.log(`Searching: "${result.query.query}"`, 'research');
-                  await this.log(`  Found ${result.sources.length} sources (${result.query.type})`, 'info');
-                  await this.sleep(200);
-                }
-
-                await this.log('Synthesizing research findings...', 'research');
-                await this.sleep(300);
-
-                // Generate and save report
-                const report = await generateReport(
-                  savedFinding,
-                  research.queries,
-                  research.results,
-                  research.synthesis,
-                  this.sessionId!
-                );
-                const reportId = await saveReport(report);
-                this.stats.reports_generated++;
-
-                await this.log('', 'info');
-                await this.log('★★★ RESEARCH REPORT GENERATED ★★★', 'result');
-                await this.log(`Title: ${report.display_title}`, 'result');
-                await this.log(`Verdict: ${report.verdict}`, 'result');
-                await this.log(`Confidence: ${(tempFinding.confidence * 100).toFixed(0)}% → ${(report.confidence_final * 100).toFixed(0)}%`, 'info');
-                await this.log(`Report ID: ${reportId}`, 'info');
-              } catch (researchError) {
-                await this.log(`Research failed: ${researchError instanceof Error ? researchError.message : 'Unknown'}`, 'warning');
+              // Log research queries
+              for (const result of research.results) {
+                await this.log(`Searching: "${result.query.query}"`, 'research');
+                await this.log(`  Found ${result.sources.length} sources (${result.query.type})`, 'info');
+                await this.sleep(200);
               }
+
+              await this.log('Synthesizing research findings...', 'research');
+              await this.sleep(300);
+
+              // Generate and save report
+              const report = await generateReport(
+                savedFinding,
+                research.queries,
+                research.results,
+                research.synthesis,
+                this.sessionId!
+              );
+              const reportId = await saveReport(report);
+              this.stats.reports_generated++;
+
+              await this.log('', 'info');
+              await this.log('★★★ RESEARCH REPORT GENERATED ★★★', 'result');
+              await this.log(`Title: ${report.display_title}`, 'result');
+              await this.log(`Verdict: ${report.verdict}`, 'result');
+              await this.log(`Confidence: ${(researchFinding.confidence * 100).toFixed(0)}% → ${(report.confidence_final * 100).toFixed(0)}%`, 'info');
+              await this.log(`Report ID: ${reportId}`, 'info');
+            } catch (researchError) {
+              await this.log(`Research failed: ${researchError instanceof Error ? researchError.message : 'Unknown'}`, 'warning');
             }
           }
+        }
 
+        // If less than 75% of confounds passed, reject the hypothesis
+        if (!confoundsPassed) {
+          await this.log('✗ Failed confound checks (< 75% passed)', 'warning');
           if (hypothesisId) {
             await updateHypothesisStatus(hypothesisId, 'rejected');
           }

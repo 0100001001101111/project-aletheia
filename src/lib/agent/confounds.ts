@@ -380,7 +380,7 @@ export async function checkAllConfounds(
 }
 
 /**
- * Check if all confounds passed
+ * Check if all confounds passed (75% threshold for findings)
  */
 export function allConfoundsPassed(checks: ConfoundCheckResult[]): boolean {
   // Only consider controlled checks
@@ -394,4 +394,21 @@ export function allConfoundsPassed(checks: ConfoundCheckResult[]): boolean {
   // At least 75% of controlled checks must show effect survived
   const survivedCount = controlledChecks.filter((c) => c.effect_survived).length;
   return survivedCount / controlledChecks.length >= 0.75;
+}
+
+/**
+ * Check if any confound failed (used to trigger research)
+ * Returns true if any controlled confound check failed
+ */
+export function anyConfoundFailed(checks: ConfoundCheckResult[]): boolean {
+  // Only consider controlled checks
+  const controlledChecks = checks.filter((c) => c.controlled);
+
+  // If no checks were possible, no failures
+  if (controlledChecks.length === 0) {
+    return false;
+  }
+
+  // Return true if any controlled check failed
+  return controlledChecks.some((c) => !c.effect_survived);
 }
