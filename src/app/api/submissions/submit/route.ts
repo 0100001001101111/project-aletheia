@@ -139,6 +139,18 @@ export async function POST(request: Request) {
       },
     };
 
+    // Apply simple mode cap if applicable
+    const isSimpleMode = body.submissionMode === 'simple';
+    if (isSimpleMode) {
+      // Cap simple mode submissions at 6.0
+      estimatedScore = Math.min(estimatedScore, 6.0);
+      // Simple mode can only reach provisional at best
+      if (tier === 'verified') {
+        tier = 'provisional';
+        triageStatus = 'provisional';
+      }
+    }
+
     // Create investigation
     const { data: investigation, error: invError } = await supabase
       .from('aletheia_investigations')
@@ -151,6 +163,7 @@ export async function POST(request: Request) {
         raw_narrative: body.basicInfo?.summary,
         triage_score: Math.round(estimatedScore),
         triage_status: triageStatus,
+        submission_mode: isSimpleMode ? 'simple' : 'full',
       })
       .select()
       .single();

@@ -1,11 +1,22 @@
 /**
  * Triage Score Calculator
  * Auto-calculates quality score (0-10) for submissions
+ *
+ * Two scoring modes:
+ * 1. Additive (default) - Sum of component scores
+ * 2. Multiplicative - Critical failure zeros out score (used for Ganzfeld, STARGATE)
  */
 
 import type { InvestigationType } from '../types/database';
 import { getTriageIndicators, getNestedValue } from '../schemas';
 import { calculateUFOQualityScore, calculateConfoundScore, type UFOData } from '../schemas/ufo';
+import {
+  calculateMultiplicativeScore,
+  type MultiplicativeBreakdown,
+} from './multiplicative-triage';
+
+export type { MultiplicativeBreakdown } from './multiplicative-triage';
+export { calculateMultiplicativeScore, getFactorColor, getFactorLabel } from './multiplicative-triage';
 
 export interface TriageBreakdown {
   sourceIntegrity: { score: number; max: number; details: string[] };

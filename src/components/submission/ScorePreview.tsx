@@ -19,7 +19,15 @@ import {
   type ScoreBreakdown,
   type ImprovementSuggestion,
 } from '@/lib/scoring';
+import {
+  calculateMultiplicativeScore,
+  type MultiplicativeBreakdown,
+} from '@/lib/multiplicative-triage';
+import { MultiplicativeScoreDisplay } from './MultiplicativeScoreDisplay';
 import type { GamingFlag } from '@/lib/anti-gaming';
+
+// Domains that use multiplicative scoring (experimental protocols)
+const MULTIPLICATIVE_DOMAINS: InvestigationType[] = ['ganzfeld', 'stargate'];
 
 interface ScorePreviewProps {
   investigationType: InvestigationType;
@@ -91,16 +99,41 @@ export function ScorePreview({
   onSaveDraft,
 }: ScorePreviewProps) {
   const [score, setScore] = useState<ScoreBreakdown | null>(null);
+  const [multiplicativeScore, setMultiplicativeScore] = useState<MultiplicativeBreakdown | null>(null);
   const [improvements, setImprovements] = useState<ImprovementSuggestion[]>([]);
   const [isCalculating, setIsCalculating] = useState(true);
   const [gamingFlags, setGamingFlags] = useState<GamingFlag[]>([]);
   const [iterationCount, setIterationCount] = useState(0);
+
+  // Check if this domain uses multiplicative scoring
+  const useMultiplicative = MULTIPLICATIVE_DOMAINS.includes(investigationType);
 
   // Convert form data to submission data format
   const submissionData = useMemo(
     () => toSubmissionData(witnesses, evidence, basicInfo),
     [witnesses, evidence, basicInfo]
   );
+
+  // Build raw data format for multiplicative scoring
+  const rawDataFormat = useMemo(() => ({
+    raw_narrative: basicInfo.summary,
+    raw_data: {
+      basicInfo,
+      witnesses: witnesses.map(w => ({
+        identityType: w.identityType,
+        verificationStatus: w.verificationStatus,
+        role: w.role,
+      })),
+      evidence: evidence.map(e => ({
+        category: e.category,
+        daysFromEvent: e.daysFromEvent,
+        isPrimarySource: e.isPrimarySource,
+        independentlyVerified: e.independentlyVerified,
+      })),
+      domainData,
+      protocol: domainData,
+    },
+  }), [basicInfo, witnesses, evidence, domainData]);
 
   // Log score estimate for anti-gaming audit
   const logScoreAudit = useCallback(async (calculated: ScoreBreakdown) => {
@@ -136,9 +169,16 @@ export function ScorePreview({
     // Simulate calculation delay for UX
     setIsCalculating(true);
     const timer = setTimeout(async () => {
+      // Calculate both scoring types
       const calculated = calculateScore(investigationType, submissionData);
       setScore(calculated);
       setImprovements(generateImprovementSuggestions(submissionData, calculated));
+
+      // Calculate multiplicative score if applicable
+      if (useMultiplicative) {
+        const multScore = calculateMultiplicativeScore(rawDataFormat, investigationType);
+        setMultiplicativeScore(multScore);
+      }
 
       // Log to audit trail
       await logScoreAudit(calculated);
@@ -147,7 +187,7 @@ export function ScorePreview({
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [investigationType, submissionData, logScoreAudit]);
+  }, [investigationType, submissionData, rawDataFormat, useMultiplicative, logScoreAudit]);
 
   if (isCalculating || !score) {
     return (
@@ -158,6 +198,89 @@ export function ScorePreview({
     );
   }
 
+  // For multiplicative domains, show multiplicative display
+  if (useMultiplicative && multiplicativeScore) {
+    const canSubmit = !multiplicativeScore.hasFatalFactor;
+
+    return (
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-zinc-100">Pre-Submission Review</h2>
+          <p className="mt-2 text-zinc-400">
+            Experimental protocols use multiplicative scoring — critical failures zero out the score
+          </p>
+        </div>
+
+        <MultiplicativeScoreDisplay breakdown={multiplicativeScore} showFormula />
+
+        {/* Gaming Detection Warning */}
+        {gamingFlags.length > 0 && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 text-red-400">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-red-300">Score Integrity Notice</h4>
+                <div className="mt-2 space-y-1">
+                  {gamingFlags.map((flag, i) => (
+                    <p key={i} className="text-xs text-red-400/80">
+                      {flag.reason}
+                    </p>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-zinc-500">
+                  Submission modifications are logged for quality assurance.
+                  {iterationCount >= 5 && ` (${iterationCount} score calculations logged)`}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="flex justify-between pt-4">
+          <button
+            onClick={onBack}
+            className="rounded-lg border border-zinc-700 bg-zinc-800 px-6 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700"
+          >
+            Back
+          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={onSaveDraft}
+              className="rounded-lg border border-zinc-700 bg-zinc-800 px-6 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-700"
+            >
+              Save Draft
+            </button>
+            <button
+              onClick={onNext}
+              disabled={!canSubmit}
+              className={`rounded-lg px-6 py-3 text-sm font-medium text-white transition-colors ${
+                !canSubmit
+                  ? 'bg-zinc-600 cursor-not-allowed'
+                  : multiplicativeScore.tier === 'rejected'
+                    ? 'bg-red-600 hover:bg-red-500'
+                    : multiplicativeScore.tier === 'provisional'
+                      ? 'bg-amber-600 hover:bg-amber-500'
+                      : 'bg-emerald-600 hover:bg-emerald-500'
+              }`}
+            >
+              {!canSubmit
+                ? 'Fix Fatal Issues to Submit'
+                : multiplicativeScore.tier === 'provisional'
+                  ? 'Submit as Provisional'
+                  : 'Submit for Verification'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Standard additive scoring display
   return (
     <div className="space-y-6">
       <div className="text-center">
