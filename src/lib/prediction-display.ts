@@ -316,9 +316,9 @@ export interface PatternDisplayTitle {
   subtitle: string;
 }
 
-export function generatePatternDisplayTitle(description: string, variable: string, domains: string[] = []): PatternDisplayTitle {
-  const d = description.toLowerCase();
-  const v = variable.toLowerCase();
+export function generatePatternDisplayTitle(description: string, variable: string | null, domains: string[] = []): PatternDisplayTitle {
+  const d = (description || '').toLowerCase();
+  const v = (variable || '').toLowerCase();
   const primaryDomain = domains[0] || '';
 
   // Temporal clustering patterns

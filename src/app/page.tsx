@@ -222,17 +222,14 @@ export default async function LandingPage() {
             </Link>
 
             <div className="hidden md:flex items-center gap-8">
-              <Link href="/dashboard" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
-                Dashboard
-              </Link>
               <Link href="/predictions" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
                 Predictions
               </Link>
-              <Link href="/patterns" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
-                Patterns
-              </Link>
               <Link href="/investigations" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
                 Investigations
+              </Link>
+              <Link href="/agent" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
+                Agent
               </Link>
               <Link
                 href="/submit"
@@ -262,37 +259,37 @@ export default async function LandingPage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-500/10 border border-brand-500/20 mb-8">
             <span className="w-2 h-2 rounded-full bg-brand-400 animate-pulse" />
-            <span className="text-brand-300 text-sm font-medium">Cross-Domain Research Platform</span>
+            <span className="text-brand-300 text-sm font-medium">Autonomous Research Infrastructure</span>
           </div>
 
           {/* Main headline */}
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-zinc-100 mb-6 leading-tight">
-            Project <span className="gradient-text">Aletheia</span>
+            <span className="gradient-text">ALETHEIA</span>
           </h1>
 
           {/* Subhead */}
           <p className="text-xl sm:text-2xl text-zinc-300 font-light mb-4">
-            Rigorous Infrastructure for Anomaly Research
+            AI agents running 24/7, hunting for patterns humans miss
           </p>
 
           {/* Tagline */}
           <p className="text-lg text-brand-400 font-medium mb-12">
-            We don&apos;t chase ghosts. We find patterns.
+            Six research domains. Continuous discovery. Rigorous methodology.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Link
-              href="/dashboard"
+              href="/investigations"
               className="px-8 py-4 bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 text-white font-semibold rounded-xl transition-all hover:shadow-xl hover:shadow-brand-600/30 hover:-translate-y-0.5"
             >
-              Explore Findings
+              Explore Research
             </Link>
             <Link
               href="/submit"
               className="px-8 py-4 border border-brand-500/30 hover:border-brand-500/60 text-brand-300 hover:text-white font-semibold rounded-xl transition-all hover:bg-brand-500/10"
             >
-              Become a Custodian
+              Submit Data
             </Link>
           </div>
 
@@ -587,18 +584,17 @@ export default async function LandingPage() {
             {/* Predictions */}
             <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-green-900/10 border border-green-500/20 text-center">
               <div className="text-4xl font-bold text-green-400 mb-2">
-                {stats.predictions.confirmed}
-                <span className="text-xl text-zinc-500">/{stats.predictions.total}</span>
+                {stats.predictions.total}
               </div>
               <div className="text-zinc-400 font-medium">Predictions</div>
-              <div className="text-xs text-zinc-500 mt-1">Confirmed / Total</div>
+              <div className="text-xs text-zinc-500 mt-1">Active hypotheses</div>
             </div>
 
             {/* Domains */}
             <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-cyan-900/10 border border-cyan-500/20 text-center">
-              <div className="text-4xl font-bold text-cyan-400 mb-2">5 + 3</div>
+              <div className="text-4xl font-bold text-cyan-400 mb-2">6</div>
               <div className="text-zinc-400 font-medium">Domains</div>
-              <div className="text-xs text-zinc-500 mt-1">Research + Exploratory</div>
+              <div className="text-xs text-zinc-500 mt-1">Interconnected fields</div>
             </div>
           </div>
         </div>
@@ -729,56 +725,55 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Divider */}
-      <div className="section-divider max-w-4xl mx-auto" />
-
       {/* ==================== PREDICTIONS SPOTLIGHT ==================== */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Currently Testing</h2>
-            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Predictions Under Investigation</p>
-          </div>
+      {/* Only show when there are predictions being tested */}
+      {testingPredictions.length > 0 && (
+        <>
+          <div className="section-divider max-w-4xl mx-auto" />
+          <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
+            <div className="max-w-4xl mx-auto">
+              <div className="text-center mb-12">
+                <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Currently Testing</h2>
+                <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Predictions Under Investigation</p>
+              </div>
 
-          <div className="space-y-6">
-            {testingPredictions.length > 0 ? (
-              testingPredictions.map((prediction) => (
-                <div
-                  key={prediction.id}
-                  className="p-6 rounded-xl bg-dark-card border border-amber-500/20 hover:border-amber-500/40 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <p className="text-zinc-200 leading-relaxed">{prediction.hypothesis}</p>
-                    <div className="flex-shrink-0 text-right">
-                      <div className="text-2xl font-bold text-amber-400">
-                        {Math.round((prediction.confidence_score || 0) * 100)}%
+              <div className="space-y-6">
+                {testingPredictions.map((prediction) => (
+                  <div
+                    key={prediction.id}
+                    className="p-6 rounded-xl bg-dark-card border border-amber-500/20 hover:border-amber-500/40 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-4 mb-4">
+                      <p className="text-zinc-200 leading-relaxed">{prediction.hypothesis}</p>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-2xl font-bold text-amber-400">
+                          {Math.round((prediction.confidence_score || 0) * 100)}%
+                        </div>
+                        <div className="text-xs text-zinc-500">Confidence</div>
                       </div>
-                      <div className="text-xs text-zinc-500">Confidence</div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-wrap gap-2">
+                        {prediction.domains_involved?.map((domain: string) => (
+                          <span key={domain} className="text-xs px-2 py-1 rounded bg-brand-500/10 text-brand-300">
+                            {domain}
+                          </span>
+                        ))}
+                      </div>
+                      <Link
+                        href={`/predictions/${prediction.id}`}
+                        className="text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors"
+                      >
+                        Help test this →
+                      </Link>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex flex-wrap gap-2">
-                      {prediction.domains_involved?.map((domain: string) => (
-                        <span key={domain} className="text-xs px-2 py-1 rounded bg-brand-500/10 text-brand-300">
-                          {domain}
-                        </span>
-                      ))}
-                    </div>
-                    <Link
-                      href={`/predictions/${prediction.id}`}
-                      className="text-sm text-amber-400 hover:text-amber-300 font-medium transition-colors"
-                    >
-                      Help test this →
-                    </Link>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-12 text-zinc-500">No predictions currently being tested.</div>
-            )}
-          </div>
-        </div>
-      </section>
+                ))}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ==================== CALL TO ACTION ==================== */}
       <section className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
