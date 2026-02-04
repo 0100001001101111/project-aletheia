@@ -234,12 +234,14 @@ export default function AgentDashboardPage() {
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-zinc-100">Recent Findings</h2>
-                <Link
-                  href="/agent/review"
-                  className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
-                >
-                  View All →
-                </Link>
+                {user && (
+                  <Link
+                    href="/agent/review"
+                    className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+                  >
+                    View All →
+                  </Link>
+                )}
               </div>
 
               {loading ? (

@@ -6,8 +6,10 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { FindingCard } from '@/components/agent/FindingCard';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 interface Finding {
@@ -42,6 +44,8 @@ const REJECTION_REASONS = [
 ];
 
 export default function ReviewQueuePage() {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [findings, setFindings] = useState<Finding[]>([]);
   const [counts, setCounts] = useState<Counts>({ total: 0, pending: 0, approved: 0, rejected: 0, needs_info: 0 });
   const [filter, setFilter] = useState<FilterStatus>('all');
@@ -51,6 +55,22 @@ export default function ReviewQueuePage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkRejectReason, setBulkRejectReason] = useState('duplicate');
   const [isBulkRejecting, setIsBulkRejecting] = useState(false);
+
+  // Redirect non-authenticated users to the public agent page
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/agent');
+    }
+  }, [user, authLoading, router]);
+
+  // Show loading state while checking auth or redirecting
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   const fetchFindings = useCallback(async () => {
     setIsLoading(true);
