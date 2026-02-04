@@ -186,13 +186,13 @@ export async function GET(request: NextRequest) {
     // Parse query params
     const type = searchParams.get('type') as InvestigationType | null;
     const status = searchParams.get('status') as TriageStatus | null;
-    const tier = searchParams.get('tier') as 'research' | 'exploratory' | null;
+    const tier = searchParams.get('tier') as 'all' | 'research' | 'exploratory' | null;
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const sortBy = searchParams.get('sort') || 'created_at';
     const sortOrder = searchParams.get('order') || 'desc';
 
-    const effectiveTier = tier || 'research';
+    const effectiveTier = tier || 'all'; // Default to showing all
 
     // Use optimized database function to bypass RLS overhead
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -218,24 +218,38 @@ export async function GET(request: NextRequest) {
     const hasMore = data && data.length > limit;
     const results = hasMore ? data.slice(0, limit) : (data || []);
 
-    // Get actual count for the current tier (with filters if applied)
-    let countQuery = supabase
-      .from('aletheia_investigations')
-      .select('id', { count: 'exact', head: true })
-      .eq('tier', effectiveTier);
+    // Get actual count using SECURITY DEFINER function (bypasses RLS overhead)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: totalCount, error: countError } = await (supabase.rpc as any)('get_investigations_count', {
+      p_tier: effectiveTier,
+      p_type: type || null,
+      p_status: status || null,
+    }) as { data: number | null; error: { message: string } | null };
 
-    if (type) {
-      countQuery = countQuery.eq('investigation_type', type);
-    }
-    if (status) {
-      countQuery = countQuery.eq('triage_status', status);
+    if (countError) {
+      console.warn('Count query failed, using hasMore only:', countError.message);
     }
 
-    const { count: totalCount } = await countQuery;
+    // Get separate tier counts for UI badges
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [researchCountResult, exploratoryCountResult] = await Promise.all([
+      (supabase.rpc as any)('get_investigations_count', {
+        p_tier: 'research',
+        p_type: type || null,
+        p_status: status || null,
+      }),
+      (supabase.rpc as any)('get_investigations_count', {
+        p_tier: 'exploratory',
+        p_type: type || null,
+        p_status: status || null,
+      }),
+    ]);
 
     return NextResponse.json({
       data: results,
       total: totalCount || 0,
+      researchCount: researchCountResult.data || 0,
+      exploratoryCount: exploratoryCountResult.data || 0,
       hasMore,
       limit,
       offset,

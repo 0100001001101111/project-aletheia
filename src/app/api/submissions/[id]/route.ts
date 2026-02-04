@@ -28,6 +28,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         raw_data,
         triage_score,
         triage_status,
+        triage_source_integrity,
+        triage_methodology,
+        triage_variable_capture,
+        triage_data_quality,
+        tier,
         created_at,
         updated_at,
         submitted_by_user:aletheia_users!user_id(

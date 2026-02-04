@@ -4,7 +4,104 @@
 
 Aletheia is a "GitHub for Anomaly Research" - a collaborative platform for rigorous investigation of anomalous phenomena. It provides standardized data schemas, cross-domain pattern matching, falsifiable prediction tracking, and an autonomous research agent.
 
-## Current Project State (Jan 27, 2026 - Evening Update)
+## Current Project State (Jan 29, 2026 - Agent System v2 Complete)
+
+### Agent System v2 (Complete)
+
+A comprehensive 5-phase agent upgrade for deep, systematic anomaly research at "Jeffrey Long-level" analysis depth.
+
+#### Phase 6a: Deep Miner Agent
+- **Exhaustive within-domain statistical analysis**
+- **Variable Census** - Enumerate every variable in a domain with distributions
+- **Cross-Tabulations** - Every pair of categorical variables with chi-square tests
+- **Subgroup Analysis** - Break down by age, gender, cause, etc.
+- **Temporal Stability** - Track if patterns hold across decades
+- **UI**: `/agent/deep-miner` - Trigger analysis, view results by domain
+- **Database Tables**:
+  - `aletheia_deep_miner_sessions` - Session tracking
+  - `aletheia_variable_census` - All extracted variables
+  - `aletheia_cross_tabulations` - χ² tests, Cramér's V, effect sizes
+  - `aletheia_subgroup_analyses` - Breakdowns by grouping variables
+  - `aletheia_temporal_stability` - Trend analysis over time
+
+#### Phase 6b: Discovery Agent v2 - Literature Deep Dives
+- **Paper Extraction** - Structured extraction of claims, methods, effect sizes from academic papers via Claude API
+- **Literature Synthesis** - Multi-paper synthesis generating consensus positions, contradictions, and research gaps
+- **Replication Tracking** - Track replication attempts, calculate success rates, identify discrepancies
+- **UI**: `/agent/discovery-v2` - Tabs for extractions, syntheses, replication tracking
+- **API Endpoints**:
+  - `POST /api/agent/discovery-v2/extract` - Extract structured data from paper
+  - `GET /api/agent/discovery-v2/extractions` - List paper extractions
+  - `POST /api/agent/discovery-v2/synthesize` - Create literature synthesis
+  - `GET /api/agent/discovery-v2/syntheses` - List syntheses
+  - `GET/POST /api/agent/discovery-v2/replication` - Replication tracking
+- **Database Tables**:
+  - `aletheia_paper_extractions` - Structured paper data with claims, methods, effect sizes
+  - `aletheia_literature_syntheses` - Multi-paper synthesis reports
+  - `aletheia_replication_attempts` - Replication attempt tracking
+
+#### Phase 6c: Connection Agent - Cross-Domain Patterns
+- **Variable Mapper** - Semantic mapping of variables across domains (e.g., NDE "out_of_body" ↔ UFO "missing_time")
+- **Correlation Finder** - Pearson correlation, temporal co-occurrence, geographic clustering analysis
+- **Keel Tester** - Tests John Keel's hypothesis that "weird stuff correlates" using weirdness indicators per domain
+- **Witness Clusterer** - K-means clustering of witness profiles with silhouette scoring
+- **UI**: `/agent/connection` - Tabs for overview, variable mappings, correlations, Keel tests, witness profiles
+- **API Endpoints**:
+  - `POST /api/agent/connection/trigger` - Start connection analysis session
+  - `GET /api/agent/connection/sessions` - List sessions
+  - `GET /api/agent/connection/results` - Get mappings, correlations, Keel tests, profiles
+- **Database Tables**:
+  - `aletheia_connection_sessions` - Connection Agent sessions
+  - `aletheia_variable_mappings` - Semantic variable mappings across domains
+  - `aletheia_cross_domain_correlations` - Correlation analysis results
+  - `aletheia_keel_tests` - Keel hypothesis test results
+  - `aletheia_keel_test_pairs` - Individual domain pair results
+  - `aletheia_witness_profiles` - K-means clustered witness archetypes
+
+#### Phase 6d: Mechanism Agent - Explanatory Theory Hunting
+- **Mechanism Catalog** - Predefined mechanisms per domain (e.g., NDE: anoxia, REM intrusion, temporal lobe; UFO: misidentification, plasma)
+- **Test Designer** - Creates discriminating tests between competing mechanisms
+- **Theory Builder** - Builds unified theories across domains with parsimony scoring
+- **UI**: `/agent/mechanism` - Tabs for overview, mechanisms by domain, designed tests, unified theories
+- **API Endpoints**:
+  - `POST /api/agent/mechanism/trigger` - Start mechanism analysis session
+  - `GET /api/agent/mechanism/sessions` - List sessions
+  - `GET /api/agent/mechanism/results` - Get mechanisms, tests, theories
+- **Database Tables**:
+  - `aletheia_mechanism_sessions` - Mechanism Agent sessions
+  - `aletheia_mechanisms` - Proposed mechanisms with plausibility ratings
+  - `aletheia_mechanism_tests` - Designed discriminating tests
+  - `aletheia_unified_theories` - Cross-domain unified theories
+  - `aletheia_theory_evidence` - Evidence links for theories
+
+#### Phase 6e: Synthesis Agent - Research Reports
+- **Domain Deep Dive** - Comprehensive single-domain reports with key findings, open questions, research priorities
+- **Cross-Domain Synthesizer** - Identifies cross-cutting patterns with themes (consciousness, perception, environmental, etc.)
+- **Research Brief Generator** - Audience-specific briefs (academic, journalist, general_public, funder, skeptic) with domain experts
+- **UI**: `/agent/synthesis` - Tabs for overview, deep dives, cross-domain syntheses, research briefs
+- **API Endpoints**:
+  - `POST /api/agent/synthesis/trigger` - Start synthesis session
+  - `GET /api/agent/synthesis/sessions` - List sessions
+  - `GET /api/agent/synthesis/results` - Get deep dives, syntheses, briefs
+- **Database Tables**:
+  - `aletheia_synthesis_sessions` - Synthesis Agent sessions
+  - `aletheia_domain_deep_dives` - Comprehensive domain reports
+  - `aletheia_cross_domain_syntheses` - Cross-cutting pattern syntheses
+  - `aletheia_research_briefs` - Audience-specific briefs
+
+### Agent Navigation
+All agents accessible from `/agent` hub page:
+- **Research Agent** (default) - Pattern discovery and hypothesis testing
+- **Research Reports** - Published research reports
+- **Review Queue** - Findings awaiting human review
+- **Data Acquisition** - Gap detection and data sourcing
+- **Discovery Agent** - External research and source monitoring
+- **Discovery v2** (teal) - Literature deep dives
+- **Connection Agent** (indigo) - Cross-domain patterns
+- **Mechanism Agent** (emerald) - Explanatory theories
+- **Synthesis Agent** (rose) - Research report generation
+
+## Previous Project State (Jan 27, 2026 - Evening Update)
 
 ### Two-Tier Data Architecture
 
@@ -177,14 +274,24 @@ src/
 │   │   ├── patterns/            # Pattern matching
 │   │   └── ...
 │   ├── agent/                   # Research Agent pages
-│   │   ├── page.tsx             # Agent terminal
+│   │   ├── page.tsx             # Agent terminal (hub)
 │   │   ├── acquire/             # Data acquisition queue
 │   │   │   └── page.tsx         # Acquisition review
+│   │   ├── deep-miner/          # Deep Miner Agent
+│   │   │   └── page.tsx         # Deep mining UI
 │   │   ├── discovery/           # Discovery Agent pages
 │   │   │   ├── page.tsx         # Discovery terminal
 │   │   │   ├── leads/page.tsx   # Leads review queue
 │   │   │   ├── sources/page.tsx # Monitored sources
 │   │   │   └── researchers/page.tsx # Tracked researchers
+│   │   ├── discovery-v2/        # Discovery v2 (Literature)
+│   │   │   └── page.tsx         # Literature deep dives UI
+│   │   ├── connection/          # Connection Agent
+│   │   │   └── page.tsx         # Cross-domain patterns UI
+│   │   ├── mechanism/           # Mechanism Agent
+│   │   │   └── page.tsx         # Theory hunting UI
+│   │   ├── synthesis/           # Synthesis Agent
+│   │   │   └── page.tsx         # Research reports UI
 │   │   ├── review/              # Finding review queue
 │   │   │   ├── page.tsx         # Review list
 │   │   │   └── [id]/page.tsx    # Finding detail
@@ -239,7 +346,33 @@ src/
 │   │   ├── cross-domain-analyzer.ts # Find connections across domains
 │   │   ├── lead-evaluator.ts    # Quality scoring and deduplication
 │   │   ├── supabase-admin.ts    # Admin client for agent
-│   │   └── types.ts             # Agent type definitions
+│   │   ├── types.ts             # Agent type definitions
+│   │   ├── deep-miner/          # Deep Miner Agent
+│   │   │   ├── runner.ts        # Deep miner orchestration
+│   │   │   ├── variable-census.ts # Variable enumeration
+│   │   │   ├── cross-tabulator.ts # Chi-square analysis
+│   │   │   ├── subgroup-analyzer.ts # Subgroup breakdowns
+│   │   │   └── temporal-stability.ts # Trend analysis
+│   │   ├── discovery-v2/        # Discovery v2 (Literature)
+│   │   │   ├── paper-extractor.ts # Structured paper extraction
+│   │   │   ├── literature-synthesizer.ts # Multi-paper synthesis
+│   │   │   └── replication-tracker.ts # Replication tracking
+│   │   ├── connection/          # Connection Agent
+│   │   │   ├── runner.ts        # Connection orchestration
+│   │   │   ├── variable-mapper.ts # Semantic variable mapping
+│   │   │   ├── correlation-finder.ts # Cross-domain correlations
+│   │   │   ├── keel-tester.ts   # Keel hypothesis testing
+│   │   │   └── witness-clusterer.ts # K-means witness profiling
+│   │   ├── mechanism/           # Mechanism Agent
+│   │   │   ├── runner.ts        # Mechanism orchestration
+│   │   │   ├── mechanism-catalog.ts # Predefined mechanisms
+│   │   │   ├── test-designer.ts # Discriminating test design
+│   │   │   └── theory-builder.ts # Unified theory construction
+│   │   └── synthesis/           # Synthesis Agent
+│   │       ├── runner.ts        # Synthesis orchestration
+│   │       ├── domain-deep-dive.ts # Domain-specific reports
+│   │       ├── cross-domain-synthesizer.ts # Cross-cutting patterns
+│   │       └── research-brief-generator.ts # Audience-specific briefs
 │   ├── window-analysis/         # Window theory logic
 │   ├── data-ingestion/          # Data import utilities
 │   └── ...
@@ -286,6 +419,31 @@ If there are type errors, fix them before declaring completion.
 - `aletheia_discovery_sources` - Monitored journals, archives, organizations
 - `aletheia_researchers_tracked` - Researchers being followed
 - `aletheia_agent_handoffs` - Communication between Discovery and Research agents
+
+**Agent System v2:**
+- `aletheia_deep_miner_sessions` - Deep Miner Agent sessions
+- `aletheia_variable_census` - Enumerated variables with distributions
+- `aletheia_cross_tabulations` - Chi-square tests and Cramér's V effect sizes
+- `aletheia_subgroup_analyses` - Breakdowns by grouping variables
+- `aletheia_temporal_stability` - Pattern stability over time
+- `aletheia_paper_extractions` - Structured paper extractions (claims, methods, effects)
+- `aletheia_literature_syntheses` - Multi-paper synthesis reports
+- `aletheia_replication_attempts` - Replication tracking with success rates
+- `aletheia_connection_sessions` - Connection Agent sessions
+- `aletheia_variable_mappings` - Semantic variable mappings across domains
+- `aletheia_cross_domain_correlations` - Correlation analysis results
+- `aletheia_keel_tests` - Keel hypothesis battery results
+- `aletheia_keel_test_pairs` - Individual domain pair Keel tests
+- `aletheia_witness_profiles` - K-means clustered witness archetypes
+- `aletheia_mechanism_sessions` - Mechanism Agent sessions
+- `aletheia_mechanisms` - Proposed mechanisms with plausibility ratings
+- `aletheia_mechanism_tests` - Designed discriminating tests
+- `aletheia_unified_theories` - Cross-domain unified theories
+- `aletheia_theory_evidence` - Evidence links for theories
+- `aletheia_synthesis_sessions` - Synthesis Agent sessions
+- `aletheia_domain_deep_dives` - Comprehensive domain reports
+- `aletheia_cross_domain_syntheses` - Cross-cutting pattern syntheses
+- `aletheia_research_briefs` - Audience-specific research briefs
 
 **Window Analysis:**
 - `aletheia_grid_cells` - Geographic grid cells (1246 cells at 1° resolution)
@@ -365,6 +523,35 @@ If there are type errors, fix them before declaring completion.
 - `POST /api/agent/discovery/sources` - Add new source
 - `GET /api/agent/discovery/researchers` - List tracked researchers
 - `POST /api/agent/discovery/researchers` - Add new researcher
+
+## Agent System v2 APIs
+
+**Deep Miner:**
+- `POST /api/agent/deep-miner/trigger` - Start deep mining session
+- `GET /api/agent/deep-miner/sessions` - List sessions
+- `GET /api/agent/deep-miner/results` - Get census, crosstabs, subgroups, temporal
+
+**Discovery v2 (Literature):**
+- `POST /api/agent/discovery-v2/extract` - Extract structured data from paper
+- `GET /api/agent/discovery-v2/extractions` - List paper extractions
+- `POST /api/agent/discovery-v2/synthesize` - Create literature synthesis
+- `GET /api/agent/discovery-v2/syntheses` - List syntheses
+- `GET/POST /api/agent/discovery-v2/replication` - Replication tracking
+
+**Connection Agent:**
+- `POST /api/agent/connection/trigger` - Start connection analysis
+- `GET /api/agent/connection/sessions` - List sessions
+- `GET /api/agent/connection/results?type=` - Get mappings|correlations|keel_tests|profiles
+
+**Mechanism Agent:**
+- `POST /api/agent/mechanism/trigger` - Start mechanism analysis
+- `GET /api/agent/mechanism/sessions` - List sessions
+- `GET /api/agent/mechanism/results?type=` - Get mechanisms|tests|theories
+
+**Synthesis Agent:**
+- `POST /api/agent/synthesis/trigger` - Start synthesis session
+- `GET /api/agent/synthesis/sessions` - List sessions
+- `GET /api/agent/synthesis/results?type=` - Get deep_dives|syntheses|briefs
 
 ## Window Analysis APIs
 

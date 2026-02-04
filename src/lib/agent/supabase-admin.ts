@@ -1,9 +1,45 @@
 /**
  * Untyped Supabase Client for Agent Operations
  * Uses service role key for write operations, anon key for read operations
+ * IMPORTANT: Uses lazy initialization to avoid build-time errors
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Lazy-initialized singleton clients
+let _adminClient: SupabaseClient | null = null;
+let _readClient: SupabaseClient | null = null;
+
+/**
+ * Get the singleton admin Supabase client (lazy initialized)
+ * Uses service role key if available, falls back to anon key
+ */
+export function getAdminClient(): SupabaseClient {
+  if (_adminClient) return _adminClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL');
+  }
+
+  // Use service role key if available, otherwise fall back to anon key
+  const key = supabaseServiceKey || supabaseAnonKey;
+  if (!key) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY');
+  }
+
+  _adminClient = createClient(supabaseUrl, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+
+  return _adminClient;
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

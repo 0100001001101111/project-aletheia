@@ -85,9 +85,18 @@ export function QualityDistributionBar({
   distribution,
   showLegend = false,
 }: {
-  distribution: ScoreDistributionBucket[];
+  distribution?: ScoreDistributionBucket[];
   showLegend?: boolean;
 }) {
+  // Handle missing or empty distribution
+  if (!distribution || distribution.length === 0) {
+    return (
+      <div className="h-4 rounded-full bg-zinc-700 flex items-center justify-center">
+        <span className="text-xs text-zinc-500">No data</span>
+      </div>
+    );
+  }
+
   const total = distribution.reduce((sum, b) => sum + b.count, 0);
 
   if (total === 0) {

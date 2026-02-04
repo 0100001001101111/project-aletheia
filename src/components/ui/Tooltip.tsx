@@ -65,14 +65,16 @@ interface InfoTooltipProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
 }
 
-export function InfoTooltip({ text }: InfoTooltipProps) {
+export function InfoTooltip({ text, position = 'top' }: InfoTooltipProps) {
   return (
-    <span
-      title={text}
-      className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-zinc-700/50 text-xs text-zinc-400 hover:bg-zinc-600/50 hover:text-zinc-300 cursor-help"
-    >
-      ?
-    </span>
+    <Tooltip text={text} position={position}>
+      <span
+        className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-zinc-700/50 text-xs text-zinc-400 hover:bg-zinc-600/50 hover:text-zinc-300 cursor-help"
+        aria-label="More information"
+      >
+        ?
+      </span>
+    </Tooltip>
   );
 }
 
@@ -80,6 +82,7 @@ export function InfoTooltip({ text }: InfoTooltipProps) {
  * Pre-defined jargon tooltips
  */
 export const JARGON_TOOLTIPS: Record<string, string> = {
+  // Core metrics
   confidence_score: "How certain we are this pattern is real, based on how many domains show it and how consistent the data is. Higher = more certain.",
   p_value: "Probability this result happened by chance. Lower = more likely to be real. Scientists typically want p < 0.05 (less than 5% chance of being random).",
   triage_score: "Quality rating from 0-10 based on methodology, data completeness, and source reliability. 7+ means verified.",
@@ -88,6 +91,42 @@ export const JARGON_TOOLTIPS: Record<string, string> = {
   pattern_matcher: "AI system that scans all investigations to find correlations that appear across multiple research domains.",
   verified: "This submission passed our 4-stage quality check for methodology, source integrity, and data completeness. This verifies the research process, not the phenomenon itself.",
   provisional: "Awaiting review. Data is included in pattern matching but not yet fully verified.",
+
+  // Triage subscores
+  source_integrity: "How reliable is the source? 0 = anonymous/unverified, 3 = published study or verified official record.",
+  methodology: "How rigorous was the data collection? 0 = no controls, 3 = double-blind with pre-registration.",
+  variable_capture: "Were all relevant variables recorded? 0 = minimal data, 2 = comprehensive environmental and temporal data.",
+  data_quality: "Is the data complete and consistent? 0 = major gaps, 2 = complete with validation.",
+
+  // Remote viewing protocols
+  crv: "Coordinate Remote Viewing. A structured method developed at SRI where viewers describe targets using only coordinates, following specific stages.",
+  erv: "Extended Remote Viewing. A deeper, more meditative approach to remote viewing allowing longer sessions and richer imagery.",
+  arv: "Associative Remote Viewing. Uses remote viewing to predict future events by associating targets with possible outcomes.",
+  sri: "Stanford Research Institute. The laboratory where the US government's remote viewing program was originally developed in the 1970s.",
+
+  // Geophysical terms
+  kp_index: "Planetary K-index. Measures global geomagnetic disturbance on a 0-9 scale. Higher values indicate stronger geomagnetic storms.",
+  schumann_resonance: "Earth's electromagnetic 'heartbeat' at ~7.83 Hz, caused by lightning activity in the cavity between Earth and ionosphere.",
+  piezoelectric: "The ability of certain rocks (especially quartz-bearing) to generate electric charge under mechanical stress like earthquakes.",
+  tectonic_stress: "Pressure building along fault lines before earthquakes. Some researchers hypothesize this can produce anomalous lights or EM effects.",
+
+  // NDE terms
+  veridical_perception: "Information perceived during an NDE that was later verified as accurate - things the experiencer couldn't have known normally.",
+  obe: "Out-of-Body Experience. The sensation of consciousness being located outside the physical body, often reported during NDEs.",
+  greyson_scale: "A standardized 16-question scale for measuring the depth and characteristics of near-death experiences. Max score = 32.",
+
+  // Ganzfeld terms
+  sender: "In Ganzfeld experiments, the person who views the target and attempts to mentally transmit it to the receiver.",
+  receiver: "The participant in sensory deprivation who tries to perceive the target being viewed by the sender.",
+  mentation: "The stream of mental imagery, thoughts, and impressions reported by the receiver during a Ganzfeld session.",
+  direct_hit: "When the receiver correctly identifies the actual target from a set of options (typically 4), giving a 25% chance baseline.",
+
+  // Statistics
+  effect_size: "How strong an effect is, independent of sample size. Cohen's d: 0.2 = small, 0.5 = medium, 0.8 = large.",
+  holdout_validation: "Testing a hypothesis on data not used to generate it, preventing overfitting and false positives.",
+  confound: "An alternative explanation for results. Good research controls for confounds like selection bias or environmental factors.",
+  chi_squared: "A statistical test comparing observed frequencies to expected frequencies. Used to detect non-random patterns.",
+  cramers_v: "Effect size measure for chi-squared tests. Ranges 0-1 where 0 = no association, 1 = perfect association.",
 };
 
 /**

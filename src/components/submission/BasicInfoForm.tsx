@@ -24,7 +24,48 @@ interface BasicInfoFormProps {
   onNext: () => void;
   onBack: () => void;
   isLoadingEnvironmental?: boolean;
+  domain?: string;
 }
+
+// Domain-specific placeholder examples
+const DOMAIN_PLACEHOLDERS: Record<string, { title: string; location: string; lat: string; lon: string }> = {
+  nde: {
+    title: 'e.g., AWARE II Cardiac Study - Southampton 2024',
+    location: 'e.g., Southampton General Hospital, UK',
+    lat: '50.9340',
+    lon: '-1.4346',
+  },
+  ganzfeld: {
+    title: 'e.g., Bem Ganzfeld Replication - Cornell 2023',
+    location: 'e.g., Cornell University, Ithaca, NY',
+    lat: '42.4534',
+    lon: '-76.4735',
+  },
+  crisis_apparition: {
+    title: 'e.g., SPR Documented Case #4821 - Manchester 2022',
+    location: 'e.g., Manchester, UK',
+    lat: '53.4808',
+    lon: '-2.2426',
+  },
+  stargate: {
+    title: 'e.g., SRI Remote Viewing Session RV-1973-042',
+    location: 'e.g., Stanford Research Institute, Menlo Park, CA',
+    lat: '37.4530',
+    lon: '-122.1817',
+  },
+  geophysical: {
+    title: 'e.g., New Madrid EM Anomaly - October 2024',
+    location: 'e.g., New Madrid, Missouri, USA',
+    lat: '36.5863',
+    lon: '-89.5276',
+  },
+  ufo: {
+    title: 'e.g., Phoenix Lights Multiple Witness Report - 1997',
+    location: 'e.g., Phoenix, Arizona, USA',
+    lat: '33.4484',
+    lon: '-112.0740',
+  },
+};
 
 interface GeocodingResult {
   lat: number;
@@ -38,7 +79,10 @@ export function BasicInfoForm({
   onNext,
   onBack,
   isLoadingEnvironmental,
+  domain,
 }: BasicInfoFormProps) {
+  // Get domain-specific placeholders, fallback to NDE as generic
+  const placeholders = DOMAIN_PLACEHOLDERS[domain || 'nde'] || DOMAIN_PLACEHOLDERS.nde;
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [geocodeError, setGeocodeError] = useState<string | null>(null);
 
@@ -121,7 +165,7 @@ export function BasicInfoForm({
             type="text"
             value={data.title}
             onChange={(e) => updateField('title', e.target.value)}
-            placeholder="e.g., Varginha Entity Encounter - January 1996"
+            placeholder={placeholders.title}
             className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-zinc-100 placeholder:text-zinc-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
           />
         </div>
@@ -166,7 +210,7 @@ export function BasicInfoForm({
               type="text"
               value={data.eventLocation}
               onChange={(e) => updateField('eventLocation', e.target.value)}
-              placeholder="e.g., Varginha, Minas Gerais, Brazil"
+              placeholder={placeholders.location}
               className="flex-1 rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-zinc-100 placeholder:text-zinc-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
             />
             <button
@@ -202,7 +246,7 @@ export function BasicInfoForm({
               step="0.0000001"
               value={data.latitude ?? ''}
               onChange={(e) => updateField('latitude', e.target.value ? parseFloat(e.target.value) : null)}
-              placeholder="-21.5544"
+              placeholder={placeholders.lat}
               className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-zinc-100 placeholder:text-zinc-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
             />
           </div>
@@ -217,7 +261,7 @@ export function BasicInfoForm({
               step="0.0000001"
               value={data.longitude ?? ''}
               onChange={(e) => updateField('longitude', e.target.value ? parseFloat(e.target.value) : null)}
-              placeholder="-45.4303"
+              placeholder={placeholders.lon}
               className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-3 text-zinc-100 placeholder:text-zinc-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
             />
           </div>

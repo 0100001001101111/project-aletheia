@@ -12,6 +12,8 @@ import { SCHEMA_METADATA, flattenToDotNotation, getFieldDescriptions } from '@/s
 import { getTriageScoreColor, getTriageStatusColor } from '@/lib/triage';
 import { formatFieldName, formatValue as formatVal } from '@/lib/format';
 import { InfoTooltip, JARGON_TOOLTIPS } from '@/components/ui/Tooltip';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
+import { StoryLayout, extractStoryData } from '@/components/investigation/StoryLayout';
 import type { InvestigationType, TriageStatus } from '@/types/database';
 
 // Investigation type explainers
@@ -832,6 +834,11 @@ interface Investigation {
   raw_data: Record<string, unknown>;
   triage_score: number;
   triage_status: TriageStatus;
+  triage_source_integrity: number | null;
+  triage_methodology: number | null;
+  triage_variable_capture: number | null;
+  triage_data_quality: number | null;
+  tier: 'research' | 'exploratory';
   created_at: string;
   updated_at: string;
   submitted_by_user?: {
@@ -854,9 +861,244 @@ interface Investigation {
   }>;
 }
 
+// Generate human-readable display title from investigation data
+function generateDisplayTitle(type: InvestigationType, data: Record<string, unknown>, originalTitle: string): string {
+  switch (type) {
+    case 'stargate': {
+      const docId = data.doc_id as string;
+      const outcome = data.outcome as string;
+      const year = docId?.match(/(\d{4})/)?.[1] || '';
+
+      // Try to extract meaningful target description
+      let targetDesc = 'Unknown Target';
+      const targetType = data.target_type;
+      const target = data.target;
+
+      // Handle various target formats
+      if (typeof targetType === 'string' && targetType.length > 0) {
+        targetDesc = targetType;
+      } else if (typeof target === 'string' && target.length > 0) {
+        targetDesc = target.substring(0, 40);
+      } else if (target && typeof target === 'object' && 'name' in target) {
+        targetDesc = String((target as Record<string, unknown>).name);
+      } else if (originalTitle && !originalTitle.startsWith('CIA') && !originalTitle.startsWith('STARGATE')) {
+        // Use original title if it's descriptive
+        const titleMatch = originalTitle.match(/Session[:\s]+(.+)$/i);
+        targetDesc = titleMatch?.[1] || 'Classified Target';
+      } else {
+        targetDesc = 'Classified Target';
+      }
+
+      const yearSuffix = year ? ` (${year})` : '';
+      const resultSuffix = outcome?.toLowerCase().includes('success') ? ' - Hit' : '';
+      return `Remote Viewing: ${targetDesc}${yearSuffix}${resultSuffix}`;
+    }
+
+    case 'ganzfeld': {
+      const hit = data.hit as boolean;
+      const target = data.target;
+      const recordNum = data.record_num;
+
+      // Try to extract target from various sources
+      let targetDesc = 'Trial';
+
+      // First try to extract from original title like "Ganzfeld Trial #38: TWO HUNTERS AND LARGE TREE"
+      const titleMatch = originalTitle?.match(/Ganzfeld Trial #\d+:\s*(.+)$/i);
+      if (titleMatch && titleMatch[1]) {
+        targetDesc = titleMatch[1].length > 30 ? titleMatch[1].substring(0, 30) + '...' : titleMatch[1];
+      } else if (typeof target === 'string' && target.length > 0) {
+        targetDesc = target.length > 30 ? target.substring(0, 30) + '...' : target;
+      } else if (recordNum) {
+        targetDesc = `#${recordNum}`;
+      }
+
+      const result = hit === true ? 'Hit' : hit === false ? 'Miss' : 'Unknown';
+      return `Ganzfeld Trial: ${targetDesc} (${result})`;
+    }
+
+    case 'nde': {
+      const trigger = data.trigger || data.medical_event as string;
+      const veridical = data.veridical_elements || data.verified_perceptions;
+      const triggerDesc = trigger ? String(trigger).substring(0, 30) : 'Medical Event';
+      const veridicalNote = veridical ? ' with Veridical Perception' : '';
+      return `NDE${veridicalNote}: ${triggerDesc}`;
+    }
+
+    case 'crisis_apparition': {
+      const deltaT = data.delta_t_minutes as number;
+      const isGold = data.is_gold_standard as boolean;
+      const timingDesc = deltaT === 0 ? 'Simultaneous' :
+                         deltaT < 0 ? 'Precognitive' : 'Post-event';
+      const goldNote = isGold ? ' (Gold Standard)' : '';
+      return `Crisis Apparition: ${timingDesc}${goldNote}`;
+    }
+
+    case 'ufo': {
+      const shape = data.shape as string;
+      const location = data.location as Record<string, unknown>;
+      const city = location?.city || data.city as string;
+      const state = location?.state || data.state as string;
+      const shapeDesc = shape ? `${shape} Object` : 'UAP';
+      const locationDesc = city ? `${city}${state ? `, ${state}` : ''}` : 'Unknown Location';
+      return `UAP Sighting: ${shapeDesc} - ${locationDesc}`;
+    }
+
+    case 'geophysical': {
+      const phenomenonType = data.phenomenon_type as string;
+      const city = data.city as string;
+      const typeDesc = phenomenonType?.replace(/_/g, ' ') || 'Anomaly';
+      return `Geophysical: ${typeDesc}${city ? ` - ${city}` : ''}`;
+    }
+
+    case 'bigfoot': {
+      const classification = data.classification as Record<string, unknown>;
+      const classType = classification?.class as string;
+      const reportNum = (data.report_metadata as Record<string, unknown>)?.report_number;
+      return `Bigfoot Sighting: Class ${classType || '?'}${reportNum ? ` (#${reportNum})` : ''}`;
+    }
+
+    case 'haunting': {
+      const phenomena = data.phenomena as string[];
+      const phenomenaDesc = phenomena?.slice(0, 2).join(', ') || 'Unexplained Activity';
+      return `Haunting: ${phenomenaDesc}`;
+    }
+
+    default:
+      return originalTitle;
+  }
+}
+
+// Generate plain-English TL;DR summary
+function generateTldrSummary(type: InvestigationType, data: Record<string, unknown>, score: number): string {
+  const isHighQuality = score >= 7;
+
+  switch (type) {
+    case 'stargate': {
+      const outcome = data.outcome as string;
+      const isSuccess = outcome?.toLowerCase().includes('success');
+      if (isSuccess) {
+        return "A trained remote viewer successfully described a hidden target using only mental focus - matching details they had no normal way to know.";
+      }
+      return "A remote viewing session where a trained viewer attempted to describe a hidden target. Results are documented for pattern analysis.";
+    }
+
+    case 'ganzfeld': {
+      const hit = data.hit as boolean;
+      if (hit === true) {
+        return "In sensory deprivation, a receiver correctly identified a hidden target image from a set of options - beating 25% chance.";
+      } else if (hit === false) {
+        return "A Ganzfeld trial where the receiver did not identify the correct target. Included for statistical analysis of overall hit rates.";
+      }
+      return "A controlled telepathy experiment using sensory deprivation to test information transfer between isolated individuals.";
+    }
+
+    case 'nde': {
+      const veridical = data.veridical_elements || data.verified_perceptions;
+      if (veridical) {
+        return "A near-death experience where the subject reported verifiable details they couldn't have known through normal means while clinically unconscious.";
+      }
+      return "A documented near-death experience during a life-threatening medical event, with detailed phenomenological data for pattern analysis.";
+    }
+
+    case 'crisis_apparition': {
+      const isGold = data.is_gold_standard as boolean;
+      const deltaT = data.delta_t_minutes as number;
+      if (isGold) {
+        return "A verified case where someone perceived a person in crisis before learning about it - meeting strict evidential standards with independent corroboration.";
+      }
+      const timing = deltaT === 0 ? 'at the exact moment' : deltaT < 0 ? 'before' : 'shortly after';
+      return `An apparition was observed ${timing} the crisis event, with no normal means of knowing about it at that time.`;
+    }
+
+    case 'ufo': {
+      const witnessCount = data.witness_count as number;
+      const effects = data.effects as Record<string, unknown>;
+      const hasEffects = effects?.physiological_effects || effects?.em_interference;
+      const witnessNote = witnessCount > 1 ? `Multiple witnesses (${witnessCount}) observed` : 'Witness observed';
+      const effectNote = hasEffects ? ' with associated physical or electromagnetic effects.' : '.';
+      return `${witnessNote} an unidentified aerial phenomenon${effectNote}`;
+    }
+
+    case 'geophysical': {
+      return "An anomalous phenomenon being analyzed for correlations with seismic activity, electromagnetic fields, and geological factors.";
+    }
+
+    default:
+      return isHighQuality
+        ? "A high-quality investigation record used for cross-domain pattern analysis."
+        : "An investigation record included in the exploratory dataset for pattern detection.";
+  }
+}
+
+// Generate domain-specific significance statement for high-scoring records
+function generateSignificance(type: InvestigationType, data: Record<string, unknown>, score: number): string | null {
+  if (score < 6) return null;
+
+  switch (type) {
+    case 'stargate': {
+      const outcome = data.outcome as string;
+      if (outcome?.toLowerCase().includes('success')) {
+        return "If replicated, remote viewing would suggest consciousness can access information beyond the physical senses, challenging our understanding of perception and physics.";
+      }
+      return null;
+    }
+
+    case 'ganzfeld': {
+      const hit = data.hit as boolean;
+      if (hit === true) {
+        return "Consistent above-chance hit rates in Ganzfeld studies would indicate information can transfer between isolated minds - a phenomenon with no conventional explanation.";
+      }
+      return null;
+    }
+
+    case 'nde': {
+      const veridical = data.veridical_elements || data.verified_perceptions;
+      if (veridical) {
+        return "Verified perceptions during clinical death raise fundamental questions about consciousness, suggesting it may not be entirely dependent on brain activity.";
+      }
+      return "Well-documented NDEs contribute to our understanding of consciousness during extreme physiological states.";
+    }
+
+    case 'crisis_apparition': {
+      const isGold = data.is_gold_standard as boolean;
+      if (isGold) {
+        return "Gold-standard crisis apparitions, if validated, would demonstrate a form of non-local connection between individuals under extreme stress.";
+      }
+      return null;
+    }
+
+    case 'ufo': {
+      const effects = data.effects as Record<string, unknown>;
+      if (effects?.physiological_effects || effects?.em_interference) {
+        return "Physical effects associated with UAP sightings suggest something measurable is occurring, whether conventional or unexplained.";
+      }
+      return null;
+    }
+
+    case 'geophysical': {
+      return "Understanding correlations between anomalous phenomena and geophysical factors could reveal natural explanations or new physics.";
+    }
+
+    default:
+      return null;
+  }
+}
+
 interface PageProps {
   params: { id: string };
 }
+
+// Technical fields to hide by default per domain
+const TECHNICAL_FIELDS: Record<string, string[]> = {
+  stargate: ['doc_id', 'source', 'session_id', 'ratings', 'viewer_number', 'coordinate'],
+  ganzfeld: ['record_num', 'receiver', 'source', 'sender_id', 'session_id'],
+  nde: ['case_id', 'source', 'study_code', 'patient_id'],
+  crisis_apparition: ['case_id', 'source', 'catalog_id'],
+  ufo: ['case_id', 'source', 'report_id', 'geomagnetic', 'confounds'],
+  geophysical: ['source', 'station_id', 'sensor_id', 'raw_readings'],
+  bigfoot: ['report_metadata', 'source'],
+  haunting: ['case_id', 'source'],
+};
 
 export default function InvestigationPage({ params }: PageProps) {
   const { id } = params;
@@ -864,6 +1106,20 @@ export default function InvestigationPage({ params }: PageProps) {
   const [investigation, setInvestigation] = useState<Investigation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showTechnical, setShowTechnical] = useState(false);
+
+  // Load preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('investigation-show-technical');
+    if (saved === 'true') setShowTechnical(true);
+  }, []);
+
+  // Save preference to localStorage
+  const toggleTechnical = () => {
+    const newValue = !showTechnical;
+    setShowTechnical(newValue);
+    localStorage.setItem('investigation-show-technical', String(newValue));
+  };
 
   useEffect(() => {
     async function fetchInvestigation() {
@@ -925,6 +1181,21 @@ export default function InvestigationPage({ params }: PageProps) {
   const flatData = flattenToDotNotation(investigation.raw_data);
   const scoreColor = getTriageScoreColor(investigation.triage_score);
   const statusColor = getTriageStatusColor(investigation.triage_status);
+  const displayTitle = generateDisplayTitle(investigation.type, investigation.raw_data, investigation.title);
+  const tldrSummary = generateTldrSummary(investigation.type, investigation.raw_data, investigation.triage_score);
+  const significance = generateSignificance(investigation.type, investigation.raw_data, investigation.triage_score);
+  const hasSubscores = investigation.triage_source_integrity != null || investigation.triage_methodology != null;
+
+  // Filter out technical fields when toggle is off
+  const technicalFieldsForType = TECHNICAL_FIELDS[investigation.type] || [];
+  const isTechnicalField = (key: string): boolean => {
+    const rootKey = key.split('.')[0];
+    return technicalFieldsForType.includes(rootKey);
+  };
+  const visibleData = showTechnical
+    ? flatData
+    : Object.fromEntries(Object.entries(flatData).filter(([key]) => !isTechnicalField(key)));
+  const hiddenCount = Object.keys(flatData).length - Object.keys(visibleData).length;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -945,18 +1216,56 @@ export default function InvestigationPage({ params }: PageProps) {
         </div>
       </nav>
 
-      {/* Header */}
+      {/* Tier Badge Banner */}
+      {investigation.tier === 'exploratory' && (
+        <div className="border-b border-zinc-700 bg-zinc-800/50">
+          <div className="mx-auto max-w-6xl px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-zinc-600/30 text-zinc-300 border border-zinc-500/30">
+                <span className="w-2 h-2 rounded-full bg-zinc-400" />
+                Exploratory Data
+              </span>
+              <span className="text-sm text-zinc-400">
+                This record is from bulk import and hasn&apos;t been individually verified. Quality score is estimated.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+      {investigation.tier === 'research' && (
+        <div className="border-b border-emerald-500/20 bg-emerald-900/10">
+          <div className="mx-auto max-w-6xl px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Research Data
+              </span>
+              <span className="text-sm text-emerald-300/70">
+                This record passed quality review and is used for pattern analysis and predictions.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header with Display Title */}
       <header className="border-b border-zinc-800 bg-zinc-900/50">
         <div className="mx-auto max-w-6xl px-4 py-6">
           <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
                 <span className={`text-3xl ${metadata.color}`}>{metadata.icon}</span>
                 <div>
-                  <h1 className="text-2xl font-bold text-zinc-100">{investigation.title}</h1>
+                  <h1 className="text-2xl font-bold text-zinc-100">{displayTitle}</h1>
                   <p className="text-zinc-400">{metadata.name}</p>
                 </div>
               </div>
+              {/* Original ID shown as metadata */}
+              {displayTitle !== investigation.title && (
+                <p className="text-xs text-zinc-500 mt-1 ml-12">
+                  Original ID: <code className="rounded bg-zinc-800 px-1.5 py-0.5">{investigation.title}</code>
+                </p>
+              )}
             </div>
             <div className="text-right">
               <div className={`text-4xl font-bold ${scoreColor}`}>
@@ -999,81 +1308,226 @@ export default function InvestigationPage({ params }: PageProps) {
 
       {/* Content */}
       <main className="mx-auto max-w-6xl px-4 py-8">
-        {/* What Happened - Always visible summary */}
-        <div className="mb-6 rounded-xl border border-zinc-700 bg-gradient-to-r from-zinc-900 to-zinc-800/50 p-6">
-          <h2 className="text-lg font-semibold text-zinc-100 mb-3 flex items-center gap-2">
-            <svg className="h-5 w-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* Story-First Layout - Shows narrative structure when available */}
+        {(() => {
+          const storyData = extractStoryData(investigation.type, investigation.raw_data, investigation.description);
+          if (storyData.hasStory) {
+            return (
+              <div className="mb-6">
+                <StoryLayout
+                  type={investigation.type}
+                  data={investigation.raw_data}
+                  description={investigation.description}
+                />
+                {/* Quick stats bar below story */}
+                <div className="mt-4 flex flex-wrap items-center gap-4 text-sm px-1">
+                  <span className={`font-medium ${scoreColor}`}>
+                    Quality: {investigation.triage_score}/10
+                  </span>
+                  <span className={`capitalize ${statusColor}`}>
+                    {investigation.triage_status}
+                  </span>
+                  <span className="text-zinc-500">
+                    {metadata.name}
+                  </span>
+                </div>
+              </div>
+            );
+          }
+          // Fallback to generic TL;DR for types without story extraction
+          return (
+            <div className="mb-6 rounded-xl border border-violet-500/30 bg-gradient-to-r from-violet-950/30 to-zinc-900 p-6">
+              <div className="flex items-start gap-4">
+                <span className={`text-4xl ${metadata.color}`}>{metadata.icon}</span>
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-zinc-100 mb-2">TL;DR</h2>
+                  <p className="text-zinc-300 leading-relaxed">{tldrSummary}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
+                    <span className={`font-medium ${scoreColor}`}>
+                      Quality: {investigation.triage_score}/10
+                    </span>
+                    <span className={`capitalize ${statusColor}`}>
+                      {investigation.triage_status}
+                    </span>
+                    <span className="text-zinc-500">
+                      {metadata.name}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Why This Matters - For high-scoring records */}
+        {significance && (
+          <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-6">
+            <h2 className="text-lg font-semibold text-emerald-400 mb-3 flex items-center gap-2">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Why This Matters
+            </h2>
+            <p className="text-emerald-200/80 leading-relaxed">{significance}</p>
+          </div>
+        )}
+
+        {/* Score Breakdown - Open by default */}
+        {hasSubscores && (
+          <CollapsibleSection
+            title="Quality Score Breakdown"
+            defaultOpen={true}
+            icon={
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            }
+            className="mb-6"
+          >
+            <div className="space-y-4">
+              <p className="text-sm text-zinc-400">
+                Quality score is calculated by multiplying four factors. Each factor rates a different aspect of data quality.
+              </p>
+              <div className="flex items-center gap-2 flex-wrap font-mono text-sm">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-800">
+                  <span className="text-zinc-400">Source</span>
+                  <span className={investigation.triage_source_integrity === 3 ? 'text-emerald-400' : investigation.triage_source_integrity === 2 ? 'text-amber-400' : 'text-red-400'}>
+                    {investigation.triage_source_integrity ?? 0}/3
+                  </span>
+                  <InfoTooltip text={JARGON_TOOLTIPS.source_integrity} position="top" />
+                </span>
+                <span className="text-zinc-500">×</span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-800">
+                  <span className="text-zinc-400">Method</span>
+                  <span className={investigation.triage_methodology === 3 ? 'text-emerald-400' : investigation.triage_methodology === 2 ? 'text-amber-400' : 'text-red-400'}>
+                    {investigation.triage_methodology ?? 0}/3
+                  </span>
+                  <InfoTooltip text={JARGON_TOOLTIPS.methodology} position="top" />
+                </span>
+                <span className="text-zinc-500">×</span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-800">
+                  <span className="text-zinc-400">Variables</span>
+                  <span className={investigation.triage_variable_capture === 2 ? 'text-emerald-400' : investigation.triage_variable_capture === 1 ? 'text-amber-400' : 'text-red-400'}>
+                    {investigation.triage_variable_capture ?? 0}/2
+                  </span>
+                  <InfoTooltip text={JARGON_TOOLTIPS.variable_capture} position="top" />
+                </span>
+                <span className="text-zinc-500">×</span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-zinc-800">
+                  <span className="text-zinc-400">Data</span>
+                  <span className={investigation.triage_data_quality === 2 ? 'text-emerald-400' : investigation.triage_data_quality === 1 ? 'text-amber-400' : 'text-red-400'}>
+                    {investigation.triage_data_quality ?? 0}/2
+                  </span>
+                  <InfoTooltip text={JARGON_TOOLTIPS.data_quality} position="top" />
+                </span>
+                <span className="text-zinc-500">=</span>
+                <span className={`px-2 py-1 rounded bg-zinc-700 font-bold ${scoreColor}`}>
+                  {investigation.triage_score}/10
+                </span>
+              </div>
+            </div>
+          </CollapsibleSection>
+        )}
+
+        {/* What Happened - Open by default */}
+        <CollapsibleSection
+          title="What Happened"
+          defaultOpen={true}
+          icon={
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            What Happened
-          </h2>
+          }
+          className="mb-6"
+        >
           <p className="text-zinc-300 leading-relaxed">
             {generateInvestigationSummary(investigation.type, investigation.raw_data, investigation.description, investigation.title)}
           </p>
-        </div>
+        </CollapsibleSection>
 
-        {/* About This Investigation Type - Collapsible */}
-        <details className="mb-6 rounded-xl border border-violet-500/30 bg-violet-500/5">
-          <summary className="cursor-pointer px-6 py-4 text-sm font-medium text-violet-400 hover:text-violet-300 flex items-center gap-2">
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* About This Investigation Type - Collapsed by default */}
+        <CollapsibleSection
+          title={`About ${metadata.name}`}
+          defaultOpen={false}
+          icon={
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            What am I looking at?
-          </summary>
-          <div className="border-t border-violet-500/20 px-6 py-4">
-            <h3 className="text-base font-semibold text-zinc-100 mb-2">
-              About {metadata.name}
-            </h3>
-            <p className="text-sm text-zinc-400 leading-relaxed">
-              {TYPE_EXPLAINERS[investigation.type]}
-            </p>
-            <div className="mt-4 pt-4 border-t border-zinc-700/50">
-              <h4 className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Key Terms</h4>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(FIELD_TOOLTIPS)
-                  .filter(([key]) => {
-                    // Show relevant tooltips based on investigation type
-                    const ganzfeldFields = ['hit', 'target', 'receiver', 'source', 'record_num'];
-                    const stargateFields = ['target', 'source', 'record_num'];
-                    const crisisFields = ['delta_t_minutes', 'distance_miles', 'is_gold_standard', 'source'];
-                    const geoFields = ['phenomenon_type', 'source'];
+          }
+          className="mb-6"
+        >
+          <p className="text-sm text-zinc-400 leading-relaxed mb-4">
+            {TYPE_EXPLAINERS[investigation.type]}
+          </p>
+          <div className="pt-4 border-t border-zinc-700/50">
+            <h4 className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Key Terms</h4>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(FIELD_TOOLTIPS)
+                .filter(([key]) => {
+                  const ganzfeldFields = ['hit', 'target', 'receiver', 'source', 'record_num'];
+                  const stargateFields = ['target', 'source', 'record_num'];
+                  const crisisFields = ['delta_t_minutes', 'distance_miles', 'is_gold_standard', 'source'];
+                  const geoFields = ['phenomenon_type', 'source'];
 
-                    if (investigation.type === 'ganzfeld') return ganzfeldFields.includes(key);
-                    if (investigation.type === 'stargate') return stargateFields.includes(key);
-                    if (investigation.type === 'crisis_apparition') return crisisFields.includes(key);
-                    if (investigation.type === 'geophysical') return geoFields.includes(key);
-                    return false;
-                  })
-                  .map(([key, tooltip]) => (
-                    <span
-                      key={key}
-                      className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300"
-                      title={tooltip}
-                    >
-                      <span className="font-medium">{formatFieldName(key)}</span>
-                      <InfoTooltip text={tooltip} position="top" />
-                    </span>
-                  ))}
-              </div>
+                  if (investigation.type === 'ganzfeld') return ganzfeldFields.includes(key);
+                  if (investigation.type === 'stargate') return stargateFields.includes(key);
+                  if (investigation.type === 'crisis_apparition') return crisisFields.includes(key);
+                  if (investigation.type === 'geophysical') return geoFields.includes(key);
+                  return false;
+                })
+                .map(([key, tooltip]) => (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300"
+                  >
+                    <span className="font-medium">{formatFieldName(key)}</span>
+                    <InfoTooltip text={tooltip} position="top" />
+                  </span>
+                ))}
             </div>
           </div>
-        </details>
+        </CollapsibleSection>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main data panel */}
           <div className="space-y-6 lg:col-span-2">
-            <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-6">
-              <h2 className="text-lg font-semibold text-zinc-100">Investigation Data</h2>
-
-              <div className="mt-4 space-y-4">
-                {Object.entries(groupByCategory(flatData)).map(([category, fields]) => (
+            {/* Investigation Data - Collapsed by default */}
+            <CollapsibleSection
+              title="Investigation Data"
+              defaultOpen={false}
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h6M9 13h6M9 17h4" />
+                </svg>
+              }
+              badge={
+                <span className="text-xs text-zinc-500 bg-zinc-800 px-2 py-0.5 rounded-full">
+                  {Object.keys(visibleData).length} fields
+                  {hiddenCount > 0 && !showTechnical && ` (${hiddenCount} hidden)`}
+                </span>
+              }
+            >
+              <div className="space-y-4">
+                {/* Technical fields toggle */}
+                {hiddenCount > 0 && (
+                  <button
+                    onClick={toggleTechnical}
+                    className="text-xs text-violet-400 hover:text-violet-300 flex items-center gap-1.5"
+                  >
+                    <svg className={`h-3.5 w-3.5 transition-transform ${showTechnical ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    {showTechnical ? 'Hide technical fields' : `Show all (${hiddenCount} hidden)`}
+                  </button>
+                )}
+                {Object.entries(groupByCategory(visibleData)).map(([category, fields]) => (
                   <div key={category}>
                     <h3 className="mb-2 text-sm font-medium uppercase tracking-wide text-zinc-500">
                       {formatFieldName(category)}
                     </h3>
                     <div className="grid gap-2 md:grid-cols-2">
                       {Object.entries(fields).map(([key, value]) => {
-                        // Get the field name without category prefix for tooltip lookup
                         const fieldKey = key.includes('.') ? key.split('.').pop()! : key;
                         const hasTooltip = FIELD_TOOLTIPS[fieldKey.toLowerCase()];
 
@@ -1095,19 +1549,22 @@ export default function InvestigationPage({ params }: PageProps) {
                   </div>
                 ))}
               </div>
-            </div>
+            </CollapsibleSection>
 
-            {/* Raw JSON */}
-            <details className="rounded-xl border border-zinc-700 bg-zinc-900/50">
-              <summary className="cursor-pointer px-6 py-4 font-medium text-zinc-300 hover:text-zinc-100">
-                View Raw JSON
-              </summary>
-              <div className="border-t border-zinc-700 p-4">
-                <pre className="max-h-96 overflow-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-400">
-                  {JSON.stringify(investigation.raw_data, null, 2)}
-                </pre>
-              </div>
-            </details>
+            {/* Raw JSON - Collapsed by default */}
+            <CollapsibleSection
+              title="Raw JSON"
+              defaultOpen={false}
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+              }
+            >
+              <pre className="max-h-96 overflow-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-400">
+                {JSON.stringify(investigation.raw_data, null, 2)}
+              </pre>
+            </CollapsibleSection>
           </div>
 
           {/* Sidebar */}

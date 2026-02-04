@@ -308,6 +308,7 @@ export function NewSubmissionWizard({ draftId, onComplete, onCancel }: NewSubmis
             onNext={goNext}
             onBack={goBack}
             isLoadingEnvironmental={isLoadingEnvironmental}
+            domain={state.investigationType || undefined}
           />
         );
 

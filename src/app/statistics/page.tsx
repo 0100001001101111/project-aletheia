@@ -46,7 +46,7 @@ export default function StatisticsPage() {
   const aggregateDistribution =
     data?.domains.reduce(
       (acc, domain) => {
-        domain.scoreDistribution.forEach((bucket, i) => {
+        domain.scoreDistribution?.forEach((bucket, i) => {
           acc[i] = {
             ...acc[i],
             count: (acc[i]?.count || 0) + bucket.count,
@@ -109,11 +109,39 @@ export default function StatisticsPage() {
       )}
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Tier Overview Banner */}
+        <div className="rounded-xl border border-violet-500/20 bg-violet-900/10 p-5 mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-violet-200">Data Quality Overview</h2>
+              <p className="text-sm text-violet-300/70 mt-1">
+                Statistics below are from <span className="font-medium text-emerald-400">Research tier</span> only.
+                Predictions and pattern analysis use this quality-scored data.
+              </p>
+            </div>
+            <div className="flex gap-4 text-sm">
+              <div className="text-center px-4 py-2 rounded-lg bg-emerald-600/20 border border-emerald-500/30">
+                <div className="text-2xl font-bold text-emerald-400">
+                  {isLoading ? '—' : data?.totalRecords.toLocaleString()}
+                </div>
+                <div className="text-emerald-300/70">Research</div>
+              </div>
+              <div className="text-center px-4 py-2 rounded-lg bg-zinc-600/20 border border-zinc-500/30">
+                <div className="text-2xl font-bold text-zinc-300">173k+</div>
+                <div className="text-zinc-400">Exploratory</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Summary Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-          <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-5">
-            <div className="text-sm text-zinc-400">Total Research Records</div>
-            <div className="text-3xl font-bold text-zinc-100 mt-1">
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-900/10 p-5">
+            <div className="text-sm text-emerald-300/70 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              Research Records
+            </div>
+            <div className="text-3xl font-bold text-emerald-400 mt-1">
               {isLoading ? '—' : data?.totalRecords.toLocaleString()}
             </div>
           </div>
