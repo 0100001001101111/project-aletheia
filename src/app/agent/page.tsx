@@ -101,9 +101,9 @@ const AGENTS: AgentInfo[] = [
     name: 'Flora',
     emoji: '🌿',
     color: 'from-lime-600 to-green-600',
-    role: 'Quality Control',
-    description: 'Reviews findings, checks methodology, ensures epistemic humility.',
-    href: '/agent/review',
+    role: 'Plant Intelligence',
+    description: 'Monitors plant bioelectrics, analyzes Backster-effect signals, tracks environmental responses.',
+    href: '/agent/flora',
   },
 ];
 
