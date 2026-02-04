@@ -9,6 +9,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Navigation } from '@/components/layout/Navigation';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AgentFinding {
   id: string;
@@ -17,6 +18,7 @@ interface AgentFinding {
   summary?: string;
   confidence: number;
   review_status: string;
+  destination_status?: string;
   created_at: string;
   session_id?: string;
 }
@@ -129,6 +131,7 @@ function getConfidenceColor(confidence: number): string {
 }
 
 export default function AgentDashboardPage() {
+  const { user } = useAuth();
   const [findings, setFindings] = useState<AgentFinding[]>([]);
   const [tasks, setTasks] = useState<AgentTask[]>([]);
   const [taskCounts, setTaskCounts] = useState({ completed: 0, active: 0, total: 0 });
@@ -203,15 +206,18 @@ export default function AgentDashboardPage() {
           </div>
 
           {/* Live Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className={`grid grid-cols-2 ${user ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 mb-8`}>
             <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
               <div className="text-3xl font-bold text-brand-400">{findingsCount}</div>
               <div className="text-sm text-zinc-500">Total Findings</div>
             </div>
-            <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
-              <div className="text-3xl font-bold text-amber-400">{pendingFindings.length}</div>
-              <div className="text-sm text-zinc-500">Awaiting Review</div>
-            </div>
+            {/* Only show pending count to admins */}
+            {user && (
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                <div className="text-3xl font-bold text-amber-400">{pendingFindings.length}</div>
+                <div className="text-sm text-zinc-500">Awaiting Review</div>
+              </div>
+            )}
             <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
               <div className="text-3xl font-bold text-emerald-400">{taskCounts.completed}</div>
               <div className="text-sm text-zinc-500">Tasks Completed</div>
@@ -272,15 +278,19 @@ export default function AgentDashboardPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${
-                          finding.review_status === 'pending'
-                            ? 'bg-amber-500/20 text-amber-400'
-                            : finding.review_status === 'approved'
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-zinc-700 text-zinc-400'
-                        }`}>
-                          {finding.review_status}
-                        </span>
+                        {/* Use destination_status for public display, hide pending for non-admins */}
+                        {(user || finding.destination_status === 'published') && (
+                          <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            finding.destination_status === 'published'
+                              ? 'bg-green-500/20 text-green-400'
+                              : finding.destination_status === 'rejected'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-amber-500/20 text-amber-400'
+                          }`}>
+                            {finding.destination_status === 'published' ? 'published' :
+                             finding.destination_status === 'rejected' ? 'rejected' : 'pending'}
+                          </span>
+                        )}
                       </div>
                     </Link>
                   ))}
@@ -364,24 +374,26 @@ export default function AgentDashboardPage() {
             </div>
           )}
 
-          {/* Admin Section - Below the fold */}
-          <div className="mt-16 pt-8 border-t border-zinc-800">
-            <h2 className="text-lg font-semibold text-zinc-400 mb-4">Admin Tools</h2>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/agent/reports"
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
-              >
-                Research Reports
-              </Link>
-              <Link
-                href="/agent/acquire"
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
-              >
-                Data Acquisition
-              </Link>
+          {/* Admin Section - Only visible to authenticated users */}
+          {user && (
+            <div className="mt-16 pt-8 border-t border-zinc-800">
+              <h2 className="text-lg font-semibold text-zinc-400 mb-4">Admin Tools</h2>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/agent/reports"
+                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Research Reports
+                </Link>
+                <Link
+                  href="/agent/acquire"
+                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Data Acquisition
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>

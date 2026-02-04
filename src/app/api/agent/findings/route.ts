@@ -84,9 +84,14 @@ export async function GET(request: NextRequest) {
     if (status && status !== 'all') {
       if (status === 'approved') {
         query = query.eq('destination_status', 'published');
+      } else if (status === 'rejected') {
+        query = query.eq('destination_status', 'rejected');
       } else {
         query = query.eq('review_status', status);
       }
+    } else if (!status || status === 'all') {
+      // By default, exclude rejected findings from the public feed
+      query = query.neq('destination_status', 'rejected');
     }
 
     const { data: rawFindings, error } = await query;

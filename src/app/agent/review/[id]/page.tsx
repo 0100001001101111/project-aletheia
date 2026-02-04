@@ -37,6 +37,7 @@ interface Finding {
   summary: string;
   confidence: number | null;
   review_status: string | null;
+  destination_status: string | null;
   review_notes: string | null;
   suggested_prediction: string | null;
   created_at: string | null;
@@ -281,21 +282,31 @@ export default function FindingDetailPage() {
   }
 
   const confidencePercent = Math.round((finding.confidence ?? 0) * 100);
-  const isPending = finding.review_status === 'pending';
-  const isApproved = finding.review_status === 'approved';
-  const isRejected = finding.review_status === 'rejected';
+  // Use destination_status for determining actual state (Telegram sets destination_status, not review_status)
+  const isPending = finding.destination_status !== 'published' && finding.destination_status !== 'rejected';
+  const isApproved = finding.destination_status === 'published';
+  const isRejected = finding.destination_status === 'rejected';
 
   return (
     <PageWrapper
       title={finding.display_title}
       description={`Confidence: ${confidencePercent}%`}
       headerAction={
-        <Link
-          href="/agent/review"
-          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
-        >
-          ← Back to Queue
-        </Link>
+        user ? (
+          <Link
+            href="/agent/review"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+          >
+            ← Back to Queue
+          </Link>
+        ) : (
+          <Link
+            href="/agent"
+            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+          >
+            ← Back to Agents
+          </Link>
+        )
       }
     >
       {/* Status banner */}
@@ -523,8 +534,8 @@ export default function FindingDetailPage() {
             </div>
           </div>
 
-          {/* Review Actions */}
-          {isPending && (
+          {/* Review Actions - Admin only */}
+          {user && isPending && (
             <div className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-lg">
               <h3 className="text-sm font-medium text-zinc-400 mb-4">Review Actions</h3>
               <div className="space-y-3">
@@ -554,10 +565,13 @@ export default function FindingDetailPage() {
           <div className="p-6 bg-zinc-900/50 border border-zinc-800 rounded-lg text-sm">
             <h3 className="text-sm font-medium text-zinc-400 mb-3">Details</h3>
             <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Status:</span>
-                <span className="text-zinc-300 capitalize">{finding.review_status || 'pending'}</span>
-              </div>
+              {/* Only show status to admins, or show "Published" for public */}
+              {(user || isApproved) && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Status:</span>
+                  <span className="text-zinc-300 capitalize">{isApproved ? 'published' : finding.review_status || 'pending'}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-zinc-500">Found:</span>
                 <span className="text-zinc-300">
