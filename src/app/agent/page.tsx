@@ -1,404 +1,389 @@
 'use client';
 
 /**
- * Agent Terminal Page
- * View and trigger Aletheia Research Agent sessions
- * Phase 2: Full analysis with pattern scanning, hypothesis testing, and findings
+ * Agent Dashboard Page
+ * Live view of the autonomous research swarm
+ * Shows real findings, tasks, and agent activity from Supabase
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { PageWrapper } from '@/components/layout/PageWrapper';
-import { AgentTerminal } from '@/components/agent/AgentTerminal';
-import { SessionSelector } from '@/components/agent/SessionSelector';
 import Link from 'next/link';
-import type { AgentSession, AgentLog, AgentStatus } from '@/lib/agent/types';
+import { Navigation } from '@/components/layout/Navigation';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+interface AgentFinding {
+  id: string;
+  title: string;
+  display_title?: string;
+  summary?: string;
+  confidence: number;
+  review_status: string;
+  created_at: string;
+  session_id?: string;
+}
 
-type RunMode = 'full' | 'demo';
+interface AgentTask {
+  id: string;
+  title: string;
+  description?: string;
+  assigned_to?: string;
+  status: string;
+  priority?: number;
+  created_at: string;
+}
 
-export default function AgentPage() {
-  const [status, setStatus] = useState<AgentStatus | null>(null);
-  const [sessions, setSessions] = useState<AgentSession[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-  const [logs, setLogs] = useState<AgentLog[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTriggering, setIsTriggering] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [runMode, setRunMode] = useState<RunMode>('full');
-  const [pendingCount, setPendingCount] = useState(0);
+interface AgentInfo {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  role: string;
+  description: string;
+  href: string;
+}
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const AGENTS: AgentInfo[] = [
+  {
+    id: 'argus',
+    name: 'Argus',
+    emoji: '👁️',
+    color: 'from-violet-600 to-purple-600',
+    role: 'Continuous Monitoring',
+    description: 'Watches data streams 24/7, flagging new submissions and detecting anomalies.',
+    href: '/agent/review',
+  },
+  {
+    id: 'deep-miner',
+    name: 'Deep Miner',
+    emoji: '⛏️',
+    color: 'from-amber-600 to-orange-600',
+    role: 'Statistical Analysis',
+    description: 'Exhaustive within-domain analysis: variable census, cross-tabulations, subgroups.',
+    href: '/agent/deep-miner',
+  },
+  {
+    id: 'discovery',
+    name: 'Discovery',
+    emoji: '🔍',
+    color: 'from-teal-600 to-cyan-600',
+    role: 'Literature Hunting',
+    description: 'Monitors journals, archives, and preprints for relevant new research.',
+    href: '/agent/discovery-v2',
+  },
+  {
+    id: 'connection',
+    name: 'Connection',
+    emoji: '🔗',
+    color: 'from-indigo-600 to-blue-600',
+    role: 'Cross-Domain Patterns',
+    description: 'Maps variables across domains, finds correlations, tests Keel hypothesis.',
+    href: '/agent/connection',
+  },
+  {
+    id: 'mechanism',
+    name: 'Mechanism',
+    emoji: '⚙️',
+    color: 'from-emerald-600 to-green-600',
+    role: 'Theory Testing',
+    description: 'Catalogs mechanisms, designs discriminating tests, builds unified theories.',
+    href: '/agent/mechanism',
+  },
+  {
+    id: 'synthesis',
+    name: 'Synthesis',
+    emoji: '📊',
+    color: 'from-rose-600 to-pink-600',
+    role: 'Report Generation',
+    description: 'Creates domain deep-dives, cross-domain syntheses, and research briefs.',
+    href: '/agent/synthesis',
+  },
+  {
+    id: 'flora',
+    name: 'Flora',
+    emoji: '🌿',
+    color: 'from-lime-600 to-green-600',
+    role: 'Quality Control',
+    description: 'Reviews findings, checks methodology, ensures epistemic humility.',
+    href: '/agent/review',
+  },
+];
 
-  // Fetch agent status
-  const fetchStatus = useCallback(async () => {
+function getRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+function getConfidenceColor(confidence: number): string {
+  if (confidence >= 0.8) return 'text-green-400';
+  if (confidence >= 0.6) return 'text-amber-400';
+  return 'text-zinc-400';
+}
+
+export default function AgentDashboardPage() {
+  const [findings, setFindings] = useState<AgentFinding[]>([]);
+  const [tasks, setTasks] = useState<AgentTask[]>([]);
+  const [taskCounts, setTaskCounts] = useState({ completed: 0, active: 0, total: 0 });
+  const [findingsCount, setFindingsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch('/api/agent/status');
-      if (!res.ok) throw new Error('Failed to fetch status');
-      const data = await res.json();
-      setStatus(data);
-
-      // If there's a running session, auto-select it
-      if (data.currentSession) {
-        setSelectedSessionId(data.currentSession.id);
-      }
-    } catch (err) {
-      console.error('Error fetching status:', err);
-    }
-  }, []);
-
-  // Fetch sessions list
-  const fetchSessions = useCallback(async () => {
-    try {
-      const res = await fetch('/api/agent/sessions?limit=50');
-      if (!res.ok) throw new Error('Failed to fetch sessions');
-      const data = await res.json();
-      setSessions(data.sessions || []);
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-    }
-  }, []);
-
-  // Fetch pending findings count for review badge
-  const fetchPendingCount = useCallback(async () => {
-    try {
-      const res = await fetch('/api/agent/findings?status=pending&limit=1');
-      if (!res.ok) return;
-      const data = await res.json();
-      setPendingCount(data.counts?.pending || 0);
-    } catch (err) {
-      console.error('Error fetching pending count:', err);
-    }
-  }, []);
-
-  // Fetch logs for selected session
-  const fetchLogs = useCallback(async (sessionId: string) => {
-    try {
-      const res = await fetch(`/api/agent/sessions/${sessionId}`);
-      if (!res.ok) throw new Error('Failed to fetch session');
-      const data = await res.json();
-      setLogs(data.logs || []);
-    } catch (err) {
-      console.error('Error fetching logs:', err);
-    }
-  }, []);
-
-  // Initial load
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await Promise.all([fetchStatus(), fetchSessions(), fetchPendingCount()]);
-      setIsLoading(false);
-    };
-    loadData();
-  }, [fetchStatus, fetchSessions, fetchPendingCount]);
-
-  // Load logs when session changes
-  useEffect(() => {
-    if (selectedSessionId) {
-      fetchLogs(selectedSessionId);
-    } else {
-      setLogs([]);
-    }
-  }, [selectedSessionId, fetchLogs]);
-
-  // Subscribe to realtime logs for running session
-  useEffect(() => {
-    if (!selectedSessionId || status?.currentSession?.id !== selectedSessionId) {
-      return;
-    }
-
-    const channel = supabase
-      .channel(`agent-logs-${selectedSessionId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'aletheia_agent_logs',
-          filter: `session_id=eq.${selectedSessionId}`,
-        },
-        (payload) => {
-          const newLog = payload.new as AgentLog;
-          setLogs((prev) => [...prev, newLog]);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedSessionId, status?.currentSession?.id, supabase]);
-
-  // Poll for session completion
-  useEffect(() => {
-    if (!status?.currentSession) return;
-
-    const interval = setInterval(async () => {
-      await fetchStatus();
-      await fetchSessions();
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [status?.currentSession, fetchStatus, fetchSessions]);
-
-  // Trigger agent run
-  const triggerRun = async () => {
-    setIsTriggering(true);
-    setError(null);
-    setLogs([]); // Clear logs for new session
-
-    try {
-      const res = await fetch('/api/agent/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggerType: 'manual', mode: runMode }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to trigger agent');
+      // Fetch findings from API
+      const findingsRes = await fetch('/api/agent/findings?limit=20');
+      if (findingsRes.ok) {
+        const data = await findingsRes.json();
+        setFindings(data.findings || []);
+        setFindingsCount(data.counts?.total || data.findings?.length || 0);
       }
 
-      const data = await res.json();
-
-      // Refresh status and sessions
-      await Promise.all([fetchStatus(), fetchSessions()]);
-
-      // Select the new session
-      if (data.sessionId) {
-        setSelectedSessionId(data.sessionId);
+      // Fetch tasks
+      const tasksRes = await fetch('/api/agent/tasks');
+      if (tasksRes.ok) {
+        const data = await tasksRes.json();
+        setTasks(data.tasks || []);
+        const completed = (data.tasks || []).filter((t: AgentTask) =>
+          t.status === 'completed' || t.status === 'done'
+        ).length;
+        const active = (data.tasks || []).filter((t: AgentTask) =>
+          t.status === 'assigned' || t.status === 'in_progress'
+        ).length;
+        setTaskCounts({
+          completed,
+          active,
+          total: data.tasks?.length || 0,
+        });
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error fetching agent data:', err);
     } finally {
-      setIsTriggering(false);
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const isLiveSession = selectedSessionId === status?.currentSession?.id;
+  useEffect(() => {
+    fetchData();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
+  const pendingFindings = findings.filter(f => f.review_status === 'pending');
+  const recentActivity = [...findings].sort((a, b) =>
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ).slice(0, 10);
 
   return (
-    <PageWrapper
-      title="Research Agent"
-      description="Autonomous pattern discovery and hypothesis testing"
-      headerAction={
-        <div className="flex items-center gap-3">
-          <Link
-            href="/agent/reports"
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
-          >
-            Research Reports
-          </Link>
-          <Link
-            href="/agent/review"
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            Review Queue
-            {pendingCount > 0 && (
-              <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-medium rounded-full">
-                {pendingCount}
-              </span>
-            )}
-          </Link>
-          <Link
-            href="/agent/acquire"
-            className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
-          >
-            Data Acquisition
-          </Link>
-          <Link
-            href="/agent/discovery"
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            Discovery Agent
-          </Link>
-        </div>
-      }
-    >
-      {/* Status bar */}
-      <div className="mb-6 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-zinc-500 text-sm">Status:</span>
-              <span className={`font-medium ${status?.enabled ? 'text-green-400' : 'text-red-400'}`}>
-                {status?.enabled ? 'Enabled' : 'Disabled'}
+    <div className="min-h-screen bg-zinc-950">
+      <Navigation />
+
+      <main className="pt-20 pb-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-3xl">🤖</span>
+              <h1 className="text-3xl font-bold text-zinc-100">Research Swarm</h1>
+              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm font-medium rounded-full flex items-center gap-2">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                Active
               </span>
             </div>
-
-            {status?.stats && (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 text-sm">Sessions:</span>
-                  <span className="text-zinc-300">{status.stats.totalSessions}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 text-sm">Hypotheses:</span>
-                  <span className="text-zinc-300">{status.stats.totalHypotheses}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-zinc-500 text-sm">Findings:</span>
-                  <span className="text-zinc-300">
-                    {status.stats.approvedFindings}/{status.stats.totalFindings}
-                  </span>
-                </div>
-              </>
-            )}
+            <p className="text-zinc-400">
+              Seven autonomous agents hunting for patterns across six research domains
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Mode selector */}
-            <div className="flex items-center border border-zinc-700 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setRunMode('full')}
-                disabled={isTriggering || !!status?.currentSession}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                  runMode === 'full'
-                    ? 'bg-brand-600 text-white'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
-                } disabled:opacity-50`}
-              >
-                Full Analysis
-              </button>
-              <button
-                onClick={() => setRunMode('demo')}
-                disabled={isTriggering || !!status?.currentSession}
-                className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                  runMode === 'demo'
-                    ? 'bg-brand-600 text-white'
-                    : 'bg-zinc-800 text-zinc-400 hover:text-zinc-200'
-                } disabled:opacity-50`}
-              >
-                Demo
-              </button>
+          {/* Live Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+              <div className="text-3xl font-bold text-brand-400">{findingsCount}</div>
+              <div className="text-sm text-zinc-500">Total Findings</div>
             </div>
+            <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+              <div className="text-3xl font-bold text-amber-400">{pendingFindings.length}</div>
+              <div className="text-sm text-zinc-500">Awaiting Review</div>
+            </div>
+            <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+              <div className="text-3xl font-bold text-emerald-400">{taskCounts.completed}</div>
+              <div className="text-sm text-zinc-500">Tasks Completed</div>
+            </div>
+            <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+              <div className="text-3xl font-bold text-blue-400">{taskCounts.active}</div>
+              <div className="text-sm text-zinc-500">Active Tasks</div>
+            </div>
+          </div>
 
-            {/* Run button */}
-            <button
-              onClick={triggerRun}
-              disabled={isTriggering || !status?.enabled || !!status?.currentSession}
-              className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isTriggering ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Starting...
-                </>
-              ) : status?.currentSession ? (
-                <>
-                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  Running
-                </>
+          {/* Main Content Grid */}
+          <div className="grid lg:grid-cols-3 gap-8">
+            {/* Recent Findings Feed */}
+            <div className="lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-zinc-100">Recent Findings</h2>
+                <Link
+                  href="/agent/review"
+                  className="text-sm text-brand-400 hover:text-brand-300 transition-colors"
+                >
+                  View All →
+                </Link>
+              </div>
+
+              {loading ? (
+                <div className="flex items-center justify-center h-64 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                  <div className="text-center">
+                    <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                    <p className="text-zinc-500">Loading findings...</p>
+                  </div>
+                </div>
+              ) : recentActivity.length > 0 ? (
+                <div className="space-y-3">
+                  {recentActivity.map((finding) => (
+                    <Link
+                      key={finding.id}
+                      href={`/agent/review/${finding.id}`}
+                      className="block p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-brand-500/30 hover:bg-zinc-900 transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-zinc-100 truncate">
+                            {finding.display_title || finding.title}
+                          </h3>
+                          {finding.summary && (
+                            <p className="text-sm text-zinc-500 mt-1 line-clamp-2">
+                              {finding.summary}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <span className={`text-sm font-medium ${getConfidenceColor(finding.confidence)}`}>
+                            {Math.round(finding.confidence * 100)}%
+                          </span>
+                          <span className="text-xs text-zinc-600">
+                            {getRelativeTime(finding.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${
+                          finding.review_status === 'pending'
+                            ? 'bg-amber-500/20 text-amber-400'
+                            : finding.review_status === 'approved'
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-zinc-700 text-zinc-400'
+                        }`}>
+                          {finding.review_status}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
               ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  Run Agent
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Mode description */}
-        <div className="mt-3 text-xs text-zinc-500">
-          {runMode === 'full' ? (
-            <>
-              <span className="text-brand-400 font-medium">Full Analysis:</span> Scans patterns, generates hypotheses via Claude API, runs statistical tests, checks confounds, and queues validated findings for review.
-            </>
-          ) : (
-            <>
-              <span className="text-brand-400 font-medium">Demo Mode:</span> Quick foundation test that loads data and shows module readiness without running full analysis.
-            </>
-          )}
-        </div>
-
-        {error && (
-          <div className="mt-3 p-2 bg-red-900/20 border border-red-500/30 rounded text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-      </div>
-
-      {/* Session selector and terminal */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <SessionSelector
-            sessions={sessions}
-            currentSessionId={selectedSessionId}
-            onSelectSession={setSelectedSessionId}
-            isLoading={isLoading}
-          />
-
-          {isLiveSession && (
-            <span className="text-green-400 text-sm flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Live streaming
-            </span>
-          )}
-        </div>
-
-        <AgentTerminal logs={logs} isLive={isLiveSession} />
-
-        {/* Session summary */}
-        {selectedSessionId && !isLiveSession && (
-          <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
-            {(() => {
-              const session = sessions.find((s) => s.id === selectedSessionId);
-              if (!session) return null;
-
-              return (
-                <div className="flex flex-wrap gap-6 text-sm">
-                  <div>
-                    <span className="text-zinc-500">Status:</span>{' '}
-                    <span className={`font-medium ${
-                      session.status === 'completed' ? 'text-green-400' :
-                      session.status === 'failed' ? 'text-red-400' :
-                      session.status === 'running' ? 'text-blue-400' :
-                      'text-zinc-400'
-                    }`}>
-                      {session.status}
-                    </span>
+                <div className="flex items-center justify-center h-64 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                  <div className="text-center">
+                    <span className="text-4xl mb-3 block">🔬</span>
+                    <p className="text-zinc-400">Agents are analyzing data...</p>
+                    <p className="text-sm text-zinc-600 mt-1">Findings will appear here</p>
                   </div>
-                  <div>
-                    <span className="text-zinc-500">Duration:</span>{' '}
-                    <span className="text-zinc-300">
-                      {session.ended_at
-                        ? `${Math.round((new Date(session.ended_at).getTime() - new Date(session.started_at).getTime()) / 1000)}s`
-                        : 'In progress'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Hypotheses:</span>{' '}
-                    <span className="text-zinc-300">{session.hypotheses_generated}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Tests:</span>{' '}
-                    <span className="text-zinc-300">{session.tests_run}</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Findings:</span>{' '}
-                    <span className={session.findings_queued > 0 ? 'text-green-400 font-medium' : 'text-zinc-300'}>
-                      {session.findings_queued}
-                    </span>
-                  </div>
-                  {session.summary && (
-                    <div className="w-full">
-                      <span className="text-zinc-500">Summary:</span>{' '}
-                      <span className="text-zinc-300">{session.summary}</span>
-                    </div>
-                  )}
                 </div>
-              );
-            })()}
+              )}
+            </div>
+
+            {/* Agents Sidebar */}
+            <div>
+              <h2 className="text-xl font-semibold text-zinc-100 mb-4">Agent Swarm</h2>
+              <div className="space-y-3">
+                {AGENTS.map((agent) => (
+                  <Link
+                    key={agent.id}
+                    href={agent.href}
+                    className="block p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-all group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${agent.color} flex items-center justify-center text-xl`}>
+                        {agent.emoji}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-zinc-100">{agent.name}</span>
+                          <span className="w-2 h-2 bg-green-400 rounded-full" />
+                        </div>
+                        <p className="text-xs text-zinc-500 truncate">{agent.role}</p>
+                      </div>
+                      <svg
+                        className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 transition-colors"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
           </div>
-        )}
-      </div>
-    </PageWrapper>
+
+          {/* Recent Tasks Section */}
+          {tasks.length > 0 && (
+            <div className="mt-12">
+              <h2 className="text-xl font-semibold text-zinc-100 mb-4">Recent Agent Tasks</h2>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tasks.slice(0, 6).map((task) => (
+                  <div
+                    key={task.id}
+                    className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-medium text-zinc-200 text-sm line-clamp-2">{task.title}</h3>
+                      <span className={`px-2 py-0.5 text-xs rounded-full flex-shrink-0 ${
+                        task.status === 'completed' || task.status === 'done'
+                          ? 'bg-green-500/20 text-green-400'
+                          : task.status === 'assigned'
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-zinc-700 text-zinc-400'
+                      }`}>
+                        {task.status}
+                      </span>
+                    </div>
+                    {task.assigned_to && (
+                      <p className="text-xs text-zinc-500">Assigned to: {task.assigned_to}</p>
+                    )}
+                    <p className="text-xs text-zinc-600 mt-1">{getRelativeTime(task.created_at)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Admin Section - Below the fold */}
+          <div className="mt-16 pt-8 border-t border-zinc-800">
+            <h2 className="text-lg font-semibold text-zinc-400 mb-4">Admin Tools</h2>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/agent/reports"
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+              >
+                Research Reports
+              </Link>
+              <Link
+                href="/agent/acquire"
+                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-sm font-medium transition-colors"
+              >
+                Data Acquisition
+              </Link>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
