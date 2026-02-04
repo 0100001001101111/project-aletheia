@@ -181,6 +181,74 @@ export default function PredictionsPage() {
         </Link>
       }
     >
+      {/* Featured Hypothesis: Stress Produces Signal */}
+      <div className="mb-8 rounded-xl border border-brand-500/30 bg-gradient-to-br from-dark-card to-brand-900/10 p-6">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">Featured Hypothesis</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">Under Active Testing</span>
+            </div>
+            <h2 className="text-xl font-bold text-zinc-100 mb-2">
+              Stress Produces Signal — <span className="text-brand-400">At Every Scale</span>
+            </h2>
+            <p className="text-sm text-zinc-400">
+              From individual neurons to planetary systems, extreme stress may trigger information transfer through unknown channels.
+              This is the core organizing hypothesis that unifies all six research domains.
+            </p>
+          </div>
+        </div>
+
+        {/* Scale Table */}
+        <div className="overflow-hidden rounded-lg border border-dark-border bg-dark-card/50 mt-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-dark-border bg-brand-500/5">
+                <th className="px-4 py-2 text-left font-semibold text-brand-300">Scale</th>
+                <th className="px-4 py-2 text-left font-semibold text-brand-300">System</th>
+                <th className="px-4 py-2 text-left font-semibold text-brand-300">Stressor</th>
+                <th className="px-4 py-2 text-left font-semibold text-brand-300">Signal</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-dark-border">
+              <tr className="hover:bg-brand-500/5">
+                <td className="px-4 py-2">
+                  <span className="inline-flex items-center gap-1.5 text-cyan-400 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                    Micro
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-zinc-300">Neuron</td>
+                <td className="px-4 py-2 text-zinc-400">Death / Trauma</td>
+                <td className="px-4 py-2 text-zinc-300">NDE veridicality</td>
+              </tr>
+              <tr className="hover:bg-brand-500/5">
+                <td className="px-4 py-2">
+                  <span className="inline-flex items-center gap-1.5 text-purple-400 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                    Meso
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-zinc-300">Human</td>
+                <td className="px-4 py-2 text-zinc-400">Crisis / Grief</td>
+                <td className="px-4 py-2 text-zinc-300">Apparitions</td>
+              </tr>
+              <tr className="hover:bg-brand-500/5">
+                <td className="px-4 py-2">
+                  <span className="inline-flex items-center gap-1.5 text-green-400 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    Macro
+                  </span>
+                </td>
+                <td className="px-4 py-2 text-zinc-300">Planet</td>
+                <td className="px-4 py-2 text-zinc-400">Seismic pressure</td>
+                <td className="px-4 py-2 text-zinc-300">UAP / EQ lights</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Intro */}
       <div className="mb-8 rounded-xl border border-violet-500/20 bg-violet-500/5 p-6">
         <h2 className="text-lg font-semibold text-violet-300 mb-2">What are Predictions?</h2>

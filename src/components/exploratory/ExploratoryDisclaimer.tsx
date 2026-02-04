@@ -20,15 +20,15 @@ export function ExploratoryDisclaimer({ compact = false }: ExploratoryDisclaimer
   }
 
   return (
-    <div className="rounded-xl border-l-4 border-purple-500 bg-purple-500/10 p-4 mb-6">
+    <div className="rounded-xl border-l-4 border-amber-500 bg-amber-500/10 p-4 mb-6">
       <div className="flex">
-        <div className="flex-shrink-0 text-2xl">👻</div>
+        <div className="flex-shrink-0 text-2xl">📊</div>
         <div className="ml-3">
-          <h3 className="text-sm font-medium text-purple-300">Exploratory Records</h3>
-          <p className="text-sm text-purple-200/70 mt-1">
-            Bulk-imported sighting data (UFO, Bigfoot, Haunting, Experience Reports) used for
-            geographic pattern analysis and window theory testing. Not quality-scored like
-            Research tier data. Correlations are interesting but not rigorously validated.
+          <h3 className="text-sm font-medium text-amber-300">Pattern Analysis Only — Not Scientific Evidence</h3>
+          <p className="text-sm text-amber-200/70 mt-1">
+            Bulk-imported sighting reports (UFO, Bigfoot, Haunting) for geographic clustering and
+            window theory testing. This data is not quality-scored and does not support scientific claims.
+            Use for exploratory pattern detection only.
           </p>
         </div>
       </div>
@@ -38,9 +38,9 @@ export function ExploratoryDisclaimer({ compact = false }: ExploratoryDisclaimer
 
 export function ExploratoryBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/20 border border-purple-500/40 px-2.5 py-0.5 text-xs font-medium text-purple-300">
-      <span>👻</span>
-      Exploratory
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-xs font-medium text-amber-300">
+      <span>📊</span>
+      Pattern Analysis
     </span>
   );
 }

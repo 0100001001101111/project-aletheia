@@ -10,13 +10,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard' },
+  { href: '/investigations', label: 'Research' },
   { href: '/predictions', label: 'Predictions' },
+  { href: '/agent', label: 'Agents', highlight: true },
   { href: '/patterns', label: 'Patterns' },
-  { href: '/investigations', label: 'Investigations' },
-  { href: '/analysis/windows', label: 'Window Analysis' },
-  { href: '/community', label: 'Community' },
-  { href: '/agent', label: 'Agent' },
 ];
 
 interface NavigationProps {
@@ -56,9 +53,12 @@ export function Navigation({ transparent = false }: NavigationProps) {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   isActive(item.href)
                     ? 'text-white bg-brand-600/20 border border-brand-500/30'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
+                    : item.highlight
+                      ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
                 }`}
               >
+                {item.highlight && <span className="mr-1">🤖</span>}
                 {item.label}
               </Link>
             ))}
@@ -100,9 +100,12 @@ export function Navigation({ transparent = false }: NavigationProps) {
                   className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                     isActive(item.href)
                       ? 'text-white bg-brand-600/20 border border-brand-500/30'
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
+                      : item.highlight
+                        ? 'text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10'
+                        : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
                   }`}
                 >
+                  {item.highlight && <span className="mr-1">🤖</span>}
                   {item.label}
                 </Link>
               ))}

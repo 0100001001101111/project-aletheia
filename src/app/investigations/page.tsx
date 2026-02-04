@@ -11,9 +11,10 @@ import dynamic from 'next/dynamic';
 import { SCHEMA_METADATA } from '@/schemas';
 import { getTriageScoreColor, getTriageStatusColor } from '@/lib/triage';
 import { ExploratoryDisclaimer, WeirdnessMini } from '@/components/exploratory';
+import { Navigation } from '@/components/layout/Navigation';
 import type { InvestigationType, TriageStatus } from '@/types/database';
 
-type TierType = 'research' | 'exploratory';
+type TierType = 'all' | 'research' | 'exploratory';
 
 // Dynamically import map component to avoid SSR issues with Mapbox
 const UFOMap = dynamic(() => import('@/components/maps/UFOMap'), {
@@ -35,7 +36,7 @@ interface Investigation {
   triage_score: number;
   triage_status: TriageStatus;
   created_at: string;
-  tier?: TierType;
+  tier: 'research' | 'exploratory';
 }
 
 // Research tier domains (existing)
@@ -73,10 +74,14 @@ function InvestigationsPage() {
     (searchParams.get('view') as ViewMode) || 'list'
   );
 
-  // Tier filter (research vs exploratory)
+  // Tier filter (all, research, or exploratory) - default to research for first-time visitors
   const [tier, setTier] = useState<TierType>(
     (searchParams.get('tier') as TierType) || 'research'
   );
+
+  // Track separate counts for tier badges
+  const [researchCount, setResearchCount] = useState(0);
+  const [exploratoryCount, setExploratoryCount] = useState(0);
 
   // Filters
   const [filterType, setFilterType] = useState<InvestigationType | 'all'>('all');
@@ -115,6 +120,8 @@ function InvestigationsPage() {
 
         setInvestigations(data.data || []);
         setTotal(data.total || 0);
+        setResearchCount(data.researchCount || 0);
+        setExploratoryCount(data.exploratoryCount || 0);
       } catch (err) {
         console.error('Fetch error:', err);
         setError(err instanceof Error ? err.message : 'Failed to load investigations');
@@ -142,7 +149,11 @@ function InvestigationsPage() {
   // Dynamic types based on selected tier
   const types: (InvestigationType | 'all')[] = [
     'all',
-    ...(tier === 'research' ? RESEARCH_DOMAINS : EXPLORATORY_DOMAINS),
+    ...(tier === 'all'
+      ? [...RESEARCH_DOMAINS, ...EXPLORATORY_DOMAINS]
+      : tier === 'research'
+        ? RESEARCH_DOMAINS
+        : EXPLORATORY_DOMAINS),
   ];
 
   const statuses: (TriageStatus | 'all')[] = [
@@ -172,10 +183,34 @@ function InvestigationsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      <Navigation />
+
       {/* Tier Tabs */}
-      <div className="border-b border-zinc-800 bg-zinc-900/80">
+      <div className="pt-16 border-b border-zinc-800 bg-zinc-900/80">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex">
+            <button
+              onClick={() => {
+                setTier('all');
+                setFilterType('all');
+                setPage(0);
+                router.push('/investigations?tier=all', { scroll: false });
+              }}
+              className={`relative px-6 py-4 text-sm font-medium transition-colors ${
+                tier === 'all'
+                  ? 'text-violet-400'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <span>📊</span>
+                All
+                <span className="text-xs bg-zinc-700 px-1.5 py-0.5 rounded-full">{total.toLocaleString()}</span>
+              </span>
+              {tier === 'all' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-500" />
+              )}
+            </button>
             <button
               onClick={() => {
                 setTier('research');
@@ -185,16 +220,17 @@ function InvestigationsPage() {
               }}
               className={`relative px-6 py-4 text-sm font-medium transition-colors ${
                 tier === 'research'
-                  ? 'text-blue-400'
+                  ? 'text-emerald-400'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <span className="flex items-center gap-2">
                 <span>🔬</span>
                 Research
+                <span className="text-xs bg-emerald-600/30 text-emerald-400 px-1.5 py-0.5 rounded-full">{researchCount.toLocaleString()}</span>
               </span>
               {tier === 'research' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500" />
               )}
             </button>
             <button
@@ -206,16 +242,17 @@ function InvestigationsPage() {
               }}
               className={`relative px-6 py-4 text-sm font-medium transition-colors ${
                 tier === 'exploratory'
-                  ? 'text-purple-400'
+                  ? 'text-amber-400'
                   : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
               <span className="flex items-center gap-2">
-                <span>👻</span>
-                Exploratory
+                <span>📊</span>
+                Pattern Analysis
+                <span className="text-xs bg-amber-600/30 text-amber-400 px-1.5 py-0.5 rounded-full">{exploratoryCount.toLocaleString()}</span>
               </span>
               {tier === 'exploratory' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
               )}
             </button>
           </div>
@@ -223,13 +260,38 @@ function InvestigationsPage() {
       </div>
 
       {/* Tier Explanation Banner */}
+      {tier === 'all' && (
+        <div className="mx-auto max-w-7xl px-4 pt-4">
+          <div className="rounded-lg border border-violet-500/20 bg-violet-900/10 p-4">
+            <div className="flex items-start gap-4">
+              <div className="flex-1">
+                <p className="text-sm text-violet-200">
+                  <span className="font-medium">Viewing All Data:</span>{' '}
+                  Showing both quality-scored research and bulk-imported pattern analysis data.
+                  Look for tier badges to distinguish data quality levels.
+                </p>
+              </div>
+              <div className="flex gap-3 text-xs">
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  Research = Quality Scored
+                </span>
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-600/20 text-amber-400 border border-amber-500/30">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  Pattern Only = Bulk Import
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {tier === 'research' && (
         <div className="mx-auto max-w-7xl px-4 pt-4">
-          <div className="rounded-lg border border-blue-500/20 bg-blue-900/10 p-4">
-            <p className="text-sm text-blue-200">
-              <span className="font-medium">Research Investigations:</span>{' '}
-              Structured research data with quality scoring. These support falsifiable predictions
-              in NDE, Ganzfeld, Crisis Apparition, STARGATE, and Geophysical domains.
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-900/10 p-4">
+            <p className="text-sm text-emerald-200">
+              <span className="font-medium">🔬 Research-Grade Data:</span>{' '}
+              Structured investigations with quality scoring (1-10). Each record supports falsifiable predictions
+              and rigorous statistical analysis. This is the scientific core of Aletheia.
             </p>
           </div>
         </div>
@@ -243,17 +305,17 @@ function InvestigationsPage() {
       )}
 
       {/* Header */}
-      <header className={`border-b ${tier === 'exploratory' ? 'border-purple-500/20 bg-purple-900/10' : 'border-zinc-800 bg-zinc-900/50'}`}>
+      <header className={`border-b ${tier === 'exploratory' ? 'border-amber-500/20 bg-amber-900/10' : 'border-zinc-800 bg-zinc-900/50'}`}>
         <div className="mx-auto max-w-7xl px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className={`text-3xl font-bold ${tier === 'exploratory' ? 'text-purple-100' : 'text-zinc-100'}`}>
-                {tier === 'exploratory' ? 'Exploratory Investigations' : 'Research Investigations'}
+              <h1 className={`text-3xl font-bold ${tier === 'exploratory' ? 'text-amber-100' : 'text-zinc-100'}`}>
+                {tier === 'exploratory' ? 'Pattern Analysis Data' : 'Research Investigations'}
               </h1>
-              <p className={`mt-1 ${tier === 'exploratory' ? 'text-purple-300/70' : 'text-zinc-400'}`}>
+              <p className={`mt-1 ${tier === 'exploratory' ? 'text-amber-300/70' : 'text-zinc-400'}`}>
                 {tier === 'exploratory'
-                  ? `Browse ${total} exploratory submissions - fun patterns, no scientific claims`
-                  : `Browse ${total} submitted research investigations`
+                  ? `Browse ${total.toLocaleString()} bulk-imported sightings — for pattern detection only, not scientific evidence`
+                  : `Browse ${total} quality-scored research investigations`
                 }
               </p>
             </div>
@@ -348,7 +410,12 @@ function InvestigationsPage() {
                 {total}
               </span>
             </button>
-            {(tier === 'research' ? RESEARCH_DOMAINS : EXPLORATORY_DOMAINS).map((type) => {
+            {(tier === 'all'
+              ? [...RESEARCH_DOMAINS, ...EXPLORATORY_DOMAINS]
+              : tier === 'research'
+                ? RESEARCH_DOMAINS
+                : EXPLORATORY_DOMAINS
+            ).map((type) => {
               const meta = SCHEMA_METADATA[type] || { name: type, icon: '❓', color: 'text-zinc-400' };
               const isActive = filterType === type;
               const colorMap: Partial<Record<InvestigationType, string>> = {
@@ -498,6 +565,9 @@ function InvestigationsPage() {
                       Type
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-400">
+                      Tier
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-400">
                       Score
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-zinc-400">
@@ -530,6 +600,19 @@ function InvestigationsPage() {
                             <span>{meta.icon}</span>
                             <span className="hidden md:inline">{meta.name.split(' ')[0]}</span>
                           </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {investigation.tier === 'research' ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-emerald-600/20 text-emerald-400 border border-emerald-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              Research
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-amber-600/20 text-amber-400 border border-amber-500/30">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              Pattern Only
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-sm font-medium ${scoreColor}`}>
