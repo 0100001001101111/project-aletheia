@@ -7,11 +7,17 @@ import {
 } from '@/lib/domain-stats-calculator';
 import type { InvestigationType } from '@/types/database';
 
-// Create admin client for statistics (bypasses RLS)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Lazy-initialize admin client to avoid build-time errors
+let _supabaseAdmin: ReturnType<typeof createClient> | null = null;
+function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 // GET /api/statistics/domains - Get statistics for all domains or specific domain
 export async function GET(request: Request) {
@@ -31,11 +37,11 @@ export async function GET(request: Request) {
 
       // Check cache first
       if (useCache) {
-        const { data: cached } = await supabaseAdmin
+        const { data: cached } = await getSupabaseAdmin()
           .from('aletheia_domain_statistics_cache')
           .select('*')
           .eq('domain', domain)
-          .single();
+          .single() as { data: { computed_at: string; stats_json: Record<string, unknown>; domain: string; record_count: number; avg_score: number } | null };
 
         // Return cached if less than 1 hour old
         if (cached) {
@@ -56,10 +62,11 @@ export async function GET(request: Request) {
       }
 
       // Calculate fresh stats
-      const stats = await calculateDomainStats(supabaseAdmin, domain);
+      const stats = await calculateDomainStats(getSupabaseAdmin(), domain);
 
-      // Update cache
-      await supabaseAdmin
+      // Update cache (using 'as any' to bypass type checking for untyped table)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (getSupabaseAdmin() as any)
         .from('aletheia_domain_statistics_cache')
         .upsert({
           domain,
@@ -91,10 +98,10 @@ export async function GET(request: Request) {
     // All domains request
     // Check cache for full comparison
     if (useCache) {
-      const { data: cachedAll } = await supabaseAdmin
+      const { data: cachedAll } = await getSupabaseAdmin()
         .from('aletheia_domain_statistics_cache')
         .select('*')
-        .in('domain', RESEARCH_DOMAINS);
+        .in('domain', RESEARCH_DOMAINS) as { data: Array<{ computed_at: string; stats_json: Record<string, unknown>; domain: string; record_count: number; avg_score: number; reliabilityIndex?: number }> | null };
 
       // If we have all domains cached and all are fresh, return cached
       if (cachedAll && cachedAll.length === RESEARCH_DOMAINS.length) {
@@ -110,7 +117,7 @@ export async function GET(request: Request) {
             domain: c.domain,
             recordCount: c.record_count,
             avgScore: c.avg_score,
-          }));
+          })) as Array<{ domain: string; recordCount: number; avgScore: number; reliabilityIndex?: number }>;
 
           return NextResponse.json({
             domains,
@@ -126,11 +133,12 @@ export async function GET(request: Request) {
     }
 
     // Calculate fresh stats for all domains
-    const comparison = await calculateAllDomainStats(supabaseAdmin);
+    const comparison = await calculateAllDomainStats(getSupabaseAdmin());
 
-    // Update cache for all domains
+    // Update cache for all domains (using 'as any' to bypass type checking for untyped table)
     for (const stats of comparison.domains) {
-      await supabaseAdmin
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (getSupabaseAdmin() as any)
         .from('aletheia_domain_statistics_cache')
         .upsert({
           domain: stats.domain,
