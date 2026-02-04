@@ -10,16 +10,20 @@ import { createAgentReadClient } from '@/lib/agent/supabase-admin';
 function stripMarkdown(text: string): string {
   if (!text) return '';
   return text
-    .replace(/^#+\s+/gm, '') // Remove # heading markers
+    .replace(/^#{1,6}\s+/gm, '') // Remove # ## ### etc heading markers
     .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove **bold**
     .replace(/\*([^*]+)\*/g, '$1') // Remove *italic*
     .replace(/__([^_]+)__/g, '$1') // Remove __bold__
     .replace(/_([^_]+)_/g, '$1') // Remove _italic_
-    .replace(/^[-*+]\s+/gm, '') // Remove list markers
+    .replace(/^[-*+]\s+/gm, '') // Remove list markers (- * +)
+    .replace(/^[-*_]{3,}\s*$/gm, '') // Remove horizontal rules (--- *** ___)
+    .replace(/^\s*-\s*\[[x ]\]\s*/gmi, '') // Remove checkboxes (- [ ] - [x])
     .replace(/^\d+\.\s+/gm, '') // Remove numbered list markers
-    .replace(/`([^`]+)`/g, '$1') // Remove inline code
+    .replace(/`{1,3}[^`]*`{1,3}/g, '') // Remove inline and block code
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Remove links, keep text
     .replace(/^>\s+/gm, '') // Remove blockquotes
+    .replace(/[\uD83C-\uDBFF\uDC00-\uDFFF]+/g, '') // Remove emojis (surrogate pairs)
+    .replace(/\s{2,}/g, ' ') // Collapse multiple spaces
     .replace(/\n{2,}/g, '\n') // Collapse multiple newlines
     .trim();
 }

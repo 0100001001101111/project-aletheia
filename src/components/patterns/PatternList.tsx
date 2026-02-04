@@ -21,21 +21,26 @@ type SortField = 'confidence' | 'prevalence' | 'reliability' | 'sampleSize' | 'd
 
 /**
  * Generate a plain English explanation of what the pattern means
+ * Uses the pattern's description if available, otherwise generates from context
  */
 function getWhatItMeans(pattern: DetectedPattern): string {
-  const domainCount = pattern.domains.length;
-  const confidence = pattern.confidenceScore;
-  const domainNames = pattern.domains.map(d => SCHEMA_METADATA[d]?.name?.split(' ')[0] || d).join(', ');
+  // Use the pattern's actual description if it exists and is meaningful
+  if (pattern.description && pattern.description.length > 20) {
+    return pattern.description;
+  }
 
-  // Build explanation based on pattern characteristics
+  // Fallback to generated explanation based on pattern characteristics
+  const domainNames = pattern.domains.map(d => SCHEMA_METADATA[d]?.name?.split(' ')[0] || d).join(', ');
+  const confidence = pattern.confidenceScore;
+
   if (confidence >= 0.9) {
-    return `Strong evidence: This pattern reliably predicts outcomes across ${domainCount} research areas (${domainNames}). High priority for testing.`;
+    return `Strong correlation detected across ${domainNames}. High priority for testing.`;
   } else if (confidence >= 0.75) {
-    return `Promising signal: This variable shows consistent behavior in ${domainNames} research. Worth investigating further.`;
+    return `Consistent pattern observed in ${domainNames} research.`;
   } else if (confidence >= 0.5) {
-    return `Emerging pattern: Early data suggests a connection between ${domainNames}, but more samples needed to confirm.`;
+    return `Emerging connection between ${domainNames}, more samples needed.`;
   } else {
-    return `Preliminary finding: Possible link detected in ${domainNames}. Requires additional verification.`;
+    return `Preliminary link in ${domainNames}. Requires verification.`;
   }
 }
 

@@ -74,7 +74,10 @@ export async function GET(request: NextRequest) {
       inconclusive: 0,
     };
     statsData?.forEach((p) => {
-      if (p.status in stats) {
+      // Count 'open' status as 'testing' since that's what users expect to see
+      if (p.status === 'open') {
+        stats.testing++;
+      } else if (p.status in stats) {
         stats[p.status as keyof typeof stats]++;
       }
     });

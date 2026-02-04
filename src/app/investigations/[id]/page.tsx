@@ -908,7 +908,7 @@ function generateDisplayTitle(type: InvestigationType, data: Record<string, unkn
         targetDesc = titleMatch[1].length > 30 ? titleMatch[1].substring(0, 30) + '...' : titleMatch[1];
       } else if (typeof target === 'string' && target.length > 0) {
         targetDesc = target.length > 30 ? target.substring(0, 30) + '...' : target;
-      } else if (recordNum) {
+      } else if (recordNum && typeof recordNum !== 'object') {
         targetDesc = `#${recordNum}`;
       }
 
@@ -953,8 +953,10 @@ function generateDisplayTitle(type: InvestigationType, data: Record<string, unkn
     case 'bigfoot': {
       const classification = data.classification as Record<string, unknown>;
       const classType = classification?.class as string;
-      const reportNum = (data.report_metadata as Record<string, unknown>)?.report_number;
-      return `Bigfoot Sighting: Class ${classType || '?'}${reportNum ? ` (#${reportNum})` : ''}`;
+      const reportMeta = data.report_metadata as Record<string, unknown>;
+      const reportNum = reportMeta?.report_number;
+      const reportNumStr = reportNum && typeof reportNum !== 'object' ? String(reportNum) : null;
+      return `Bigfoot Sighting: Class ${classType || '?'}${reportNumStr ? ` (#${reportNumStr})` : ''}`;
     }
 
     case 'haunting': {
