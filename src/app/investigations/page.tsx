@@ -622,6 +622,9 @@ function InvestigationsPage() {
                         <td className="px-4 py-3">
                           <span
                             className={`rounded-full border px-2 py-1 text-xs capitalize ${statusColor}`}
+                            title={investigation.triage_status === 'verified'
+                              ? 'This submission passed our 4-stage quality check for methodology, source integrity, and data completeness. This verifies the research process, not the phenomenon itself.'
+                              : undefined}
                           >
                             {investigation.triage_status}
                           </span>

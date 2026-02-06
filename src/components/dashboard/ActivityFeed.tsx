@@ -133,7 +133,7 @@ export function UserStatsCard({ stats }: UserStatsCardProps) {
       </div>
       <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4 text-center">
         <div className="text-2xl font-bold text-emerald-400">{stats.verifiedCount}</div>
-        <div className="text-xs text-zinc-500 mt-1">Verified</div>
+        <div className="text-xs text-zinc-500 mt-1" title="Passed 4-stage quality check for methodology, source integrity, and data completeness. Verifies the research process, not the phenomenon itself.">Verified</div>
       </div>
       <div className="rounded-xl border border-zinc-700 bg-zinc-900/50 p-4 text-center">
         <div className="text-2xl font-bold text-violet-400">{stats.methodologyPoints}</div>

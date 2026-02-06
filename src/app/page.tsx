@@ -294,6 +294,9 @@ export default async function LandingPage() {
               <Link href="/patterns" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
                 Patterns
               </Link>
+              <Link href="/methodology" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
+                Methodology
+              </Link>
               <Link
                 href="/submit"
                 className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:shadow-lg hover:shadow-brand-600/25"

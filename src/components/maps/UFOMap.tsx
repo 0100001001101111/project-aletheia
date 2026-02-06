@@ -309,7 +309,7 @@ export default function UFOMap() {
                     <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">EM</span>
                   )}
                   {popupInfo.triage_status === 'verified' && (
-                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">Verified</span>
+                    <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded" title="This submission passed our 4-stage quality check for methodology, source integrity, and data completeness. This verifies the research process, not the phenomenon itself.">Verified</span>
                   )}
                 </div>
               </div>

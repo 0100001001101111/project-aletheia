@@ -1,261 +1,316 @@
+'use client';
+
 /**
- * Methodology Page - Research Standards & Trust Architecture
+ * Methodology Page
+ * Explains how the platform works, data sources, quality scoring, and limitations.
+ * Created in response to researcher feedback (Peter Bancel, Institut Metapsychique International).
  */
 
 import Link from 'next/link';
-import { Navigation } from '@/components/layout/Navigation';
+import { PageWrapper } from '@/components/layout/PageWrapper';
+
+const QUALITY_ROWS = [
+  {
+    category: 'Isolation',
+    high: 'Double-blind, separate buildings',
+    moderate: 'Single-blind, separate rooms',
+    low: 'Same room',
+    fail: 'Direct contact possible',
+  },
+  {
+    category: 'Target Selection',
+    high: 'Machine randomized',
+    moderate: 'Third party randomized',
+    low: 'Subjective choice',
+    fail: 'Predictable sequence',
+  },
+  {
+    category: 'Data Integrity',
+    high: 'Raw data uploaded',
+    moderate: 'Detailed notes',
+    low: 'Summary only',
+    fail: 'Hearsay',
+  },
+  {
+    category: 'Baseline',
+    high: 'Null trials documented',
+    moderate: 'Informal baseline',
+    low: 'None recorded',
+    fail: 'No concept of chance',
+  },
+];
+
+function SectionHeading({ id, number, title }: { id: string; number: number; title: string }) {
+  return (
+    <h2 id={id} className="text-2xl font-bold text-zinc-100 mb-4 scroll-mt-24">
+      <span className="text-brand-400 mr-2">{number}.</span>
+      {title}
+    </h2>
+  );
+}
 
 export default function MethodologyPage() {
   return (
-    <div className="min-h-screen bg-zinc-950">
-      <Navigation />
+    <PageWrapper
+      title="Methodology"
+      description="How the platform works, where the data comes from, and what the quality scores mean."
+    >
+      <div className="max-w-4xl mx-auto space-y-10">
+        {/* Table of contents */}
+        <nav className="rounded-xl border border-dark-border bg-dark-card p-6">
+          <h3 className="text-sm uppercase tracking-wider text-zinc-500 font-semibold mb-3">On this page</h3>
+          <ol className="space-y-1.5 text-sm">
+            {[
+              ['platform', 'What This Platform Does'],
+              ['sources', 'Data Sources'],
+              ['scoring', 'Quality Scoring'],
+              ['statistics', 'Domain-Specific Statistics'],
+              ['limitations', 'What the Platform Does NOT Have'],
+              ['agents', 'AI Agent System'],
+              ['questions', 'Open Questions'],
+            ].map(([id, label], i) => (
+              <li key={id}>
+                <a href={`#${id}`} className="text-zinc-400 hover:text-brand-400 transition-colors">
+                  <span className="text-zinc-600 mr-2">{i + 1}.</span>
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-      <main className="pt-24 pb-16">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="text-center mb-16">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-6">
-              <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-            </div>
-            <h1 className="text-4xl font-bold text-zinc-100 mb-4">Methodology</h1>
-            <p className="text-xl text-zinc-400 max-w-2xl mx-auto">
-              Rigorous standards, transparent processes, and built-in skepticism.
+        {/* Section 1 */}
+        <section>
+          <SectionHeading id="platform" number={1} title="What This Platform Does" />
+          <div className="space-y-4 text-zinc-300 leading-relaxed">
+            <p>
+              Project Aletheia aggregates existing anomaly research data across five
+              domains&mdash;Ganzfeld telepathy, near-death experiences, crisis apparitions,
+              remote viewing, and geophysical correlations&mdash;into a standardized format.
+              AI agents run cross-domain pattern analysis. Humans can also submit new results.
+            </p>
+            <p>
+              The platform does not conduct experiments. It structures published data and
+              applies consistent quality standards so records from different domains can be
+              compared.
             </p>
           </div>
+        </section>
 
-          {/* Two-Tier Data Architecture */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-bold text-zinc-100 mb-4">Two-Tier Data Architecture</h2>
-            <p className="text-zinc-400 mb-6">
-              We maintain strict separation between research-grade and exploratory data.
-            </p>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="p-6 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">🔬</span>
-                  <h3 className="text-lg font-semibold text-emerald-400">Research Tier</h3>
-                </div>
-                <ul className="space-y-2 text-sm text-zinc-300">
-                  <li>• Quality-scored investigations (1-10 scale)</li>
-                  <li>• Structured schemas with validation</li>
-                  <li>• Supports falsifiable predictions</li>
-                  <li>• Used for statistical analysis</li>
-                  <li>• ~185 curated records</li>
-                </ul>
-              </div>
-              <div className="p-6 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">📊</span>
-                  <h3 className="text-lg font-semibold text-amber-400">Pattern Analysis Tier</h3>
-                </div>
-                <ul className="space-y-2 text-sm text-zinc-300">
-                  <li>• Bulk-imported sighting reports</li>
-                  <li>• Not quality-scored</li>
-                  <li>• Geographic clustering only</li>
-                  <li>• Does not support scientific claims</li>
-                  <li>• ~174,000 exploratory records</li>
-                </ul>
-              </div>
-            </div>
-          </section>
+        {/* Section 2 */}
+        <section>
+          <SectionHeading id="sources" number={2} title="Data Sources" />
+          <div className="space-y-4 text-zinc-300 leading-relaxed">
+            <p>The 19,000+ records were bulk-imported from:</p>
+            <ul className="space-y-3 ml-1">
+              {[
+                'Ganzfeld trials from published meta-analyses (Bem & Honorton 1994, Storm et al. 2010, etc.)',
+                'Declassified STARGATE remote viewing sessions',
+                'NDE cases from publicly available NDERF narratives and published prospective studies (van Lommel 2001, Greyson, Parnia AWARE)',
+                'Crisis apparition reports from Society for Psychical Research historical records (Phantasms of the Living, etc.)',
+                'USGS seismic data and geological surveys for the geophysical layer',
+              ].map((item, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="text-brand-400 mt-0.5 shrink-0">&bull;</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p>New data can be submitted through the platform by researchers or the public.</p>
+          </div>
+        </section>
 
-          {/* Quality Scoring */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-bold text-zinc-100 mb-4">Quality Scoring Matrix</h2>
-            <p className="text-zinc-400 mb-6">
-              Research-tier investigations are scored 1-10 across multiple dimensions.
+        {/* Section 3 */}
+        <section>
+          <SectionHeading id="scoring" number={3} title="Quality Scoring" />
+          <div className="space-y-6 text-zinc-300 leading-relaxed">
+            <p>
+              Every record gets a quality score from 0&ndash;10 using multiplicative scoring
+              across four categories:
             </p>
-            <div className="overflow-hidden rounded-xl border border-zinc-700">
+
+            <div className="overflow-x-auto rounded-xl border border-dark-border">
               <table className="w-full text-sm">
-                <thead className="bg-zinc-800/50">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-300">Factor</th>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-300">Weight</th>
-                    <th className="px-4 py-3 text-left font-medium text-zinc-300">Criteria</th>
+                <thead>
+                  <tr className="bg-zinc-900/70 border-b border-dark-border">
+                    <th className="px-4 py-3 text-left text-zinc-400 font-medium">Category</th>
+                    <th className="px-4 py-3 text-left text-emerald-400 font-medium">1.0 (High)</th>
+                    <th className="px-4 py-3 text-left text-amber-400 font-medium">0.5 (Moderate)</th>
+                    <th className="px-4 py-3 text-left text-orange-400 font-medium">0.1 (Low)</th>
+                    <th className="px-4 py-3 text-left text-red-400 font-medium">0.0 (Fail)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-700">
-                  <tr>
-                    <td className="px-4 py-3 text-zinc-100">Documentation</td>
-                    <td className="px-4 py-3 text-zinc-400">25%</td>
-                    <td className="px-4 py-3 text-zinc-400">Timestamps, sources, chain of custody</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 text-zinc-100">Verification</td>
-                    <td className="px-4 py-3 text-zinc-400">25%</td>
-                    <td className="px-4 py-3 text-zinc-400">Independent corroboration, witness credibility</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 text-zinc-100">Methodology</td>
-                    <td className="px-4 py-3 text-zinc-400">20%</td>
-                    <td className="px-4 py-3 text-zinc-400">Controls, blinding, sample size</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 text-zinc-100">Completeness</td>
-                    <td className="px-4 py-3 text-zinc-400">15%</td>
-                    <td className="px-4 py-3 text-zinc-400">Required fields, contextual data</td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 text-zinc-100">Reproducibility</td>
-                    <td className="px-4 py-3 text-zinc-400">15%</td>
-                    <td className="px-4 py-3 text-zinc-400">Can the test be repeated? Data available?</td>
-                  </tr>
+                <tbody>
+                  {QUALITY_ROWS.map((row, i) => (
+                    <tr
+                      key={row.category}
+                      className={`border-b border-dark-border last:border-b-0 ${
+                        i % 2 === 0 ? 'bg-zinc-900/30' : 'bg-zinc-900/10'
+                      }`}
+                    >
+                      <td className="px-4 py-3 text-zinc-200 font-medium">{row.category}</td>
+                      <td className="px-4 py-3 text-zinc-400">{row.high}</td>
+                      <td className="px-4 py-3 text-zinc-400">{row.moderate}</td>
+                      <td className="px-4 py-3 text-zinc-400">{row.low}</td>
+                      <td className="px-4 py-3 text-zinc-400">{row.fail}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </section>
 
-          {/* Agent Workflow */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-bold text-zinc-100 mb-4">Agent Research Pipeline</h2>
-            <p className="text-zinc-400 mb-6">
-              How our AI agents discover and validate findings.
-            </p>
-            <div className="space-y-4">
+            <div className="rounded-xl border border-dark-border bg-dark-card p-5 space-y-3">
+              <p className="text-zinc-200 font-medium">
+                Formula:{' '}
+                <code className="text-brand-400 bg-zinc-800 px-2 py-0.5 rounded text-sm">
+                  Total = Isolation &times; Target &times; Data &times; Baseline &times; 10
+                </code>
+              </p>
+              <p className="text-zinc-400 text-sm">
+                If any category scores 0.0, the total is automatically 0. You cannot
+                compensate for a fatal flaw in one area with strength in another.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-zinc-200">Tiers</h3>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+                  <div className="text-emerald-400 font-semibold mb-1">8&ndash;10: Verified</div>
+                  <p className="text-zinc-400 text-sm">Counts toward prediction testing</p>
+                </div>
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                  <div className="text-amber-400 font-semibold mb-1">4&ndash;7: Provisional</div>
+                  <p className="text-zinc-400 text-sm">Visible in community findings only</p>
+                </div>
+                <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+                  <div className="text-red-400 font-semibold mb-1">Below 4: Rejected</div>
+                  <p className="text-zinc-400 text-sm">User gets specific feedback on what to improve</p>
+                </div>
+              </div>
+              <p className="text-zinc-500 text-sm italic">
+                &ldquo;Verified&rdquo; means the methodology passed quality checks. It does
+                not mean the phenomenon itself is verified.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4 */}
+        <section>
+          <SectionHeading id="statistics" number={4} title="Domain-Specific Statistics" />
+          <div className="space-y-4 text-zinc-300 leading-relaxed">
+            <p>Different domains use different statistical methods:</p>
+            <div className="grid gap-3 sm:grid-cols-2">
               {[
-                { step: '1', title: 'Pattern Scanning', desc: 'Agents scan for correlations across 6 research domains using statistical methods.' },
-                { step: '2', title: 'Hypothesis Generation', desc: 'Claude API generates testable hypotheses from detected patterns.' },
-                { step: '3', title: 'Holdout Validation', desc: 'Hypotheses tested against held-back data (30% holdout) using Chi-squared and permutation tests.' },
-                { step: '4', title: 'Confound Checking', desc: 'Check for reporting bias, population density effects, temporal clustering, geographic confounds.' },
-                { step: '5', title: 'Human Review', desc: 'Findings with >70% confidence enter review queue for human approval or rejection.' },
-                { step: '6', title: 'Prediction Creation', desc: 'Approved findings become falsifiable predictions with testing protocols.' },
+                {
+                  domain: 'Ganzfeld & STARGATE',
+                  method: 'Binomial distribution, Z-score (25% chance expectation for 4-choice)',
+                  color: 'border-purple-500/30',
+                },
+                {
+                  domain: 'Geophysical',
+                  method: 'Poisson distribution, cross-correlation with seismic events',
+                  color: 'border-green-500/30',
+                },
+                {
+                  domain: 'NDE',
+                  method: 'Greyson Scale scoring, veridicality assessment',
+                  color: 'border-cyan-500/30',
+                },
+                {
+                  domain: 'Crisis Apparitions',
+                  method: 'Time-synchronization probability, documentation delay',
+                  color: 'border-pink-500/30',
+                },
               ].map((item) => (
-                <div key={item.step} className="flex items-start gap-4 p-4 rounded-xl bg-zinc-900/50 border border-zinc-800">
-                  <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-bold text-sm">{item.step}</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-zinc-100">{item.title}</h3>
-                    <p className="text-sm text-zinc-400">{item.desc}</p>
-                  </div>
+                <div key={item.domain} className={`rounded-lg border ${item.color} bg-zinc-900/30 p-4`}>
+                  <div className="text-zinc-200 font-medium mb-1">{item.domain}</div>
+                  <p className="text-zinc-400 text-sm">{item.method}</p>
                 </div>
               ))}
             </div>
-            <div className="mt-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <p className="text-sm text-amber-300">
-                <span className="font-medium">Epistemic Humility:</span> All agent confidence scores are capped at 85%.
-                Agents are trained to acknowledge uncertainty and flag their own limitations.
+          </div>
+        </section>
+
+        {/* Section 5 */}
+        <section>
+          <SectionHeading id="limitations" number={5} title="What the Platform Does NOT Have" />
+          <div className="space-y-4 text-zinc-300 leading-relaxed">
+            <p>Being transparent about limitations:</p>
+            <ul className="space-y-3 ml-1">
+              {[
+                'No raw mentation transcripts from Ganzfeld sessions (trial-level outcomes only)',
+                'No direct access to private institutional databases',
+                'Quality scores are based on published methodology descriptions, not independent replication',
+                'Cross-domain patterns are correlational, not causal',
+                'This is a solo-built research tool, not an institutional lab',
+              ].map((item, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="text-zinc-600 mt-0.5 shrink-0">&mdash;</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Section 6 */}
+        <section>
+          <SectionHeading id="agents" number={6} title="AI Agent System" />
+          <div className="space-y-4 text-zinc-300 leading-relaxed">
+            <p>
+              20 autonomous agents analyze data across domains. Agents submit findings to a
+              human review queue. Findings are approved or rejected manually. Agents learn
+              from rejections through feedback loops.
+            </p>
+            <p>
+              The agents search published literature, check for cross-domain patterns, and
+              flag statistical anomalies. They do not conduct experiments or generate data.
+            </p>
+          </div>
+        </section>
+
+        {/* Section 7 */}
+        <section>
+          <SectionHeading id="questions" number={7} title="Open Questions" />
+          <div className="space-y-4 text-zinc-300 leading-relaxed">
+            <p>
+              The core question being tested: do stress-response patterns appear consistently
+              across unrelated domains, or does each domain have independent drivers?
+            </p>
+            <div className="rounded-xl border border-brand-500/30 bg-brand-500/5 p-5">
+              <p className="text-zinc-200">
+                This is falsifiable. If anomalous reports do not cluster around high-stress
+                periods more than low-stress periods after controlling for reporting bias,
+                the hypothesis fails.
               </p>
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* Trust Architecture */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-bold text-zinc-100 mb-4">Trust Architecture</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="p-6 rounded-xl bg-zinc-900/50 border border-zinc-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">🔒</span>
-                  <h3 className="text-lg font-semibold text-zinc-100">Pre-Registration</h3>
-                </div>
-                <p className="text-sm text-zinc-400 mb-4">
-                  Lock in methodology before testing. Hash-sealed predictions prevent p-hacking and HARKing.
-                </p>
-                <ul className="space-y-1 text-xs text-zinc-500">
-                  <li>• SHA-256 hash of hypothesis + protocol</li>
-                  <li>• Timestamped before data collection</li>
-                  <li>• Public registry of predictions</li>
-                </ul>
-              </div>
-              <div className="p-6 rounded-xl bg-zinc-900/50 border border-zinc-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">🛡️</span>
-                  <h3 className="text-lg font-semibold text-zinc-100">Red Team System</h3>
-                </div>
-                <p className="text-sm text-zinc-400 mb-4">
-                  Built-in skepticism. Anyone can flag methodology flaws, confounds, or alternative explanations.
-                </p>
-                <ul className="space-y-1 text-xs text-zinc-500">
-                  <li>• Public flaw flagging with categories</li>
-                  <li>• Credibility-weighted voting</li>
-                  <li>• Mandatory response from researchers</li>
-                </ul>
-              </div>
-              <div className="p-6 rounded-xl bg-zinc-900/50 border border-zinc-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">⚖️</span>
-                  <h3 className="text-lg font-semibold text-zinc-100">Jury System</h3>
-                </div>
-                <p className="text-sm text-zinc-400 mb-4">
-                  Disputed results go to randomly selected jurors with relevant expertise.
-                </p>
-                <ul className="space-y-1 text-xs text-zinc-500">
-                  <li>• 5-person juries per dispute</li>
-                  <li>• Domain-matched expertise</li>
-                  <li>• Binding decisions on data quality</li>
-                </ul>
-              </div>
-              <div className="p-6 rounded-xl bg-zinc-900/50 border border-zinc-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-2xl">📊</span>
-                  <h3 className="text-lg font-semibold text-zinc-100">Brier Scores</h3>
-                </div>
-                <p className="text-sm text-zinc-400 mb-4">
-                  Track prediction accuracy over time. Calibration matters more than being right.
-                </p>
-                <ul className="space-y-1 text-xs text-zinc-500">
-                  <li>• Score = (probability - outcome)²</li>
-                  <li>• Lower is better (0 = perfect)</li>
-                  <li>• Public leaderboard of predictors</li>
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          {/* Statistical Standards */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-bold text-zinc-100 mb-4">Statistical Standards</h2>
-            <div className="p-6 rounded-xl bg-zinc-900/50 border border-zinc-800">
-              <ul className="space-y-3 text-zinc-300">
-                <li className="flex items-start gap-3">
-                  <span className="text-brand-400">•</span>
-                  <span><strong>Alpha = 0.01:</strong> We use stricter significance thresholds than typical p &lt; 0.05</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-brand-400">•</span>
-                  <span><strong>Effect sizes required:</strong> Statistical significance without practical significance is meaningless</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-brand-400">•</span>
-                  <span><strong>Multiple comparison correction:</strong> Bonferroni or FDR adjustment for all multi-test analyses</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-brand-400">•</span>
-                  <span><strong>Power analysis:</strong> Minimum 80% power required before data collection</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-brand-400">•</span>
-                  <span><strong>Replication tracking:</strong> All findings tracked for replication attempts and success rates</span>
-                </li>
-              </ul>
-            </div>
-          </section>
-
-          {/* Links */}
-          <section className="flex flex-wrap gap-4 justify-center">
-            <Link
-              href="/about"
-              className="px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-lg transition-colors"
-            >
-              About Aletheia
-            </Link>
-            <Link
-              href="/predictions"
-              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors"
-            >
-              View Predictions
-            </Link>
-            <Link
-              href="/preregister"
-              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-medium rounded-lg transition-colors"
-            >
-              Pre-Register Study
-            </Link>
-          </section>
-        </div>
-      </main>
-    </div>
+        {/* Bottom links */}
+        <section className="flex flex-wrap gap-4 pt-4">
+          <Link
+            href="/investigations"
+            className="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:-translate-y-0.5"
+          >
+            Browse Research
+          </Link>
+          <Link
+            href="/predictions"
+            className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-lg transition-all hover:-translate-y-0.5"
+          >
+            View Predictions
+          </Link>
+          <Link
+            href="/submit"
+            className="px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-lg transition-all hover:-translate-y-0.5"
+          >
+            Submit Data
+          </Link>
+        </section>
+      </div>
+    </PageWrapper>
   );
 }

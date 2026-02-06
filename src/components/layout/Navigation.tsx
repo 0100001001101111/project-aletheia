@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: '/predictions', label: 'Predictions' },
   { href: '/agent', label: 'Agents', highlight: true },
   { href: '/patterns', label: 'Patterns' },
+  { href: '/methodology', label: 'Methodology' },
 ];
 
 interface NavigationProps {

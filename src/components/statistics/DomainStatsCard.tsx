@@ -113,7 +113,7 @@ export function DomainStatsCard({ stats }: DomainStatsCardProps) {
             style={{
               width: `${(stats.verifiedCount / stats.recordCount) * 100}%`,
             }}
-            title={`${stats.verifiedCount} verified`}
+            title={`${stats.verifiedCount} verified (passed quality check for methodology, not phenomenon)`}
           />
         )}
         {stats.provisionalCount > 0 && (

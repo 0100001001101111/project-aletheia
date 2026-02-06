@@ -19,10 +19,10 @@ import type { InvestigationType, TriageStatus } from '@/types/database';
 // Investigation type explainers
 const TYPE_EXPLAINERS: Partial<Record<InvestigationType, string>> = {
   ganzfeld: "In a Ganzfeld experiment, a 'receiver' in sensory deprivation tries to identify a hidden 'target' image or video being viewed by a 'sender.' A 'hit' means they correctly identified the target from a set of decoys. This tests whether information can transfer between isolated individuals.",
-  nde: "Near-death experiences occur during clinical death or life-threatening crisis. Researchers document what subjects report seeing or experiencing, then verify whether any details could be confirmed (veridical perception). This tests whether consciousness can perceive information without normal sensory input.",
-  crisis_apparition: "Crisis apparitions are reports of seeing or sensing someone at the moment they experience death or severe trauma - often before the observer could have known. This tests whether extreme stress creates a detectable signal between connected individuals.",
-  stargate: "Remote viewing sessions task a 'viewer' with describing a hidden target location or object using only mental focus. Responses are rated on accuracy. This tests whether humans can perceive distant information without physical access.",
-  geophysical: "Geophysical investigations correlate unusual phenomena (lights, sounds, equipment malfunctions) with environmental factors like seismic activity, electromagnetic fields, or geological composition. This tests whether tectonic stress produces observable effects.",
+  nde: "Near-death experiences occur during clinical death or life-threatening crisis. Researchers document what subjects report seeing or experiencing, then verify whether any details could be confirmed (veridical perception).",
+  crisis_apparition: "Crisis apparitions are reports of seeing or sensing someone at the moment they experience death or severe trauma, often before the observer could have known.",
+  stargate: "Remote viewing sessions task a 'viewer' with describing a hidden target location or object using only mental focus. Responses are rated on accuracy.",
+  geophysical: "Geophysical investigations correlate unusual phenomena with environmental factors like seismic activity, electromagnetic fields, or geological composition.",
   ufo: "UFO/UAP investigations document unidentified aerial phenomena with attention to potential correlations with geomagnetic conditions and physiological effects on witnesses. Note: The SPECTER seismic hypothesis was tested but did not survive rigorous statistical analysis.",
   bigfoot: "Bigfoot/Sasquatch sightings are reports of large, bipedal, ape-like creatures in wilderness areas. BFRO classifies sightings: Class A (clear visual), Class B (possible/obscured), Class C (secondhand report).",
   haunting: "Haunted location reports document unexplained phenomena at specific places - apparitions, sounds, cold spots, object movement. Often correlate with historical trauma or death at the location.",
@@ -33,10 +33,11 @@ const TYPE_EXPLAINERS: Partial<Record<InvestigationType, string>> = {
 
 // Field-specific tooltips for investigation data
 const FIELD_TOOLTIPS: Record<string, string> = {
-  hit: "Did the receiver correctly identify the target? Yes = success, No = miss",
-  target: "The image, video, or location the receiver was trying to identify",
-  receiver: "Anonymous ID of the person attempting to receive information",
-  source: "The database or study this trial came from",
+  hit: "Did the receiver correctly identify the target?",
+  target: "The image, video, or location being identified",
+  receiver: "Anonymous ID of the person attempting to receive",
+  source: "The database or study this came from",
+  triage_score: "Quality rating from 0-10 based on methodology, not results",
   record_num: "The trial number in the original study database",
   phenomenon_type: "The category of anomalous phenomenon reported",
   delta_t_minutes: "Time difference between the apparition and the crisis event",
@@ -1310,6 +1311,50 @@ export default function InvestigationPage({ params }: PageProps) {
 
       {/* Content */}
       <main className="mx-auto max-w-6xl px-4 py-8">
+        {/* What am I looking at? - Collapsed explainer at top */}
+        {TYPE_EXPLAINERS[investigation.type] && (
+          <CollapsibleSection
+            title="What am I looking at?"
+            defaultOpen={false}
+            icon={
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            }
+            className="mb-6"
+          >
+            <p className="text-sm text-zinc-400 leading-relaxed mb-4">
+              {TYPE_EXPLAINERS[investigation.type]}
+            </p>
+            <div className="pt-4 border-t border-zinc-700/50">
+              <h4 className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Key Terms</h4>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(FIELD_TOOLTIPS)
+                  .filter(([key]) => {
+                    const ganzfeldFields = ['hit', 'target', 'receiver', 'source', 'record_num'];
+                    const stargateFields = ['target', 'source', 'record_num'];
+                    const crisisFields = ['delta_t_minutes', 'distance_miles', 'is_gold_standard', 'source'];
+                    const geoFields = ['phenomenon_type', 'source'];
+                    if (investigation.type === 'ganzfeld') return ganzfeldFields.includes(key);
+                    if (investigation.type === 'stargate') return stargateFields.includes(key);
+                    if (investigation.type === 'crisis_apparition') return crisisFields.includes(key);
+                    if (investigation.type === 'geophysical') return geoFields.includes(key);
+                    return false;
+                  })
+                  .map(([key, tooltip]) => (
+                    <span
+                      key={key}
+                      className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300"
+                    >
+                      <span className="font-medium">{formatFieldName(key)}</span>
+                      <InfoTooltip text={tooltip} position="top" />
+                    </span>
+                  ))}
+              </div>
+            </div>
+          </CollapsibleSection>
+        )}
+
         {/* Story-First Layout - Shows narrative structure when available */}
         {(() => {
           const storyData = extractStoryData(investigation.type, investigation.raw_data, investigation.description);
@@ -1445,49 +1490,6 @@ export default function InvestigationPage({ params }: PageProps) {
           <p className="text-zinc-300 leading-relaxed">
             {generateInvestigationSummary(investigation.type, investigation.raw_data, investigation.description, investigation.title)}
           </p>
-        </CollapsibleSection>
-
-        {/* About This Investigation Type - Collapsed by default */}
-        <CollapsibleSection
-          title={`About ${metadata.name}`}
-          defaultOpen={false}
-          icon={
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          className="mb-6"
-        >
-          <p className="text-sm text-zinc-400 leading-relaxed mb-4">
-            {TYPE_EXPLAINERS[investigation.type]}
-          </p>
-          <div className="pt-4 border-t border-zinc-700/50">
-            <h4 className="text-xs font-medium uppercase tracking-wide text-zinc-500 mb-2">Key Terms</h4>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(FIELD_TOOLTIPS)
-                .filter(([key]) => {
-                  const ganzfeldFields = ['hit', 'target', 'receiver', 'source', 'record_num'];
-                  const stargateFields = ['target', 'source', 'record_num'];
-                  const crisisFields = ['delta_t_minutes', 'distance_miles', 'is_gold_standard', 'source'];
-                  const geoFields = ['phenomenon_type', 'source'];
-
-                  if (investigation.type === 'ganzfeld') return ganzfeldFields.includes(key);
-                  if (investigation.type === 'stargate') return stargateFields.includes(key);
-                  if (investigation.type === 'crisis_apparition') return crisisFields.includes(key);
-                  if (investigation.type === 'geophysical') return geoFields.includes(key);
-                  return false;
-                })
-                .map(([key, tooltip]) => (
-                  <span
-                    key={key}
-                    className="inline-flex items-center gap-1 rounded-full bg-zinc-800 px-3 py-1 text-xs text-zinc-300"
-                  >
-                    <span className="font-medium">{formatFieldName(key)}</span>
-                    <InfoTooltip text={tooltip} position="top" />
-                  </span>
-                ))}
-            </div>
-          </div>
         </CollapsibleSection>
 
         <div className="grid gap-6 lg:grid-cols-3">

@@ -955,7 +955,7 @@ export default function PredictionDetailPage() {
             <div className="text-sm text-zinc-500">Cases Submitted</div>
             <div className="mt-1 text-xs text-zinc-600">
               {(resultStats?.verified_count || 0) > 0
-                ? 'Verified and counted'
+                ? 'Methodology verified and counted'
                 : 'Waiting for submissions'}
             </div>
           </div>
@@ -1184,7 +1184,10 @@ export default function PredictionDetailPage() {
           const plainExplanation = generatePlainExplanation(prediction.hypothesis);
           return (
             <div className="rounded-xl bg-zinc-800/50 p-6">
-              <h2 className="text-lg font-semibold text-zinc-200 mb-4">What This Experiment Tests</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <h2 className="text-lg font-semibold text-zinc-200">What This Experiment Tests</h2>
+                <span className="text-xs text-zinc-500 bg-zinc-700/50 px-2 py-1 rounded">For everyone</span>
+              </div>
 
               {/* Plain English Version (always visible) */}
               <div className="space-y-4">
@@ -1321,7 +1324,7 @@ export default function PredictionDetailPage() {
                         {result.effect_observed ? 'Supports Prediction' : 'Opposes Prediction'}
                       </div>
                       {result.verification_status === 'verified' && (
-                        <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">
+                        <span className="text-xs text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded" title="This submission passed our 4-stage quality check for methodology, source integrity, and data completeness. This verifies the research process, not the phenomenon itself.">
                           Verified
                         </span>
                       )}
