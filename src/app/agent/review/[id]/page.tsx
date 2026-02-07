@@ -284,10 +284,9 @@ export default function FindingDetailPage() {
   }
 
   const confidencePercent = Math.round((finding.confidence ?? 0) * 100);
-  // Use destination_status for determining actual state (Telegram sets destination_status, not review_status)
-  const isPending = finding.destination_status !== 'published' && finding.destination_status !== 'rejected';
-  const isApproved = finding.destination_status === 'published';
-  const isRejected = finding.destination_status === 'rejected';
+  const isPending = finding.review_status === 'pending' || finding.review_status === 'needs_info';
+  const isApproved = finding.review_status === 'approved';
+  const isRejected = finding.review_status === 'rejected';
 
   return (
     <PageWrapper
