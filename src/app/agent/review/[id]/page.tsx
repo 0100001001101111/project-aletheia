@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -356,14 +357,14 @@ export default function FindingDetailPage() {
               <div>
                 <label className="text-xs text-zinc-500 uppercase tracking-wider">Technical Hypothesis</label>
                 <div className="mt-1 text-zinc-300 prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown>{finding.title}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.title}</ReactMarkdown>
                 </div>
               </div>
 
               <div>
                 <label className="text-xs text-zinc-500 uppercase tracking-wider">Finding Summary</label>
-                <div className="mt-1 text-zinc-400 prose prose-invert prose-sm max-w-none prose-headings:text-zinc-200 prose-strong:text-zinc-200 prose-code:bg-zinc-800 prose-code:px-1 prose-code:rounded prose-pre:bg-zinc-800/50">
-                  <ReactMarkdown>{finding.summary}</ReactMarkdown>
+                <div className="mt-1 text-zinc-400 prose prose-invert prose-sm max-w-none prose-headings:text-zinc-200 prose-strong:text-zinc-200 prose-code:bg-zinc-800 prose-code:px-1 prose-code:rounded prose-pre:bg-zinc-800/50 prose-table:border-collapse prose-th:border prose-th:border-zinc-700 prose-th:px-3 prose-th:py-2 prose-th:bg-zinc-800/50 prose-td:border prose-td:border-zinc-700 prose-td:px-3 prose-td:py-2">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.summary}</ReactMarkdown>
                 </div>
               </div>
 
@@ -371,7 +372,7 @@ export default function FindingDetailPage() {
                 <div>
                   <label className="text-xs text-zinc-500 uppercase tracking-wider">Suggested Prediction</label>
                   <div className="mt-1 text-zinc-300 italic prose prose-invert prose-sm max-w-none">
-                    <ReactMarkdown>{finding.suggested_prediction}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{finding.suggested_prediction}</ReactMarkdown>
                   </div>
                 </div>
               )}
