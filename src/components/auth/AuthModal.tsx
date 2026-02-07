@@ -64,15 +64,15 @@ export function AuthModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+      onClick={onClose}
+    >
       {/* Modal */}
-      <div className="relative bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 max-h-[90vh] overflow-y-auto">
+      <div
+        className="relative bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close button */}
         <button
           type="button"

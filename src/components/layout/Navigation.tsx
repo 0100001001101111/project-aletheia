@@ -33,6 +33,7 @@ export function Navigation({ transparent = false }: NavigationProps) {
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/');
 
   return (
+    <>
     <header
       className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300 ${
         transparent
@@ -132,11 +133,12 @@ export function Navigation({ transparent = false }: NavigationProps) {
           </div>
         )}
       </nav>
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={() => setShowAuthModal(false)}
-      />
     </header>
+    <AuthModal
+      isOpen={showAuthModal}
+      onClose={() => setShowAuthModal(false)}
+      onSuccess={() => setShowAuthModal(false)}
+    />
+    </>
   );
 }

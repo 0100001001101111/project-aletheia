@@ -109,6 +109,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [supabase]
   );
 
+  // Create a profile if one is missing (handles failed signups)
+  const createFallbackProfile = useCallback(
+    async (authUser: SupabaseUser): Promise<AletheiaUser | null> => {
+      const meta = authUser.user_metadata || {};
+      const displayName = meta.display_name || authUser.email?.split('@')[0] || 'User';
+      const identityType = meta.identity_type || (isAnonymousEmail(authUser.email || '') ? 'anonymous_unverified' : 'public');
+
+      await (supabase.from('aletheia_users') as ReturnType<typeof supabase.from>).insert({
+        auth_id: authUser.id,
+        email: authUser.email,
+        display_name: displayName,
+        identity_type: identityType,
+        verification_level: 'none',
+        credibility_score: 0,
+      } as never);
+
+      return fetchUserProfile(authUser);
+    },
+    [supabase, fetchUserProfile]
+  );
+
   // Initialize auth state
   useEffect(() => {
     let isMounted = true;
@@ -122,7 +143,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!isMounted) return;
 
         if (session?.user) {
-          const aletheiaUser = await fetchUserProfile(session.user);
+          let aletheiaUser = await fetchUserProfile(session.user);
+          if (!aletheiaUser) {
+            // Profile missing — create one from auth metadata
+            aletheiaUser = await createFallbackProfile(session.user);
+          }
           if (isMounted) setUser(aletheiaUser);
         }
       } catch (error) {
@@ -145,10 +170,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         if (event === 'SIGNED_IN' && session?.user) {
           let aletheiaUser = await fetchUserProfile(session.user);
-          // Retry once — profile INSERT may still be in-flight after signup
           if (!aletheiaUser) {
-            await new Promise(r => setTimeout(r, 1000));
+            // Profile missing — wait for in-flight INSERT then try fallback
+            await new Promise(r => setTimeout(r, 500));
             aletheiaUser = await fetchUserProfile(session.user);
+          }
+          if (!aletheiaUser) {
+            aletheiaUser = await createFallbackProfile(session.user);
           }
           if (isMounted) setUser(aletheiaUser);
         } else if (event === 'SIGNED_OUT') {
