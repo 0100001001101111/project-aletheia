@@ -33,10 +33,10 @@ const SPECIALISTS: AgentDef[] = [
   { id: 'connection', name: 'Connection', role: 'Cross-Domain Patterns', description: 'Identifies links between findings from different domains' },
   { id: 'mechanism', name: 'Mechanism', role: 'Theory Testing', description: 'Tests causal mechanisms behind observed correlations' },
   { id: 'synthesis', name: 'Synthesis', role: 'Report Generation', description: 'Combines multiple findings into coherent research reports' },
-  { id: 'flora', name: 'Flora', role: 'Bioelectric Systems', description: 'Plant intelligence and bioelectric signal research' },
 ];
 
 const SCOUTS: AgentDef[] = [
+  { id: 'flora', name: 'Flora', domain: 'Plant Intelligence' },
   { id: 'helios', name: 'Helios', domain: 'Space & Physics' },
   { id: 'methuselah', name: 'Methuselah', domain: 'Longevity' },
   { id: 'vulcan', name: 'Vulcan', domain: 'Materials Science' },
@@ -145,7 +145,7 @@ export default function AgentHubPage() {
           {/* ── Header ─────────────────────────────────── */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-zinc-100">Research Agent Network</h1>
-            <p className="text-zinc-400 mt-1">20 autonomous agents surveying 13 research domains</p>
+            <p className="text-zinc-400 mt-1">20 autonomous agents surveying 14 research domains</p>
           </div>
 
           {/* ── Stats Row ──────────────────────────────── */}
@@ -258,7 +258,7 @@ export default function AgentHubPage() {
 
           {/* ── Scouts ─────────────────────────────────── */}
           <section className="mb-10">
-            <h2 className="text-lg font-semibold text-zinc-300 uppercase tracking-wider mb-1">Domain Scouts — 13 Research Domains</h2>
+            <h2 className="text-lg font-semibold text-zinc-300 uppercase tracking-wider mb-1">Domain Scouts — 14 Research Domains</h2>
             <p className="text-sm text-zinc-500 mb-4">Lightweight researchers that survey their domain for interesting data and patterns</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {SCOUTS.map((agent) => {

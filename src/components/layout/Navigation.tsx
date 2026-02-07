@@ -51,12 +51,12 @@ export function Navigation({ transparent = false }: NavigationProps) {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1 min-w-0">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                   isActive(item.href)
                     ? 'text-white bg-brand-600/20 border border-brand-500/30'
                     : item.highlight
@@ -70,11 +70,11 @@ export function Navigation({ transparent = false }: NavigationProps) {
             ))}
             <Link
               href="/submit"
-              className="ml-4 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:shadow-lg hover:shadow-brand-600/25 hover:-translate-y-0.5"
+              className="ml-2 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0"
             >
               Submit Data
             </Link>
-            <div className="ml-3">
+            <div className="ml-2 shrink-0">
               <UserMenu onOpenAuth={() => setShowAuthModal(true)} />
             </div>
           </div>

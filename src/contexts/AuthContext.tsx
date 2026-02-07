@@ -144,7 +144,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       try {
         if (event === 'SIGNED_IN' && session?.user) {
-          const aletheiaUser = await fetchUserProfile(session.user);
+          let aletheiaUser = await fetchUserProfile(session.user);
+          // Retry once — profile INSERT may still be in-flight after signup
+          if (!aletheiaUser) {
+            await new Promise(r => setTimeout(r, 1000));
+            aletheiaUser = await fetchUserProfile(session.user);
+          }
           if (isMounted) setUser(aletheiaUser);
         } else if (event === 'SIGNED_OUT') {
           if (isMounted) setUser(null);
