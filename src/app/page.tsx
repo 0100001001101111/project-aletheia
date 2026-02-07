@@ -5,6 +5,7 @@
 
 import Link from 'next/link';
 import { createClient as createServerClient } from '@/lib/supabase-server';
+import { Navigation } from '@/components/layout/Navigation';
 
 // Domain configuration
 const DOMAINS = [
@@ -271,49 +272,7 @@ export default async function LandingPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       {/* ==================== HEADER ==================== */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-brand-900/30 bg-[#0a0a0f]/80 backdrop-blur-xl">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand-600 to-accent-blue flex items-center justify-center">
-                <span className="text-white font-bold text-lg">A</span>
-              </div>
-              <span className="font-semibold text-zinc-100 text-lg">Aletheia</span>
-            </Link>
-
-            <div className="hidden md:flex items-center gap-8">
-              <Link href="/investigations" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
-                Research
-              </Link>
-              <Link href="/predictions" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
-                Predictions
-              </Link>
-              <Link href="/agent" className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors flex items-center gap-1">
-                <span>🤖</span> Agents
-              </Link>
-              <Link href="/patterns" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
-                Patterns
-              </Link>
-              <Link href="/methodology" className="text-zinc-400 hover:text-zinc-100 text-sm transition-colors">
-                Methodology
-              </Link>
-              <Link
-                href="/submit"
-                className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all hover:shadow-lg hover:shadow-brand-600/25"
-              >
-                Submit Data
-              </Link>
-            </div>
-
-            {/* Mobile menu button */}
-            <button className="md:hidden p-2 text-zinc-400 hover:text-zinc-100">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-        </nav>
-      </header>
+      <Navigation transparent />
 
       {/* ==================== HERO SECTION ==================== */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden hero-gradient grid-background">

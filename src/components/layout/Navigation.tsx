@@ -51,12 +51,12 @@ export function Navigation({ transparent = false }: NavigationProps) {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1 min-w-0">
+          <div className="hidden md:flex items-center gap-1">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                className={`px-2 lg:px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
                   isActive(item.href)
                     ? 'text-white bg-brand-600/20 border border-brand-500/30'
                     : item.highlight
@@ -70,7 +70,7 @@ export function Navigation({ transparent = false }: NavigationProps) {
             ))}
             <Link
               href="/submit"
-              className="ml-2 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0"
+              className="hidden xl:block ml-2 px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-medium rounded-lg transition-all whitespace-nowrap shrink-0"
             >
               Submit Data
             </Link>
