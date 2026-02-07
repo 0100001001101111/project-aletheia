@@ -125,6 +125,7 @@ export async function POST(
       .from('aletheia_agent_findings')
       .update({
         review_status: 'approved',
+        destination_status: 'published',
         reviewed_by: profile.id,
         reviewed_at: new Date().toISOString(),
         created_prediction_id: prediction.id,

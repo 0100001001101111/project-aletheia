@@ -11,7 +11,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, onSwitchToSignup, onSwitchToAnonymous }: LoginFormProps) {
-  const { login, loginWithAnonymousId } = useAuth();
+  const { login, loginWithAnonymousId, isAuthenticated } = useAuth();
 
   const [mode, setMode] = useState<'email' | 'anonymous'>('email');
   const [email, setEmail] = useState('');
@@ -22,6 +22,10 @@ export function LoginForm({ onSuccess, onSwitchToSignup, onSwitchToAnonymous }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isAuthenticated) {
+      onSuccess?.();
+      return;
+    }
     setError(null);
     setIsLoading(true);
 

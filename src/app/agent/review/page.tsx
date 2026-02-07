@@ -21,6 +21,7 @@ interface Finding {
   rejection_reason?: string | null;
   created_at: string | null;
   session_id: string | null;
+  agent_id: string | null;
   domains: string[];
 }
 

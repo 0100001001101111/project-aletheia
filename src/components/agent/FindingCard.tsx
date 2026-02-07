@@ -7,6 +7,11 @@
 
 import Link from 'next/link';
 
+function formatAgentName(agentId: string | null | undefined): string {
+  if (!agentId) return 'Unknown Agent';
+  return agentId.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 interface FindingCardProps {
   finding: {
     id: string;
@@ -17,6 +22,7 @@ interface FindingCardProps {
     rejection_reason?: string | null;
     created_at: string | null;
     session_id: string | null;
+    agent_id?: string | null;
     domains?: string[];
   };
   selectable?: boolean;
@@ -126,9 +132,12 @@ export function FindingCard({ finding, selectable, selected, onSelect }: Finding
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t border-zinc-800">
-          {/* Confidence meter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-zinc-500">Confidence:</span>
+          {/* Agent + Confidence */}
+          <div className="flex items-center gap-3">
+            <span className={`text-xs ${finding.agent_id ? 'text-zinc-400' : 'text-zinc-600'}`}>
+              {formatAgentName(finding.agent_id)}
+            </span>
+            <span className="text-zinc-700">|</span>
             <div className="w-24 h-2 bg-zinc-800 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${

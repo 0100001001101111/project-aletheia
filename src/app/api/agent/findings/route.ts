@@ -80,18 +80,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('agent_id', agentId);
     }
 
-    // Apply status filter - map 'approved' to destination_status='published'
+    // Apply status filter using review_status (the human decision column)
     if (status && status !== 'all') {
-      if (status === 'approved') {
-        query = query.eq('destination_status', 'published');
-      } else if (status === 'rejected') {
-        query = query.eq('destination_status', 'rejected');
-      } else {
-        query = query.eq('review_status', status);
-      }
+      query = query.eq('review_status', status);
     } else if (!status || status === 'all') {
-      // By default, exclude rejected findings from the public feed
-      query = query.neq('destination_status', 'rejected');
+      // By default, exclude rejected findings from the review feed
+      query = query.neq('review_status', 'rejected');
     }
 
     const { data: rawFindings, error } = await query;
@@ -145,9 +139,9 @@ export async function GET(request: NextRequest) {
 
     const counts = {
       total: uniqueFindings.length,
-      pending: uniqueFindings.filter(f => f.destination_status === 'pending').length,
-      approved: uniqueFindings.filter(f => f.destination_status === 'published').length,
-      rejected: uniqueFindings.filter(f => f.destination_status === 'rejected').length,
+      pending: uniqueFindings.filter(f => f.review_status === 'pending').length,
+      approved: uniqueFindings.filter(f => f.review_status === 'approved').length,
+      rejected: uniqueFindings.filter(f => f.review_status === 'rejected').length,
       needs_info: uniqueFindings.filter(f => f.review_status === 'needs_info').length,
     };
 

@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthModal } from '@/components/auth/AuthModal';
@@ -354,18 +355,24 @@ export default function FindingDetailPage() {
             <div className="space-y-4">
               <div>
                 <label className="text-xs text-zinc-500 uppercase tracking-wider">Technical Hypothesis</label>
-                <p className="mt-1 text-zinc-300">{finding.title}</p>
+                <div className="mt-1 text-zinc-300 prose prose-invert prose-sm max-w-none">
+                  <ReactMarkdown>{finding.title}</ReactMarkdown>
+                </div>
               </div>
 
               <div>
                 <label className="text-xs text-zinc-500 uppercase tracking-wider">Finding Summary</label>
-                <p className="mt-1 text-zinc-400 whitespace-pre-wrap">{finding.summary}</p>
+                <div className="mt-1 text-zinc-400 prose prose-invert prose-sm max-w-none prose-headings:text-zinc-200 prose-strong:text-zinc-200 prose-code:bg-zinc-800 prose-code:px-1 prose-code:rounded prose-pre:bg-zinc-800/50">
+                  <ReactMarkdown>{finding.summary}</ReactMarkdown>
+                </div>
               </div>
 
               {finding.suggested_prediction && (
                 <div>
                   <label className="text-xs text-zinc-500 uppercase tracking-wider">Suggested Prediction</label>
-                  <p className="mt-1 text-zinc-300 italic">{finding.suggested_prediction}</p>
+                  <div className="mt-1 text-zinc-300 italic prose prose-invert prose-sm max-w-none">
+                    <ReactMarkdown>{finding.suggested_prediction}</ReactMarkdown>
+                  </div>
                 </div>
               )}
 

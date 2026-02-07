@@ -8,6 +8,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserMenu } from '../auth/UserMenu';
+import { AuthModal } from '../auth/AuthModal';
 
 const NAV_ITEMS = [
   { href: '/investigations', label: 'Research' },
@@ -24,6 +27,8 @@ interface NavigationProps {
 export function Navigation({ transparent = false }: NavigationProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { isLoading } = useAuth();
 
   const isActive = (href: string) => pathname === href || pathname?.startsWith(href + '/');
 
@@ -69,6 +74,9 @@ export function Navigation({ transparent = false }: NavigationProps) {
             >
               Submit Data
             </Link>
+            <div className="ml-3">
+              <UserMenu onOpenAuth={() => setShowAuthModal(true)} />
+            </div>
           </div>
 
           {/* Mobile menu button */}
@@ -110,6 +118,9 @@ export function Navigation({ transparent = false }: NavigationProps) {
                   {item.label}
                 </Link>
               ))}
+              <div className="mt-2 px-4 py-2">
+                <UserMenu onOpenAuth={() => { setMobileMenuOpen(false); setShowAuthModal(true); }} />
+              </div>
               <Link
                 href="/submit"
                 onClick={() => setMobileMenuOpen(false)}
@@ -121,6 +132,11 @@ export function Navigation({ transparent = false }: NavigationProps) {
           </div>
         )}
       </nav>
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onSuccess={() => setShowAuthModal(false)}
+      />
     </header>
   );
 }

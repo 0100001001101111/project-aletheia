@@ -102,6 +102,7 @@ export async function POST(
       .from('aletheia_agent_findings')
       .update({
         review_status: 'rejected',
+        destination_status: 'rejected',
         rejection_reason: reason,
         reviewed_by: profile.id,
         reviewed_at: new Date().toISOString(),
