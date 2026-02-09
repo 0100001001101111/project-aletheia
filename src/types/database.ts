@@ -268,6 +268,53 @@ export interface JuryPool {
 }
 
 // =====================================================
+// INGEST SYSTEM TYPES
+// =====================================================
+
+export interface IngestUpload {
+  id: string;
+  user_id: string;
+  filename: string;
+  file_type: string;
+  file_url: string | null;
+  schema_type: string;
+  status: string;
+  total_records: number;
+  approved_records: number;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IngestRecord {
+  id: string;
+  upload_id: string;
+  record_index: number;
+  title: string | null;
+  parsed_data: Record<string, unknown>;
+  confidence: Record<string, number> | null;
+  validation_errors: string[] | null;
+  status: string;
+  edited_data: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export type IngestUploadInsert = Partial<IngestUpload> & {
+  user_id: string;
+  filename: string;
+  file_type: string;
+  schema_type: string;
+};
+export type IngestUploadUpdate = Partial<IngestUpload>;
+
+export type IngestRecordInsert = Partial<IngestRecord> & {
+  upload_id: string;
+  record_index: number;
+  parsed_data: Record<string, unknown>;
+};
+export type IngestRecordUpdate = Partial<IngestRecord>;
+
+// =====================================================
 // INSERT TYPES (for creating new records)
 // =====================================================
 
@@ -436,6 +483,16 @@ export interface Database {
         Row: CommunityHypothesis;
         Insert: Partial<CommunityHypothesis> & { title: string; hypothesis: string };
         Update: Partial<CommunityHypothesis>;
+      };
+      aletheia_ingest_uploads: {
+        Row: IngestUpload;
+        Insert: IngestUploadInsert;
+        Update: IngestUploadUpdate;
+      };
+      aletheia_ingest_records: {
+        Row: IngestRecord;
+        Insert: IngestRecordInsert;
+        Update: IngestRecordUpdate;
       };
     };
     Enums: {

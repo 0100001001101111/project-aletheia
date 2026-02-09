@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { NewSubmissionWizard } from '@/components/submission/NewSubmissionWizard';
 import { SimpleSubmissionWizard } from '@/components/submission/SimpleSubmissionWizard';
 
@@ -102,6 +103,24 @@ function ModeSelector({ onSelect }: { onSelect: (mode: SubmissionMode) => void }
             </div>
           </button>
         </div>
+
+        {/* Upload File */}
+        <Link
+          href="/ingest"
+          className="mt-4 block rounded-xl border border-zinc-700 bg-zinc-900/50 p-4 text-left transition-all hover:border-violet-500/50 hover:bg-zinc-900"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
+              <svg className="h-4 w-4 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-zinc-100">Upload File</h3>
+              <p className="text-xs text-zinc-500">Upload PDF, CSV, XLSX, or text files for AI-powered multi-record parsing</p>
+            </div>
+          </div>
+        </Link>
 
         <p className="mt-6 text-center text-xs text-zinc-600">
           Not sure? Start with Quick Submit — you can always provide more detail later.

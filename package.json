@@ -18,12 +18,14 @@
     "mapbox-gl": "^3.18.0",
     "next": "14.2.21",
     "openai": "^6.17.0",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.17.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-map-gl": "^8.1.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.5"
   },
   "devDependencies": {
