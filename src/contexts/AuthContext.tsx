@@ -87,30 +87,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
+  const fetchingProfile = useRef(false);
 
-  // Fetch Aletheia user profile from database
+  // Fetch Aletheia user profile from database (with concurrency guard + timeout)
   const fetchUserProfile = useCallback(
     async (authUser: SupabaseUser): Promise<AletheiaUser | null> => {
-      console.log('[Auth] Fetching profile for:', authUser.id);
-
-      const { data: profile, error, status } = await supabase
-        .from('aletheia_users')
-        .select('*')
-        .eq('auth_id', authUser.id)
-        .maybeSingle() as { data: Omit<AletheiaUser, 'authUser' | 'isEmailVerified'> | null; error: unknown; status: number };
-
-      console.log('[Auth] Profile fetch result:', { data: !!profile, error, status });
-
-      if (error || !profile) {
-        console.error('[Auth] Profile fetch failed:', error);
+      if (fetchingProfile.current) {
+        console.log('[Auth] Profile fetch already in progress, skipping');
         return null;
       }
+      fetchingProfile.current = true;
+      console.log('[Auth] Fetching profile for:', authUser.id);
 
-      return {
-        ...profile,
-        authUser,
-        isEmailVerified: authUser.email_confirmed_at !== null,
-      };
+      try {
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+        );
+        const query = supabase
+          .from('aletheia_users')
+          .select('*')
+          .eq('auth_id', authUser.id)
+          .maybeSingle()
+          .then(r => r as unknown as { data: Omit<AletheiaUser, 'authUser' | 'isEmailVerified'> | null; error: unknown; status: number });
+
+        const { data: profile, error, status } = await Promise.race([query, timeout]);
+        console.log('[Auth] Profile fetch result:', { data: !!profile, error, status });
+
+        if (error || !profile) {
+          console.error('[Auth] Profile fetch failed:', error);
+          return null;
+        }
+
+        return {
+          ...profile,
+          authUser,
+          isEmailVerified: authUser.email_confirmed_at !== null,
+        };
+      } catch (e) {
+        console.error('[Auth] Profile fetch error:', e);
+        return null;
+      } finally {
+        fetchingProfile.current = false;
+      }
     },
     [supabase]
   );
@@ -138,9 +156,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize auth state and subscribe to changes
   useEffect(() => {
+    let initialLoadDone = false;
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[Auth] State change:', event);
 
       if (event === 'SIGNED_OUT' || !session) {
@@ -149,25 +169,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // Only fetch profile if user isn't already set (login() handles its own case)
-      if (!user && session?.user) {
+      // Safety net only — don't fetch on initial SIGNED_IN (getSession handles that)
+      if (initialLoadDone && event === 'TOKEN_REFRESHED' && session?.user) {
+        fetchUserProfile(session.user).then(profile => {
+          if (profile) setUser(profile);
+        });
+      }
+    });
+
+    // Initial session check — single path for page load
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
         const profile = await fetchUserProfile(session.user);
         if (profile) setUser(profile);
       }
-
       setIsLoading(false);
-    });
-
-    // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchUserProfile(session.user).then(profile => {
-          if (profile) setUser(profile);
-          setIsLoading(false);
-        });
-      } else {
-        setIsLoading(false);
-      }
+      initialLoadDone = true;
     });
 
     return () => subscription.unsubscribe();
