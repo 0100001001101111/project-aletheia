@@ -200,7 +200,7 @@ export default function SpaceWeatherPage() {
       <div className="pt-8 border-t border-dark-border">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <Link
-            href="/docs/analysis/space-weather-correlation.md"
+            href="/methodology"
             className="text-brand-400 hover:text-brand-300 text-sm"
           >
             Full Analysis Documentation →

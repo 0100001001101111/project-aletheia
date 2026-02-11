@@ -51,6 +51,7 @@ export function LoginForm({ onSuccess, onSwitchToSignup, onSwitchToAnonymous }: 
       if (result.error) {
         setError(result.error.message);
       } else {
+        // login() already called setUser — close modal
         onSuccess?.();
       }
     } catch (err) {

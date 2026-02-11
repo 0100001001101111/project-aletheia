@@ -115,7 +115,7 @@ export default function NewHypothesisPage() {
             <h2 className="text-xl font-semibold text-zinc-100 mb-2">Authentication Required</h2>
             <p className="text-zinc-400 mb-6">Please sign in to submit a hypothesis.</p>
             <Link
-              href="/login"
+              href="/auth-required"
               className="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-lg transition-colors"
             >
               Sign In

@@ -278,7 +278,7 @@ export default function HypothesisDetailPage({ params }: PageProps) {
 
             {!user && (
               <Link
-                href="/login"
+                href="/auth-required"
                 className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
               >
                 Sign in to upvote

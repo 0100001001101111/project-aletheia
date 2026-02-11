@@ -228,16 +228,16 @@ export default function AuthTestPage() {
               Test Protected Route (/submit)
             </a>
             <a
-              href="/review"
+              href="/agent/review"
               className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-lg transition-colors inline-block"
             >
-              Test Reviewer Route (/review)
+              Test Reviewer Route (/agent/review)
             </a>
             <a
-              href="/admin"
+              href="/admin/gaming-flags"
               className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 text-sm font-medium rounded-lg transition-colors inline-block"
             >
-              Test Admin Route (/admin)
+              Test Admin Route (/admin/gaming-flags)
             </a>
           </div>
         </div>

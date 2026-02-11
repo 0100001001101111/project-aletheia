@@ -531,7 +531,7 @@ export default async function LandingPage() {
 
           <div className="text-center mt-8">
             <Link
-              href="/agent/review"
+              href="/agent-review"
               className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 font-medium transition-colors"
             >
               View all findings

@@ -11,6 +11,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react';
 import { createClient } from '../lib/supabase-browser';
@@ -84,19 +85,24 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<AletheiaUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
 
   // Fetch Aletheia user profile from database
   const fetchUserProfile = useCallback(
     async (authUser: SupabaseUser): Promise<AletheiaUser | null> => {
-      const { data: profile, error } = await supabase
+      console.log('[Auth] Fetching profile for:', authUser.id);
+
+      const { data: profile, error, status } = await supabase
         .from('aletheia_users')
         .select('*')
         .eq('auth_id', authUser.id)
-        .single() as { data: Omit<AletheiaUser, 'authUser' | 'isEmailVerified'> | null; error: unknown };
+        .maybeSingle() as { data: Omit<AletheiaUser, 'authUser' | 'isEmailVerified'> | null; error: unknown; status: number };
+
+      console.log('[Auth] Profile fetch result:', { data: !!profile, error, status });
 
       if (error || !profile) {
-        console.error('Failed to fetch user profile:', error);
+        console.error('[Auth] Profile fetch failed:', error);
         return null;
       }
 
@@ -130,73 +136,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [supabase, fetchUserProfile]
   );
 
-  // Initialize auth state
+  // Initialize auth state and subscribe to changes
   useEffect(() => {
-    let isMounted = true;
-
-    const initAuth = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
-        if (!isMounted) return;
-
-        if (session?.user) {
-          let aletheiaUser = await fetchUserProfile(session.user);
-          if (!aletheiaUser) {
-            // Profile missing — create one from auth metadata
-            aletheiaUser = await createFallbackProfile(session.user);
-          }
-          if (isMounted) setUser(aletheiaUser);
-        }
-      } catch (error) {
-        // Ignore AbortError - happens during navigation
-        if (error instanceof Error && error.name === 'AbortError') return;
-        console.error('Auth initialization error:', error);
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    };
-
-    initAuth();
-
-    // Subscribe to auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
+      console.log('[Auth] State change:', event);
 
-      try {
-        if (event === 'SIGNED_IN' && session?.user) {
-          let aletheiaUser = await fetchUserProfile(session.user);
-          if (!aletheiaUser) {
-            // Profile missing — wait for in-flight INSERT then try fallback
-            await new Promise(r => setTimeout(r, 500));
-            aletheiaUser = await fetchUserProfile(session.user);
-          }
-          if (!aletheiaUser) {
-            aletheiaUser = await createFallbackProfile(session.user);
-          }
-          if (isMounted) setUser(aletheiaUser);
-        } else if (event === 'SIGNED_OUT') {
-          if (isMounted) setUser(null);
-        } else if (event === 'USER_UPDATED' && session?.user) {
-          const aletheiaUser = await fetchUserProfile(session.user);
-          if (isMounted) setUser(aletheiaUser);
-        }
-      } catch (error) {
-        // Ignore AbortError
-        if (error instanceof Error && error.name === 'AbortError') return;
-        console.error('Auth state change error:', error);
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // Only fetch profile if user isn't already set (login() handles its own case)
+      if (!user && session?.user) {
+        const profile = await fetchUserProfile(session.user);
+        if (profile) setUser(profile);
+      }
+
+      setIsLoading(false);
+    });
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        fetchUserProfile(session.user).then(profile => {
+          if (profile) setUser(profile);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
       }
     });
 
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-    };
-  }, [supabase, fetchUserProfile]);
+    return () => subscription.unsubscribe();
+  }, []);
 
   // =====================================================
   // AUTH METHODS
@@ -204,13 +179,48 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
         return { error: new Error(error.message) };
+      }
+
+      if (data.user) {
+        // Fetch profile directly — don't rely on onAuthStateChange timing
+        const { data: profile, error: profileError } = await supabase
+          .from('aletheia_users')
+          .select('*')
+          .eq('auth_id', data.user.id)
+          .maybeSingle() as { data: Record<string, unknown> | null; error: unknown };
+
+        console.log('[Auth] Login profile fetch:', { profile: !!profile, profileError });
+
+        if (profile) {
+          setUser({
+            ...profile,
+            authUser: data.user,
+            isEmailVerified: data.user.email_confirmed_at !== null,
+          } as AletheiaUser);
+        } else {
+          // Fallback: build minimal user from auth data so UI updates
+          setUser({
+            id: data.user.id,
+            auth_id: data.user.id,
+            email: data.user.email ?? null,
+            display_name: data.user.user_metadata?.display_name || data.user.email?.split('@')[0] || 'User',
+            identity_type: 'public',
+            verification_level: 'none',
+            credibility_score: 0,
+            methodology_points: null,
+            created_at: data.user.created_at,
+            updated_at: data.user.created_at,
+            authUser: data.user,
+            isEmailVerified: data.user.email_confirmed_at !== null,
+          } as AletheiaUser);
+        }
       }
 
       return { error: null };
