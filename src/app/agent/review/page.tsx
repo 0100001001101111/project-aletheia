@@ -64,26 +64,6 @@ export default function ReviewQueuePage() {
     }
   }, [user, authLoading, router]);
 
-  // Show loading state while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-zinc-400 mb-4">Sign in to access the review queue</p>
-          <Link href="/agent" className="text-brand-400 hover:text-brand-300 underline">Back to Agents</Link>
-        </div>
-      </div>
-    );
-  }
-
   const fetchFindings = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -168,6 +148,25 @@ export default function ReviewQueuePage() {
     { key: 'rejected', label: 'Rejected', count: counts.rejected },
     { key: 'needs_info', label: 'Needs Info', count: counts.needs_info },
   ];
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-zinc-400 mb-4">Sign in to access the review queue</p>
+          <Link href="/agent" className="text-brand-400 hover:text-brand-300 underline">Back to Agents</Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <PageWrapper
