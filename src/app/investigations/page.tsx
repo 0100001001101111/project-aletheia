@@ -84,7 +84,9 @@ function InvestigationsPage() {
   const [exploratoryCount, setExploratoryCount] = useState(0);
 
   // Filters
-  const [filterType, setFilterType] = useState<InvestigationType | 'all'>('all');
+  const [filterType, setFilterType] = useState<InvestigationType | 'all'>(
+    (searchParams.get('type') as InvestigationType) || 'all'
+  );
   const [filterStatus, setFilterStatus] = useState<TriageStatus | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('triage_score');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');

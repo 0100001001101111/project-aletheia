@@ -787,7 +787,7 @@ export default async function LandingPage() {
             {DOMAINS.map((domain) => (
               <Link
                 key={domain.id}
-                href={`/investigations?domain=${domain.id}`}
+                href={`/investigations?type=${domain.id}`}
                 className="group p-6 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all hover:-translate-y-1"
               >
                 <div

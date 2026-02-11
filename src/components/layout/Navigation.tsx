@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { href: '/investigations', label: 'Research' },
   { href: '/predictions', label: 'Predictions' },
   { href: '/agent', label: 'Agents', highlight: true },
+  { href: '/agent-review', label: 'Findings' },
   { href: '/patterns', label: 'Patterns' },
   { href: '/methodology', label: 'Methodology' },
 ];
