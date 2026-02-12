@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
   const expectedKey = process.env.BACKFILL_API_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!authHeader || !authHeader.includes(expectedKey?.slice(0, 20) || '')) {
+  if (!expectedKey || authHeader !== `Bearer ${expectedKey}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

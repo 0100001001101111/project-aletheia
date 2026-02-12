@@ -70,6 +70,12 @@ export async function GET() {
 export async function POST(request: Request) {
   const supabase = await createClient();
 
+  // Auth check: require authenticated user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { source, data, url } = body as {

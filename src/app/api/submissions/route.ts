@@ -145,9 +145,9 @@ export async function POST(request: NextRequest) {
     // Trigger pattern analysis asynchronously (fire and forget)
     // Only for verified/provisional submissions
     if (finalTriageStatus === 'verified' || finalTriageStatus === 'provisional') {
-      // Get host from request headers for internal API call
-      const host = request.headers.get('host') || 'localhost:3000';
-      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+      // Use trusted origin for internal API call (never trust Host header)
+      const host = process.env.VERCEL_URL || 'localhost:3000';
+      const protocol = process.env.VERCEL_URL ? 'https' : 'http';
 
       // Fire async pattern analysis - don't await
       fetch(`${protocol}://${host}/api/patterns/analyze`, {

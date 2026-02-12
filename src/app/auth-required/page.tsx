@@ -4,9 +4,15 @@ import { Suspense, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { AuthModal } from '../../components/auth';
 
+function isRelativePath(url: string): boolean {
+  // Only allow paths starting with / and not // (protocol-relative URLs)
+  return url.startsWith('/') && !url.startsWith('//');
+}
+
 function AuthRequiredContent() {
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/';
+  const rawNext = searchParams.get('next') || '/';
+  const next = isRelativePath(rawNext) ? rawNext : '/';
   const reason = searchParams.get('reason');
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(true);

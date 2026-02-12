@@ -93,11 +93,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const fetchUserProfile = useCallback(
     async (authUser: SupabaseUser): Promise<AletheiaUser | null> => {
       if (fetchingProfile.current) {
-        console.log('[Auth] Profile fetch already in progress, skipping');
+        // Profile fetch already in progress, skipping
         return null;
       }
       fetchingProfile.current = true;
-      console.log('[Auth] Fetching profile for:', authUser.id);
+      // Fetching profile
 
       try {
         const timeout = new Promise<never>((_, reject) =>
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           .then(r => r as unknown as { data: Omit<AletheiaUser, 'authUser' | 'isEmailVerified'> | null; error: unknown; status: number });
 
         const { data: profile, error, status } = await Promise.race([query, timeout]);
-        console.log('[Auth] Profile fetch result:', { data: !!profile, error, status });
+        // Profile fetch complete
 
         if (error || !profile) {
           console.error('[Auth] Profile fetch failed:', error);
@@ -161,7 +161,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[Auth] State change:', event);
+      // Auth state change handled
 
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
@@ -213,7 +213,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           .eq('auth_id', data.user.id)
           .maybeSingle() as { data: Record<string, unknown> | null; error: unknown };
 
-        console.log('[Auth] Login profile fetch:', { profile: !!profile, profileError });
+        // Login profile fetch complete
 
         if (profile) {
           setUser({
