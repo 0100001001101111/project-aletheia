@@ -4,7 +4,7 @@
  */
 
 import { PDFParse } from 'pdf-parse';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 
 export async function extractText(
   buffer: Buffer,
@@ -16,7 +16,7 @@ export async function extractText(
 
     case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
     case 'application/vnd.ms-excel':
-      return extractXlsxText(buffer);
+      return await extractXlsxText(buffer);
 
     case 'text/csv':
       return buffer.toString('utf-8');
@@ -36,16 +36,20 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   return result.text;
 }
 
-function extractXlsxText(buffer: Buffer): string {
-  const workbook = XLSX.read(buffer, { type: 'buffer' });
+async function extractXlsxText(buffer: Buffer): Promise<string> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
   const lines: string[] = [];
 
-  for (const sheetName of workbook.SheetNames) {
-    const sheet = workbook.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_csv(sheet, { FS: '\t' });
-    lines.push(`--- Sheet: ${sheetName} ---`);
-    lines.push(rows);
-  }
+  workbook.eachSheet((worksheet) => {
+    lines.push(`--- Sheet: ${worksheet.name} ---`);
+    worksheet.eachRow((row) => {
+      const values = row.values as (ExcelJS.CellValue)[];
+      // ExcelJS row.values is 1-indexed (index 0 is undefined)
+      const cells = values.slice(1).map(v => v != null ? String(v) : '');
+      lines.push(cells.join('\t'));
+    });
+  });
 
   return lines.join('\n');
 }
