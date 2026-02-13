@@ -10,6 +10,7 @@ import {
   approveRequest,
   rejectRequest,
 } from '@/lib/agent/acquisition-manager';
+import { createClient } from '@/lib/supabase-server';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -46,6 +47,12 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { id } = await context.params;
     const body = await request.json();
     const { action, notes, reviewedBy } = body;

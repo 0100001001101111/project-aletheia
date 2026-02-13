@@ -11,6 +11,7 @@ import {
   markFailed,
 } from '@/lib/agent/acquisition-manager';
 import { executeExtraction, formatExtractionResult } from '@/lib/agent/data-extractor';
+import { createClient } from '@/lib/supabase-server';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -21,6 +22,12 @@ export async function POST(
   context: RouteContext
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { id } = await context.params;
 
     // Get the acquisition request

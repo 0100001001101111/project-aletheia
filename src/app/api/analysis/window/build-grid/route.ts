@@ -17,6 +17,11 @@ import {
 export async function POST(request: Request) {
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   // Optional parameters from request body
   const body = await request.json().catch(() => ({}));
   const cellSize = body.cellSize ?? DEFAULT_CELL_SIZE;

@@ -5,9 +5,16 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { runConnectionAgent } from '@/lib/agent/connection';
+import { createClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json().catch(() => ({}));
     const { domains, analysis_types } = body;
 

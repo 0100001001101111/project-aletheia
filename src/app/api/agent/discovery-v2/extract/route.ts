@@ -9,9 +9,16 @@ import {
   savePaperExtraction,
 } from '@/lib/agent/discovery-v2/paper-extractor';
 import type { PaperExtraction, ExtractionPrompt } from '@/lib/agent/discovery-v2/types';
+import { createClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { title, abstract, full_text, url, lead_id, authors, doi, publication, publication_date } = body;
 

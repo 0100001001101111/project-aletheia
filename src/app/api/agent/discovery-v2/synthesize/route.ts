@@ -10,9 +10,16 @@ import {
 } from '@/lib/agent/discovery-v2/literature-synthesis';
 import { getPaperExtractionsByDomain } from '@/lib/agent/discovery-v2/paper-extractor';
 import { createEntriesFromPapers } from '@/lib/agent/discovery-v2/replication-tracker';
+import { createClient } from '@/lib/supabase-server';
 
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { topic, domain, paper_ids } = body;
 
