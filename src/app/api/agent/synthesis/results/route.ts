@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 import { getDomainDeepDives } from '@/lib/agent/synthesis/domain-deep-dive';
 import { getCrossDomainSyntheses } from '@/lib/agent/synthesis/cross-domain-synthesizer';
 import { getResearchBriefs } from '@/lib/agent/synthesis/research-brief-generator';
@@ -11,6 +12,12 @@ import type { AudienceType } from '@/lib/agent/synthesis/types';
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // deep_dives, syntheses, briefs
     const domain = searchParams.get('domain') || undefined;

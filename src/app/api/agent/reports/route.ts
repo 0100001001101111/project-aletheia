@@ -4,11 +4,18 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 import { createAgentReadClient } from '@/lib/agent/supabase-admin';
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAgentReadClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const agentClient = createAgentReadClient();
     const searchParams = request.nextUrl.searchParams;
 
     // Parse query parameters
@@ -18,7 +25,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Build query
-    let query = supabase
+    let query = agentClient
       .from('aletheia_agent_reports')
       .select('*')
       .order('created_at', { ascending: false });
@@ -46,7 +53,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get counts for filters
-    const { data: countData } = await supabase
+    const { data: countData } = await agentClient
       .from('aletheia_agent_reports')
       .select('status, verdict');
 

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 import { createAgentReadClient } from '@/lib/agent/supabase-admin';
 
 // Strip markdown syntax from text for clean preview display
@@ -42,7 +43,13 @@ function cleanPreview(summary: string, title: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createAgentReadClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const agentClient = createAgentReadClient();
     const { searchParams } = new URL(request.url);
 
     // Get filter params
@@ -52,7 +59,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Build query
-    let query = supabase
+    let query = agentClient
       .from('aletheia_agent_findings')
       .select(`
         id,
@@ -111,7 +118,7 @@ export async function GET(request: NextRequest) {
       .slice(offset, offset + limit);
 
     // Get counts - use destination_status for approved count
-    let countsQuery = supabase
+    let countsQuery = agentClient
       .from('aletheia_agent_findings')
       .select('review_status, destination_status, title, agent_id');
 

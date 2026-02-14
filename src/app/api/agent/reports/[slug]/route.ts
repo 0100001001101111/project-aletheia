@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 import { createAgentReadClient } from '@/lib/agent/supabase-admin';
 
 export async function GET(
@@ -11,11 +12,17 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { slug } = await params;
-    const supabase = createAgentReadClient();
+    const agentClient = createAgentReadClient();
 
     // Try to find by slug first
-    let query = supabase
+    let query = agentClient
       .from('aletheia_agent_reports')
       .select(`
         *,
@@ -35,7 +42,7 @@ export async function GET(
 
     // If not found by slug, try by ID (for backward compatibility)
     if (error && error.code === 'PGRST116') {
-      const idQuery = supabase
+      const idQuery = agentClient
         .from('aletheia_agent_reports')
         .select(`
           *,

@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 import { createAgentReadClient } from '@/lib/agent/supabase-admin';
 
 const ALL_AGENT_IDS = [
@@ -15,10 +16,16 @@ const ALL_AGENT_IDS = [
 
 export async function GET() {
   try {
-    const supabase = createAgentReadClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const agentClient = createAgentReadClient();
 
     // Fetch all findings (agent_id, title, confidence, review_status, created_at)
-    const { data: findings, error } = await supabase
+    const { data: findings, error } = await agentClient
       .from('aletheia_agent_findings')
       .select('id, agent_id, title, display_title, confidence, review_status, created_at')
       .order('created_at', { ascending: false });

@@ -21,6 +21,12 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { id } = await context.params;
 
     const acquisitionRequest = await getAcquisitionRequest(id);

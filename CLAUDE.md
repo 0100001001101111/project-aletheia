@@ -42,9 +42,10 @@ When someone mentions "the agents aren't running," they probably mean the Pi.
 
 - Auth: Supabase Auth. anon key for client, service_role for server only.
 - CRUCIBLE security audit ran Feb 12, 2026. 6 CRITICAL + 1 HIGH fixed.
-- Remaining: ~15 unauthenticated agent API endpoints need auth checks (same pattern as /api/agent/trigger and /api/data/ingest fixes).
-- Remaining: 4 SECURITY DEFINER functions need auth.uid() checks (increment_credibility, award_methodology_points, escalate_dispute, tally_jury_votes). Needs DB migration.
-- Remaining: No CSRF protection. H6: Admin role not verified server-side.
+- FIXED (Feb 13, 2026): Auth checks added to all ~28 unprotected agent/API endpoints.
+- FIXED (Feb 13, 2026): SECURITY DEFINER functions hardened — get_anthropic_key/get_resend_key restricted to service_role only, auth.uid() checks added to increment_credibility/deduct_credits/get_research_session_summary, document_exists_by_hash/get_literature_stats switched to SECURITY INVOKER, refresh_ufo_heatmap restricted to service_role.
+- FIXED (Feb 13, 2026): CSRF Origin/Referer validation added in middleware for all state-changing API requests (POST/PUT/DELETE/PATCH).
+- Remaining: H6: Admin role not verified server-side. award_methodology_points/escalate_dispute/tally_jury_votes not yet deployed (in local migration only).
 - Auth check pattern (use this for all agent endpoints):
   ```typescript
   const supabase = createRouteHandlerClient<Database>({ cookies });

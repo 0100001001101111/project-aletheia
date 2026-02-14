@@ -17,6 +17,11 @@ export async function GET() {
   const supabase = await createClient();
 
   try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const statuses = await getSyncStatus(supabase);
 
     // Also get record counts by source

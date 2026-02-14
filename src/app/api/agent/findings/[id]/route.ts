@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 import { createAgentReadClient } from '@/lib/agent/supabase-admin';
 
 export async function GET(
@@ -11,11 +12,17 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { id } = await params;
-    const supabase = createAgentReadClient();
+    const agentClient = createAgentReadClient();
 
     // Get the finding with related hypothesis
-    const { data: finding, error } = await supabase
+    const { data: finding, error } = await agentClient
       .from('aletheia_agent_findings')
       .select(`
         *,

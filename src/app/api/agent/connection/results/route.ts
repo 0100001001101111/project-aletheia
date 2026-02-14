@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase-server';
 import { getMappings } from '@/lib/agent/connection/variable-mapper';
 import { getCorrelations } from '@/lib/agent/connection/correlation-finder';
 import { getKeelTests } from '@/lib/agent/connection/keel-tester';
@@ -11,6 +12,12 @@ import { getWitnessProfiles } from '@/lib/agent/connection/witness-clusterer';
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // mappings, correlations, keel, profiles
     const sessionId = searchParams.get('session_id') || undefined;

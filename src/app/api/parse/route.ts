@@ -9,6 +9,7 @@ import { generateParsePrompt, parseLLMResponse } from '@/lib/parser';
 import { validateData, formatZodErrors } from '@/schemas';
 import { calculateTriageScore } from '@/lib/triage';
 import { checkRateLimit, getClientId, RATE_LIMITS, rateLimitResponse } from '@/lib/rate-limit';
+import { createClient } from '@/lib/supabase-server';
 import type { InvestigationType } from '@/types/database';
 
 const anthropic = new Anthropic();
@@ -19,6 +20,12 @@ export async function POST(request: NextRequest) {
   const rateLimit = checkRateLimit(`parse:${clientId}`, RATE_LIMITS.AI_GENERATION);
   if (!rateLimit.success) {
     return rateLimitResponse(rateLimit);
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
   try {
