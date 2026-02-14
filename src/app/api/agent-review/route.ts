@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from('aletheia_agent_findings')
-      .select('id, title, display_title, summary, confidence, review_status, destination_type, destination_status, agent_id, created_at, rejection_reason, technical_details, supporting_tests, suggested_prediction');
+      .select('id, title, display_title, summary, confidence, review_status, destination_type, destination_status, agent_id, created_at, rejection_reason, technical_details, supporting_tests, suggested_prediction')
+      .eq('finding_type', 'research');
 
     if (agent) query = query.eq('agent_id', agent);
     if (minConfidence) query = query.gte('confidence', parseFloat(minConfidence));
@@ -42,7 +43,8 @@ export async function GET(req: NextRequest) {
     // Count with same filters
     let countQuery = supabase
       .from('aletheia_agent_findings')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true })
+      .eq('finding_type', 'research');
 
     if (agent) countQuery = countQuery.eq('agent_id', agent);
     if (minConfidence) countQuery = countQuery.gte('confidence', parseFloat(minConfidence));

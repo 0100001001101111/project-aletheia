@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
         technical_details,
         agent_id
       `)
+      .eq('finding_type', 'research')
       .order('created_at', { ascending: false });
 
     // Apply agent_id filter if specified
@@ -120,7 +121,8 @@ export async function GET(request: NextRequest) {
     // Get counts - use destination_status for approved count
     let countsQuery = agentClient
       .from('aletheia_agent_findings')
-      .select('review_status, destination_status, title, agent_id');
+      .select('review_status, destination_status, title, agent_id')
+      .eq('finding_type', 'research');
 
     // Apply same agent_id filter to counts
     if (agentId) {

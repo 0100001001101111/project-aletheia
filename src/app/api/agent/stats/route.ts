@@ -27,7 +27,7 @@ export async function GET() {
     // Fetch all findings (agent_id, title, confidence, review_status, created_at)
     const { data: findings, error } = await agentClient
       .from('aletheia_agent_findings')
-      .select('id, agent_id, title, display_title, confidence, review_status, created_at')
+      .select('id, agent_id, title, display_title, confidence, review_status, finding_type, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -41,7 +41,7 @@ export async function GET() {
 
     // Total and pending counts
     const totalFindings = rows.length;
-    const pendingReview = rows.filter(f => f.review_status === 'pending').length;
+    const pendingReview = rows.filter(f => f.review_status === 'pending' && f.finding_type !== 'housekeeping').length;
 
     // Agents active in last 24h
     const activeAgentIds = new Set<string>();

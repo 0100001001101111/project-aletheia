@@ -145,7 +145,7 @@ export default function AgentHubPage() {
           {/* ── Header ─────────────────────────────────── */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-zinc-100">Research Agent Network</h1>
-            <p className="text-zinc-400 mt-1">20 autonomous agents surveying 14 research domains</p>
+            <p className="text-zinc-400 mt-1">24 autonomous agents surveying 16 research domains</p>
           </div>
 
           {/* ── Stats Row ──────────────────────────────── */}
