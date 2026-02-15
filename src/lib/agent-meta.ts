@@ -33,6 +33,9 @@ export const AGENT_META: Record<string, AgentMeta> = {
   gaia: { name: 'Gaia', description: 'Earth sciences and environmental data', badge: 'bg-emerald-600/15 text-emerald-300', dot: 'bg-emerald-600' },
   poseidon: { name: 'Poseidon', description: 'Ocean and water-related research', badge: 'bg-blue-600/15 text-blue-300', dot: 'bg-blue-600' },
   asclepius: { name: 'Asclepius', description: 'Medical and physiological research', badge: 'bg-rose-600/15 text-rose-300', dot: 'bg-rose-600' },
+  aether: { name: 'Aether', description: 'Atmospheric and upper-atmosphere phenomena', badge: 'bg-sky-600/15 text-sky-300', dot: 'bg-sky-600' },
+  phaethon: { name: 'Phaethon', description: 'UFO/UAP sighting analysis and correlation', badge: 'bg-amber-500/15 text-amber-300', dot: 'bg-amber-500' },
+  publisher: { name: 'Publisher', description: 'Approved findings to public reports', badge: 'bg-lime-600/15 text-lime-300', dot: 'bg-lime-600' },
 };
 
 const FALLBACK: AgentMeta = { name: 'Unknown', description: '', badge: 'bg-zinc-500/15 text-zinc-400', dot: 'bg-zinc-500' };
