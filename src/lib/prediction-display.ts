@@ -12,6 +12,38 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
   const h = hypothesis.toLowerCase();
   const primaryDomain = domains[0] || '';
 
+  // Plant intelligence / psi — MUST come before NDE checks because plant
+  // predictions mention "NDE" in passing and would otherwise get caught
+  // by the NDE catch-all matchers
+  if (h.includes('plant') && (h.includes('bioelectric') || h.includes('backster') || h.includes('psi'))) {
+    if (h.includes('protocol') || h.includes('faraday') || h.includes('triple-blind')) {
+      return {
+        title: "Can human intention affect plants from a distance?",
+        subtitle: "Rigorous protocol to test plant bioelectric response to focused attention"
+      };
+    }
+    return {
+      title: "Do plants respond to human proximity and intention?",
+      subtitle: "Research questions for plant bioelectric signaling and psi effects"
+    };
+  }
+
+  // Plant intelligence general
+  if (h.includes('plant') && (h.includes('habituation') || h.includes('signal') || h.includes('mimosa'))) {
+    return {
+      title: "Can plants learn and communicate?",
+      subtitle: "Testing plant memory, signaling, and inter-species communication"
+    };
+  }
+
+  // Plant intelligence — broad catch (e.g. "plant intelligence studies")
+  if (h.includes('plant intelligence') || (h.includes('plant') && h.includes('research question'))) {
+    return {
+      title: "What can plants actually sense and remember?",
+      subtitle: "Testable research questions for plant cognition and signaling"
+    };
+  }
+
   // Crisis apparition timing/clustering
   if (h.includes('crisis') && (h.includes('timing') || h.includes('temporal') || h.includes('cluster') || h.includes('12 hour'))) {
     return {
@@ -108,12 +140,18 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     };
   }
 
-  // NDE - seasonal/winter/summer patterns
+  // NDE - seasonal testing with specific controls (latitude, holiday, medical)
   if ((h.includes('nde') || h.includes('near-death')) && (h.includes('season') || h.includes('winter') || h.includes('summer') || h.includes('spring'))) {
-    if (h.includes('latitude') || h.includes('holiday') || h.includes('test')) {
+    if (h.includes('mortality normalization') || h.includes('latitude gradient') || h.includes('holiday clustering')) {
       return {
-        title: "Can we explain the seasonal pattern in near-death experiences?",
-        subtitle: "Testing latitude, holiday stress, and melatonin hypotheses"
+        title: "Can latitude and holidays explain when NDEs happen?",
+        subtitle: "Testing mortality normalization, latitude gradients, and holiday stress controls"
+      };
+    }
+    if (h.includes('melatonin') || h.includes('mechanism 1') || h.includes('psychological stress')) {
+      return {
+        title: "Why do near-death experiences peak in winter and summer?",
+        subtitle: "Testing melatonin modulation, mortality seasonality, and psychological stress mechanisms"
       };
     }
     return {
@@ -351,28 +389,6 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     return {
       title: "Does Earth's magnetic field influence anomalous reports?",
       subtitle: "Testing correlations between geomagnetic conditions and anomaly frequency"
-    };
-  }
-
-  // Plant intelligence / psi
-  if (h.includes('plant') && (h.includes('bioelectric') || h.includes('backster') || h.includes('psi'))) {
-    if (h.includes('protocol') || h.includes('faraday') || h.includes('triple-blind')) {
-      return {
-        title: "Can human intention affect plants from a distance?",
-        subtitle: "Rigorous protocol to test plant bioelectric response to focused attention"
-      };
-    }
-    return {
-      title: "Do plants respond to human proximity and intention?",
-      subtitle: "Research questions for plant bioelectric signaling and psi effects"
-    };
-  }
-
-  // Plant intelligence general
-  if (h.includes('plant') && (h.includes('habituation') || h.includes('signal') || h.includes('mimosa'))) {
-    return {
-      title: "Can plants learn and communicate?",
-      subtitle: "Testing plant memory, signaling, and inter-species communication"
     };
   }
 
