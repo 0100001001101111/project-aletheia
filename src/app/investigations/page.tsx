@@ -83,6 +83,12 @@ function InvestigationsPage() {
   const [researchCount, setResearchCount] = useState(0);
   const [exploratoryCount, setExploratoryCount] = useState(0);
 
+  // Exploratory aggregate view
+  type ExploratoryView = 'summary' | 'table';
+  const [exploratoryView, setExploratoryView] = useState<ExploratoryView>('summary');
+  const [aggregateData, setAggregateData] = useState<Array<{ type: string; count: number; earliest: string; latest: string }>>([]);
+  const [aggregateLoading, setAggregateLoading] = useState(false);
+
   // Filters
   const [filterType, setFilterType] = useState<InvestigationType | 'all'>(
     (searchParams.get('type') as InvestigationType) || 'all'
@@ -134,6 +140,19 @@ function InvestigationsPage() {
 
     fetchInvestigations();
   }, [filterType, filterStatus, sortField, sortOrder, page, tier]);
+
+  // Fetch aggregate data for exploratory summary view
+  useEffect(() => {
+    if (tier !== 'exploratory' || exploratoryView !== 'summary') return;
+    setAggregateLoading(true);
+    fetch('/api/submissions/aggregate')
+      .then(res => res.json())
+      .then(data => {
+        setAggregateData(data.data || []);
+      })
+      .catch(err => console.error('Aggregate fetch error:', err))
+      .finally(() => setAggregateLoading(false));
+  }, [tier, exploratoryView]);
 
   // Client-side search filter
   const filteredInvestigations = useMemo(() => {
@@ -240,6 +259,7 @@ function InvestigationsPage() {
                 setTier('exploratory');
                 setFilterType('all');
                 setPage(0);
+                setExploratoryView('summary');
                 router.push('/investigations?tier=exploratory', { scroll: false });
               }}
               className={`relative px-6 py-4 text-sm font-medium transition-colors ${
@@ -385,9 +405,95 @@ function InvestigationsPage() {
         </div>
       )}
 
+      {/* Exploratory Summary View */}
+      {viewMode === 'list' && tier === 'exploratory' && exploratoryView === 'summary' && (
+        <main className="mx-auto max-w-7xl px-4 py-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-zinc-100">Domain Breakdown</h2>
+            <div className="flex items-center gap-3">
+              <a
+                href="/anomaly-map"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg hover:from-violet-500 hover:to-purple-500 transition-all"
+              >
+                <span>🗺️</span>
+                View Map
+              </a>
+              <button
+                onClick={() => setExploratoryView('table')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 border border-zinc-700"
+              >
+                Browse Individual Reports
+              </button>
+            </div>
+          </div>
+
+          {aggregateLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {aggregateData.sort((a, b) => b.count - a.count).map((group) => {
+                const meta = SCHEMA_METADATA[group.type as InvestigationType] || { name: group.type, icon: '❓', color: 'text-zinc-400' };
+                const earliest = new Date(group.earliest).toLocaleDateString();
+                const latest = new Date(group.latest).toLocaleDateString();
+                return (
+                  <div
+                    key={group.type}
+                    onClick={() => {
+                      setFilterType(group.type as InvestigationType);
+                      setExploratoryView('table');
+                    }}
+                    className="p-5 rounded-xl bg-dark-card border border-amber-500/20 hover:border-amber-500/40 transition-all cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="text-2xl">{meta.icon}</span>
+                      <div>
+                        <div className="text-2xl font-bold text-amber-400">{group.count.toLocaleString()}</div>
+                        <div className="text-zinc-300 font-medium">{meta.name}</div>
+                      </div>
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      {earliest} — {latest}
+                    </div>
+                  </div>
+                );
+              })}
+              {aggregateData.length === 0 && (
+                <div className="col-span-full text-center py-8 text-zinc-500">
+                  No exploratory data found.
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="mt-6 p-4 rounded-lg border border-zinc-700/50 bg-zinc-900/30 text-sm text-zinc-500">
+            Total: {exploratoryCount.toLocaleString()} bulk-imported sighting records for pattern detection.
+            Click a domain card to browse individual reports.
+          </div>
+        </main>
+      )}
+
       {/* List View */}
-      {viewMode === 'list' && (
+      {viewMode === 'list' && !(tier === 'exploratory' && exploratoryView === 'summary') && (
         <>
+      {/* Back to Summary for exploratory table view */}
+      {tier === 'exploratory' && exploratoryView === 'table' && (
+        <div className="border-b border-amber-500/20 bg-amber-900/5">
+          <div className="mx-auto max-w-7xl px-4 py-3 flex items-center gap-3">
+            <button
+              onClick={() => { setExploratoryView('summary'); setFilterType('all'); setPage(0); }}
+              className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Summary
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Domain Filter Chips - Prominent */}
       <div className="border-b border-zinc-800 bg-zinc-900/50">
         <div className="mx-auto max-w-7xl px-4 py-5">

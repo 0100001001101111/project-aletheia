@@ -54,11 +54,19 @@ function getConfidenceBadge(score: number): { bg: string; text: string; label: s
   return { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Low' };
 }
 
+interface PatternGroup {
+  displayTitle: string;
+  displaySubtitle: string;
+  primary: DetectedPattern;
+  similar: DetectedPattern[];
+}
+
 export function PatternList({ patterns, onPatternClick }: PatternListProps) {
   const [filterDomain, setFilterDomain] = useState<InvestigationType | 'all'>('all');
   const [sortField, setSortField] = useState<SortField>('confidence');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [searchQuery, setSearchQuery] = useState('');
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   const filteredPatterns = useMemo(() => {
     let result = [...patterns];
@@ -114,6 +122,38 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
 
     return result;
   }, [patterns, filterDomain, sortField, sortOrder, searchQuery]);
+
+  // Group patterns with identical display titles
+  const groupedPatterns = useMemo(() => {
+    const groups = new Map<string, PatternGroup>();
+    for (const pattern of filteredPatterns) {
+      const dt = generatePatternDisplayTitle(pattern.description, pattern.variable, pattern.domains);
+      const key = dt.title;
+      const existing = groups.get(key);
+      if (!existing) {
+        groups.set(key, { displayTitle: dt.title, displaySubtitle: dt.subtitle, primary: pattern, similar: [] });
+      } else {
+        // Keep highest confidence as primary
+        if (pattern.confidenceScore > existing.primary.confidenceScore) {
+          existing.similar.push(existing.primary);
+          existing.primary = pattern;
+          existing.displaySubtitle = dt.subtitle;
+        } else {
+          existing.similar.push(pattern);
+        }
+      }
+    }
+    return Array.from(groups.values());
+  }, [filteredPatterns]);
+
+  const toggleGroup = (title: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  };
 
   const domains: (InvestigationType | 'all')[] = [
     'all',
@@ -204,6 +244,9 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
       {/* Results count */}
       <div className="text-sm text-zinc-500">
         {filteredPatterns.length} pattern{filteredPatterns.length !== 1 ? 's' : ''} found
+        {groupedPatterns.length < filteredPatterns.length && (
+          <span> ({groupedPatterns.length} unique)</span>
+        )}
         {filterDomain !== 'all' && (
           <span>
             {' '}in{' '}
@@ -215,7 +258,7 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
       </div>
 
       {/* Pattern table */}
-      {filteredPatterns.length > 0 ? (
+      {groupedPatterns.length > 0 ? (
         <div className="overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900/50">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -236,74 +279,22 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-700/50">
-                {filteredPatterns.map((pattern) => {
+                {groupedPatterns.map((group) => {
+                  const pattern = group.primary;
                   const confidenceBadge = getConfidenceBadge(pattern.confidenceScore);
+                  const hasSimilar = group.similar.length > 0;
+                  const isExpanded = expandedGroups.has(group.displayTitle);
 
                   return (
-                    <tr
-                      key={`${pattern.variable}-${pattern.domains.join('-')}`}
-                      onClick={onPatternClick ? () => onPatternClick(pattern) : undefined}
-                      className={`transition-colors ${
-                        onPatternClick
-                          ? 'cursor-pointer hover:bg-zinc-800/50'
-                          : ''
-                      }`}
-                    >
-                      {/* Pattern column */}
-                      <td className="px-4 py-4">
-                        {(() => {
-                          const displayTitle = generatePatternDisplayTitle(pattern.description, pattern.variable, pattern.domains);
-                          return (
-                            <div className="max-w-xs">
-                              <p className="font-medium text-zinc-100 line-clamp-2">
-                                {displayTitle.title}
-                              </p>
-                              <p className="mt-1 text-xs text-zinc-500">
-                                {displayTitle.subtitle}
-                              </p>
-                            </div>
-                          );
-                        })()}
-                      </td>
-
-                      {/* Domains column */}
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap gap-1.5">
-                          {pattern.domains.map((domain) => {
-                            const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
-                            return (
-                              <span
-                                key={domain}
-                                className={`flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs ${meta.color}`}
-                                title={meta.name}
-                              >
-                                <span>{meta.icon}</span>
-                                <span className="hidden sm:inline">{meta.name.split(' ')[0]}</span>
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </td>
-
-                      {/* Confidence column */}
-                      <td className="px-4 py-4 text-center">
-                        <div className="inline-flex flex-col items-center">
-                          <span className={`rounded-full px-2.5 py-1 text-sm font-semibold ${confidenceBadge.bg} ${confidenceBadge.text}`}>
-                            {(pattern.confidenceScore * 100).toFixed(0)}%
-                          </span>
-                          <span className={`mt-1 text-xs ${confidenceBadge.text}`}>
-                            {confidenceBadge.label}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* What It Means column */}
-                      <td className="px-4 py-4">
-                        <p className="max-w-sm text-sm text-zinc-300 leading-relaxed">
-                          {getWhatItMeans(pattern)}
-                        </p>
-                      </td>
-                    </tr>
+                    <PatternGroupRows
+                      key={`${pattern.variable}-${pattern.domains.join('-')}-${pattern.confidenceScore}`}
+                      group={group}
+                      confidenceBadge={confidenceBadge}
+                      hasSimilar={hasSimilar}
+                      isExpanded={isExpanded}
+                      onToggle={() => toggleGroup(group.displayTitle)}
+                      onPatternClick={onPatternClick}
+                    />
                   );
                 })}
               </tbody>
@@ -324,5 +315,120 @@ export function PatternList({ patterns, onPatternClick }: PatternListProps) {
         </div>
       )}
     </div>
+  );
+}
+
+// Renders the primary row + optional expandable similar rows
+function PatternGroupRows({
+  group,
+  confidenceBadge,
+  hasSimilar,
+  isExpanded,
+  onToggle,
+  onPatternClick,
+}: {
+  group: PatternGroup;
+  confidenceBadge: { bg: string; text: string; label: string };
+  hasSimilar: boolean;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onPatternClick?: (pattern: DetectedPattern) => void;
+}) {
+  const pattern = group.primary;
+
+  return (
+    <>
+      <tr
+        onClick={onPatternClick ? () => onPatternClick(pattern) : undefined}
+        className={`transition-colors ${onPatternClick ? 'cursor-pointer hover:bg-zinc-800/50' : ''}`}
+      >
+        <td className="px-4 py-4">
+          <div className="max-w-xs">
+            <p className="font-medium text-zinc-100 line-clamp-2">
+              {group.displayTitle}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {group.displaySubtitle}
+            </p>
+            {hasSimilar && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                className="mt-1.5 text-xs text-violet-400 hover:text-violet-300"
+              >
+                {isExpanded ? 'Hide' : `+${group.similar.length} similar pattern${group.similar.length > 1 ? 's' : ''}`}
+              </button>
+            )}
+          </div>
+        </td>
+        <td className="px-4 py-4">
+          <div className="flex flex-wrap gap-1.5">
+            {pattern.domains.map((domain) => {
+              const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
+              return (
+                <span
+                  key={domain}
+                  className={`flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs ${meta.color}`}
+                  title={meta.name}
+                >
+                  <span>{meta.icon}</span>
+                  <span className="hidden sm:inline">{meta.name.split(' ')[0]}</span>
+                </span>
+              );
+            })}
+          </div>
+        </td>
+        <td className="px-4 py-4 text-center">
+          <div className="inline-flex flex-col items-center">
+            <span className={`rounded-full px-2.5 py-1 text-sm font-semibold ${confidenceBadge.bg} ${confidenceBadge.text}`}>
+              {(pattern.confidenceScore * 100).toFixed(0)}%
+            </span>
+            <span className={`mt-1 text-xs ${confidenceBadge.text}`}>
+              {confidenceBadge.label}
+            </span>
+          </div>
+        </td>
+        <td className="px-4 py-4">
+          <p className="max-w-sm text-sm text-zinc-300 leading-relaxed">
+            {getWhatItMeans(pattern)}
+          </p>
+        </td>
+      </tr>
+      {hasSimilar && isExpanded && group.similar.map((sim) => {
+        const simBadge = getConfidenceBadge(sim.confidenceScore);
+        return (
+          <tr
+            key={`${sim.variable}-${sim.domains.join('-')}-${sim.confidenceScore}`}
+            onClick={onPatternClick ? () => onPatternClick(sim) : undefined}
+            className={`bg-zinc-900/30 transition-colors ${onPatternClick ? 'cursor-pointer hover:bg-zinc-800/50' : ''}`}
+          >
+            <td className="px-4 py-3 pl-8">
+              <p className="text-sm text-zinc-400 line-clamp-2">
+                {sim.description.length > 80 ? sim.description.substring(0, 80) + '...' : sim.description}
+              </p>
+            </td>
+            <td className="px-4 py-3">
+              <div className="flex flex-wrap gap-1.5">
+                {sim.domains.map((domain) => {
+                  const meta = SCHEMA_METADATA[domain] || { name: domain, icon: '❓', color: 'text-zinc-400' };
+                  return (
+                    <span key={domain} className="text-xs" title={meta.name}>{meta.icon}</span>
+                  );
+                })}
+              </div>
+            </td>
+            <td className="px-4 py-3 text-center">
+              <span className={`rounded-full px-2 py-0.5 text-xs ${simBadge.bg} ${simBadge.text}`}>
+                {(sim.confidenceScore * 100).toFixed(0)}%
+              </span>
+            </td>
+            <td className="px-4 py-3">
+              <p className="max-w-sm text-xs text-zinc-500 leading-relaxed">
+                {getWhatItMeans(sim)}
+              </p>
+            </td>
+          </tr>
+        );
+      })}
+    </>
   );
 }

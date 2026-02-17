@@ -2,7 +2,7 @@
 
 /**
  * Agent Hub — Research Agent Network
- * 3-tier dashboard: Coordinator → Specialists → Scouts
+ * 4-tier dashboard: Coordinator → Core Pipeline → Specialists → Publishing & Oversight
  * Single fetch from /api/agent/stats drives the entire page
  */
 
@@ -24,32 +24,43 @@ const COORDINATOR: AgentDef = {
   id: 'argus',
   name: 'Argus',
   role: 'Coordinator',
-  description: 'Orchestrates all 20 agents. Reads cross-domain findings, assigns specialist tasks, identifies connections between domains.',
+  description: 'Orchestrates all 25 agents. Reads cross-domain findings, assigns specialist tasks, identifies connections between domains.',
 };
 
-const SPECIALISTS: AgentDef[] = [
+const CORE_PIPELINE: AgentDef[] = [
   { id: 'deep-miner', name: 'Deep Miner', role: 'Statistical Analysis', description: 'Rigorous statistical validation across any dataset' },
   { id: 'discovery', name: 'Discovery', role: 'Literature Search', description: 'Finds papers, datasets, and prior work in any field' },
   { id: 'connection', name: 'Connection', role: 'Cross-Domain Patterns', description: 'Identifies links between findings from different domains' },
   { id: 'mechanism', name: 'Mechanism', role: 'Theory Testing', description: 'Tests causal mechanisms behind observed correlations' },
   { id: 'synthesis', name: 'Synthesis', role: 'Report Generation', description: 'Combines multiple findings into coherent research reports' },
+  { id: 'skeptic', name: 'Skeptic', role: 'Adversarial Auditing', description: 'Challenges findings and tests for biases and methodological flaws' },
 ];
 
-const SCOUTS: AgentDef[] = [
-  { id: 'flora', name: 'Flora', domain: 'Plant Intelligence' },
+const SPECIALIST_AGENTS: AgentDef[] = [
   { id: 'helios', name: 'Helios', domain: 'Space & Physics' },
-  { id: 'methuselah', name: 'Methuselah', domain: 'Longevity' },
-  { id: 'vulcan', name: 'Vulcan', domain: 'Materials Science' },
-  { id: 'asclepius', name: 'Asclepius', domain: 'Drug Repurposing' },
-  { id: 'gaia', name: 'Gaia', domain: 'Ecology' },
-  { id: 'poseidon', name: 'Poseidon', domain: 'Oceans' },
-  { id: 'chronos', name: 'Chronos', domain: 'Historical Patterns' },
-  { id: 'daedalus', name: 'Daedalus', domain: 'Aviation Safety' },
-  { id: 'hypnos', name: 'Hypnos', domain: 'Sleep & Dreams' },
-  { id: 'mnemosyne', name: 'Mnemosyne', domain: 'Memory & Cognition' },
-  { id: 'hermes', name: 'Hermes', domain: 'Prediction Accuracy' },
+  { id: 'gaia', name: 'Gaia', domain: 'Earthquakes & Geology' },
+  { id: 'poseidon', name: 'Poseidon', domain: 'Ocean Data & Marine Patterns' },
+  { id: 'methuselah', name: 'Methuselah', domain: 'Longevity Research' },
   { id: 'thoth', name: 'Thoth', domain: 'Ancient Languages' },
-  { id: 'orpheus', name: 'Orpheus', domain: 'Music & Audio Therapy' },
+  { id: 'daedalus', name: 'Daedalus', domain: 'Dataset Acquisition' },
+  { id: 'chronos', name: 'Chronos', domain: 'Temporal Analysis' },
+  { id: 'flora', name: 'Flora', domain: 'Plant Intelligence' },
+  { id: 'hypnos', name: 'Hypnos', domain: 'Sleep & Dreams' },
+  { id: 'mnemosyne', name: 'Mnemosyne', domain: 'Memory Research' },
+  { id: 'phaethon', name: 'Phaethon', domain: 'UFO/UAP Research' },
+  { id: 'aether', name: 'Aether', domain: 'Physics Anomalies' },
+  { id: 'asclepius', name: 'Asclepius', domain: 'Medical Research' },
+  { id: 'orpheus', name: 'Orpheus', domain: 'Music & Acoustics' },
+];
+
+const PUBLISHING_OVERSIGHT: AgentDef[] = [
+  { id: 'publisher', name: 'Publisher', role: 'Preprint Drafting', description: 'Drafts research preprints from accumulated findings' },
+  { id: 'hermes', name: 'Hermes', role: 'Communications & Outreach', description: 'Manages external communications and research summaries' },
+  { id: 'themis', name: 'Themis', role: 'Bias Monitoring', description: 'Monitors for systematic biases across the research pipeline' },
+];
+
+const INACTIVE_AGENTS: AgentDef[] = [
+  { id: 'vulcan', name: 'Vulcan', domain: 'Materials Science' },
 ];
 
 // ─── Types ───────────────────────────────────────────────────
@@ -145,7 +156,7 @@ export default function AgentHubPage() {
           {/* ── Header ─────────────────────────────────── */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-zinc-100">Research Agent Network</h1>
-            <p className="text-zinc-400 mt-1">24 autonomous agents surveying 16 research domains</p>
+            <p className="text-zinc-400 mt-1">25 autonomous agents across 6 research domains</p>
           </div>
 
           {/* ── Stats Row ──────────────────────────────── */}
@@ -231,12 +242,12 @@ export default function AgentHubPage() {
             </div>
           </section>
 
-          {/* ── Specialists ────────────────────────────── */}
+          {/* ── Core Pipeline ──────────────────────────── */}
           <section className="mb-10">
-            <h2 className="text-lg font-semibold text-zinc-300 uppercase tracking-wider mb-1">Specialists — Cross-Domain Analysis</h2>
-            <p className="text-sm text-zinc-500 mb-4">Domain-agnostic agents that perform deep analysis on any research area</p>
+            <h2 className="text-lg font-semibold text-zinc-300 uppercase tracking-wider mb-1">Core Pipeline</h2>
+            <p className="text-sm text-zinc-500 mb-4">Work on findings across all domains — analysis, validation, and reporting</p>
             <div className="grid md:grid-cols-3 gap-4">
-              {SPECIALISTS.map((agent) => {
+              {CORE_PIPELINE.map((agent) => {
                 const s = getStat(agent.id);
                 return (
                   <div key={agent.id} className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
@@ -256,12 +267,12 @@ export default function AgentHubPage() {
             </div>
           </section>
 
-          {/* ── Scouts ─────────────────────────────────── */}
+          {/* ── Specialist Agents ──────────────────────── */}
           <section className="mb-10">
-            <h2 className="text-lg font-semibold text-zinc-300 uppercase tracking-wider mb-1">Domain Scouts — 14 Research Domains</h2>
-            <p className="text-sm text-zinc-500 mb-4">Lightweight researchers that survey their domain for interesting data and patterns</p>
+            <h2 className="text-lg font-semibold text-zinc-300 uppercase tracking-wider mb-1">Specialist Agents</h2>
+            <p className="text-sm text-zinc-500 mb-4">Domain-specific research across 14 areas</p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {SCOUTS.map((agent) => {
+              {SPECIALIST_AGENTS.map((agent) => {
                 const s = getStat(agent.id);
                 return (
                   <div key={agent.id} className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg">
@@ -282,6 +293,49 @@ export default function AgentHubPage() {
               })}
             </div>
           </section>
+
+          {/* ── Publishing & Oversight ─────────────────── */}
+          <section className="mb-10">
+            <h2 className="text-lg font-semibold text-zinc-300 uppercase tracking-wider mb-1">Publishing & Oversight</h2>
+            <p className="text-sm text-zinc-500 mb-4">Quality assurance, publication, and external communication</p>
+            <div className="grid md:grid-cols-3 gap-4">
+              {PUBLISHING_OVERSIGHT.map((agent) => {
+                const s = getStat(agent.id);
+                return (
+                  <div key={agent.id} className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium text-zinc-100">{agent.name}</span>
+                      <span className={`w-2 h-2 rounded-full ${activityDot(s.last_active)}`} />
+                    </div>
+                    <span className="text-xs text-zinc-500">{agent.role}</span>
+                    <p className="text-sm text-zinc-400 mt-2">{agent.description}</p>
+                    <div className="flex gap-4 mt-3 text-xs text-zinc-500">
+                      <span>{s.findings_count} findings</span>
+                      <span>{relativeTime(s.last_active)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* ── Inactive ───────────────────────────────── */}
+          {INACTIVE_AGENTS.length > 0 && (
+            <section className="mb-10">
+              <h2 className="text-lg font-semibold text-zinc-600 uppercase tracking-wider mb-1">Inactive</h2>
+              <p className="text-sm text-zinc-600 mb-4">Configured but not yet producing findings</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {INACTIVE_AGENTS.map((agent) => (
+                  <div key={agent.id} className="p-3 bg-zinc-900/30 border border-zinc-800/50 rounded-lg opacity-50">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-zinc-400 text-sm">{agent.name}</span>
+                    </div>
+                    <span className="text-xs text-zinc-600">{agent.domain}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
         </div>
       </main>

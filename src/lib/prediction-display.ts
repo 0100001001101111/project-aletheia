@@ -52,6 +52,14 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     };
   }
 
+  // Ganzfeld replication / hit rate
+  if (h.includes('ganzfeld') && (h.includes('replication') || h.includes('100+ trials') || h.includes('hit rate significantly'))) {
+    return {
+      title: "Does the Ganzfeld telepathy effect hold up in a large replication?",
+      subtitle: "Testing whether 100+ trials reproduce the 30-35% hit rate"
+    };
+  }
+
   // Ganzfeld general
   if (primaryDomain === 'ganzfeld' || h.includes('ganzfeld')) {
     return {
@@ -97,6 +105,36 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     return {
       title: "Can people see things during cardiac arrest that they shouldn't be able to?",
       subtitle: "Testing whether NDE perceptions contain verifiable details"
+    };
+  }
+
+  // NDE - seasonal/winter/summer patterns
+  if ((h.includes('nde') || h.includes('near-death')) && (h.includes('season') || h.includes('winter') || h.includes('summer') || h.includes('spring'))) {
+    if (h.includes('latitude') || h.includes('holiday') || h.includes('test')) {
+      return {
+        title: "Can we explain the seasonal pattern in near-death experiences?",
+        subtitle: "Testing latitude, holiday stress, and melatonin hypotheses"
+      };
+    }
+    return {
+      title: "Do near-death experiences follow seasonal patterns?",
+      subtitle: "Analyzing winter/summer peaks and spring depression in NDE reports"
+    };
+  }
+
+  // NDE - cross-cultural
+  if ((h.includes('nde') || h.includes('near-death')) && (h.includes('cross-cultural') || h.includes('culture'))) {
+    return {
+      title: "Do near-death experiences look the same across cultures?",
+      subtitle: "Cross-cultural comparison of NDE features and commonalities"
+    };
+  }
+
+  // NDE - Greyson Scale
+  if ((h.includes('nde') || h.includes('near-death')) && h.includes('greyson')) {
+    return {
+      title: "How deep do near-death experiences go?",
+      subtitle: "Greyson Scale depth analysis of NDE intensity patterns"
     };
   }
 
@@ -148,6 +186,22 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     };
   }
 
+  // UFO - EM interference / geomagnetic
+  if ((h.includes('ufo') || h.includes('uap')) && (h.includes('em interference') || h.includes('electromagnetic') || (h.includes('kp') && h.includes('geomagnetic')))) {
+    return {
+      title: "Do UFO sightings cause more EM interference during solar storms?",
+      subtitle: "Testing whether geomagnetic activity correlates with EM effects in UAP reports"
+    };
+  }
+
+  // UFO - piezoelectric / geology
+  if ((h.includes('ufo') || h.includes('uap')) && (h.includes('piezoelectric') || h.includes('granite') || h.includes('bedrock'))) {
+    return {
+      title: "Does local geology affect physical symptoms during UFO sightings?",
+      subtitle: "Testing whether piezoelectric bedrock reduces reported physiological effects"
+    };
+  }
+
   // UFO general
   if (primaryDomain === 'ufo' || h.includes('ufo') || h.includes('uap')) {
     return {
@@ -161,6 +215,22 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     return {
       title: "Where are Bigfoot sightings most common?",
       subtitle: "Mapping sightings against terrain and habitat types"
+    };
+  }
+
+  // Bigfoot - density near hotspots
+  if (h.includes('bigfoot') && (h.includes('hotspot') || h.includes('skinwalker') || h.includes('high-strangeness'))) {
+    return {
+      title: "Are Bigfoot sightings denser near known anomaly hotspots?",
+      subtitle: "Comparing sighting density near high-strangeness locations vs baseline terrain"
+    };
+  }
+
+  // Bigfoot - temporal clustering with UFO
+  if (h.includes('bigfoot') && h.includes('ufo') && (h.includes('temporal') || h.includes('30 day'))) {
+    return {
+      title: "Do Bigfoot and UFO sightings cluster together in time?",
+      subtitle: "Testing whether reports of both phenomena coincide within 30-day windows"
     };
   }
 
@@ -188,7 +258,23 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     };
   }
 
-  // Hotspot/window areas
+  // Multi-phenomenon hotspots - geological features
+  if ((h.includes('hotspot') || h.includes('multi-phenomenon')) && (h.includes('geological') || h.includes('fault') || h.includes('mineral'))) {
+    return {
+      title: "Do anomaly hotspots sit on special geology?",
+      subtitle: "Testing whether multi-phenomenon zones correlate with fault lines and minerals"
+    };
+  }
+
+  // Multi-phenomenon hotspots - specific location (San Diego etc)
+  if ((h.includes('hotspot') || h.includes('multi-phenomenon') || h.includes('zone')) && (h.includes('san diego') || h.includes('metro') || h.includes('continued'))) {
+    return {
+      title: "Do multi-phenomenon zones stay active over time?",
+      subtitle: "Testing whether known anomaly clusters maintain elevated activity"
+    };
+  }
+
+  // Hotspot/window areas general
   if (primaryDomain === 'hotspot' || h.includes('hotspot') || h.includes('window area')) {
     return {
       title: "Are some places just naturally weird?",
@@ -252,11 +338,41 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
     };
   }
 
-  // Geomagnetic effects
-  if (h.includes('geomagnetic') || h.includes('solar storm') || h.includes('magnetic field')) {
+  // Geomagnetic effects on psi (not UFO-specific)
+  if ((h.includes('geomagnetic') || h.includes('solar storm') || h.includes('magnetic field')) && (h.includes('ganzfeld') || h.includes('stargate') || h.includes('psi') || h.includes('hit rate'))) {
     return {
       title: "Does space weather affect psychic abilities?",
       subtitle: "Testing whether geomagnetic activity correlates with psi performance"
+    };
+  }
+
+  // Geomagnetic general
+  if (h.includes('geomagnetic') || h.includes('solar storm') || h.includes('magnetic field')) {
+    return {
+      title: "Does Earth's magnetic field influence anomalous reports?",
+      subtitle: "Testing correlations between geomagnetic conditions and anomaly frequency"
+    };
+  }
+
+  // Plant intelligence / psi
+  if (h.includes('plant') && (h.includes('bioelectric') || h.includes('backster') || h.includes('psi'))) {
+    if (h.includes('protocol') || h.includes('faraday') || h.includes('triple-blind')) {
+      return {
+        title: "Can human intention affect plants from a distance?",
+        subtitle: "Rigorous protocol to test plant bioelectric response to focused attention"
+      };
+    }
+    return {
+      title: "Do plants respond to human proximity and intention?",
+      subtitle: "Research questions for plant bioelectric signaling and psi effects"
+    };
+  }
+
+  // Plant intelligence general
+  if (h.includes('plant') && (h.includes('habituation') || h.includes('signal') || h.includes('mimosa'))) {
+    return {
+      title: "Can plants learn and communicate?",
+      subtitle: "Testing plant memory, signaling, and inter-species communication"
     };
   }
 

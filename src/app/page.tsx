@@ -7,90 +7,6 @@ import Link from 'next/link';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { Navigation } from '@/components/layout/Navigation';
 
-// Domain configuration
-const DOMAINS = [
-  {
-    id: 'nde',
-    name: 'NDE',
-    fullName: 'Near-Death Experiences',
-    description: 'Veridical perceptions during clinical death',
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    ),
-    color: 'cyan',
-    gradient: 'from-cyan-500 to-cyan-400',
-  },
-  {
-    id: 'ganzfeld',
-    name: 'Ganzfeld',
-    fullName: 'Psi Experiments',
-    description: 'Controlled telepathy and remote perception studies',
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-      </svg>
-    ),
-    color: 'purple',
-    gradient: 'from-purple-500 to-purple-400',
-  },
-  {
-    id: 'crisis_apparition',
-    name: 'Crisis',
-    fullName: 'Crisis Apparitions',
-    description: 'Spontaneous perception of distant death or danger',
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-      </svg>
-    ),
-    color: 'pink',
-    gradient: 'from-pink-500 to-pink-400',
-  },
-  {
-    id: 'stargate',
-    name: 'STARGATE',
-    fullName: 'Remote Viewing',
-    description: 'Declassified government remote perception research',
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-      </svg>
-    ),
-    color: 'orange',
-    gradient: 'from-orange-500 to-orange-400',
-  },
-  {
-    id: 'geophysical',
-    name: 'Geophysical',
-    fullName: 'Earth Anomalies',
-    description: 'Earthquake lights and environmental correlates',
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-    color: 'green',
-    gradient: 'from-green-500 to-green-400',
-  },
-  {
-    id: 'ufo',
-    name: 'UFO/UAP',
-    fullName: 'Unidentified Aerial Phenomena',
-    description: 'Aerial anomalies with witness reports and correlations',
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3c-4.97 0-9 2.686-9 6 0 2.21 2.015 4.134 5 5.197V17l2.5-2.5L13 17v-2.803c2.985-1.063 5-2.987 5-5.197 0-3.314-4.03-6-9-6z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 9h.01M15 9h.01M12 21v-4" />
-      </svg>
-    ),
-    color: 'rose',
-    gradient: 'from-rose-500 to-rose-400',
-  },
-];
-
 // Fetch stats from database
 async function getStats() {
   try {
@@ -186,88 +102,10 @@ async function getRecentActivity() {
   }
 }
 
-// Fetch predictions being tested
-async function getTestingPredictions() {
-  try {
-    const supabase = await createServerClient();
-
-    const { data } = await supabase
-      .from('aletheia_predictions')
-      .select('id, hypothesis, confidence_score, domains_involved')
-      .eq('status', 'testing')
-      .order('confidence_score', { ascending: false })
-      .limit(3) as { data: Array<{ id: string; hypothesis: string; confidence_score: number; domains_involved: string[] }> | null };
-
-    return data || [];
-  } catch {
-    return [];
-  }
-}
-
-// Helper to format relative time
-function getRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'just now';
-  if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-  return date.toLocaleDateString();
-}
-
-// Infer agent name from finding title/content
-function inferAgentFromTitle(title: string): string {
-  const lower = title.toLowerCase();
-  if (lower.includes('mechanism') || lower.includes('test design')) return 'Mechanism';
-  if (lower.includes('synthesis') || lower.includes('report')) return 'Synthesis';
-  if (lower.includes('connection') || lower.includes('cross-domain') || lower.includes('correlation')) return 'Connection';
-  if (lower.includes('discovery') || lower.includes('literature') || lower.includes('found') || lower.includes('located')) return 'Discovery';
-  if (lower.includes('ganzfeld') || lower.includes('nde') || lower.includes('seasonal') || lower.includes('survey')) return 'Deep Miner';
-  return 'Research';
-}
-
-// Fetch recent agent findings
-async function getRecentFindings() {
-  try {
-    const supabase = await createServerClient();
-    const { data } = await supabase
-      .from('aletheia_agent_findings')
-      .select('id, title, display_title, summary, confidence, created_at')
-      .order('created_at', { ascending: false })
-      .limit(5) as { data: Array<{ id: string; title: string; display_title: string | null; summary: string | null; confidence: number; created_at: string }> | null };
-    return data || [];
-  } catch {
-    return [];
-  }
-}
-
-// Fetch recent completed agent tasks
-async function getRecentAgentTasks() {
-  try {
-    const supabase = await createServerClient();
-    const { data } = await supabase
-      .from('aletheia_agent_tasks')
-      .select('id, title, assigned_to, status, updated_at')
-      .eq('status', 'done')
-      .order('updated_at', { ascending: false })
-      .limit(3) as { data: Array<{ id: string; title: string; assigned_to: string; status: string; updated_at: string }> | null };
-    return data || [];
-  } catch {
-    return [];
-  }
-}
 
 export default async function LandingPage() {
   const stats = await getStats();
   const activity = await getRecentActivity();
-  const testingPredictions = await getTestingPredictions();
-  const recentFindings = await getRecentFindings();
-  const recentAgentTasks = await getRecentAgentTasks();
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
@@ -481,68 +319,6 @@ export default async function LandingPage() {
       {/* Divider */}
       <div className="section-divider max-w-4xl mx-auto" />
 
-      {/* ==================== LIVE RESEARCH ==================== */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#0a0a0f] to-[#0d0d14]">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Live Research</h2>
-            <p className="text-3xl sm:text-4xl font-bold text-zinc-100 mb-4">
-              AI Agents <span className="gradient-text">at Work</span>
-            </p>
-            <p className="text-zinc-400 max-w-2xl mx-auto">
-              Autonomous research agents continuously analyze our database, identify patterns, test hypotheses, and produce findings. Here&apos;s what they&apos;ve found recently.
-            </p>
-          </div>
-
-          {/* Recent Findings Feed */}
-          <div className="space-y-4">
-            {recentFindings.length > 0 ? (
-              recentFindings.map((finding) => {
-                const agentName = inferAgentFromTitle(finding.title || '');
-                const summaryLine = (finding.summary || '').split('\n')[0].replace(/^#+ /, '').slice(0, 120);
-                return (
-                  <div
-                    key={finding.id}
-                    className="p-4 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-zinc-100 font-medium mb-1 line-clamp-1">
-                          {finding.display_title || finding.title}
-                        </h3>
-                        <p className="text-zinc-400 text-sm line-clamp-1">{summaryLine}...</p>
-                      </div>
-                      <span className="flex-shrink-0 text-xs px-2 py-1 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20">
-                        {agentName}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-xs text-zinc-500">
-                      {getRelativeTime(finding.created_at)}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-12 text-zinc-500">
-                <p>Research agents are analyzing data. Findings will appear here soon.</p>
-              </div>
-            )}
-          </div>
-
-          <div className="text-center mt-8">
-            <Link
-              href="/agent-review"
-              className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 font-medium transition-colors"
-            >
-              View all findings
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* ==================== LIVE STATS ==================== */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
         <div className="max-w-6xl mx-auto">
@@ -641,7 +417,7 @@ export default async function LandingPage() {
           </div>
 
           <div className="space-y-4">
-            {activity.predictions.slice(0, 5).map((prediction) => (
+            {activity.predictions.slice(0, 3).map((prediction) => (
               <div
                 key={prediction.id}
                 className="flex items-start gap-4 p-4 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all"
@@ -723,140 +499,6 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ==================== AUTONOMOUS RESEARCH AGENTS ==================== */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">The Research Team</h2>
-            <p className="text-3xl sm:text-4xl font-bold text-zinc-100 mb-4">Autonomous Research Agents</p>
-            <p className="text-zinc-400 max-w-2xl mx-auto">
-              Seven specialized AI agents work around the clock to analyze data, find cross-domain connections, and flag methodological issues.
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {[
-              { name: 'Argus', role: 'Coordinator. Reviews findings and directs the research agenda.', color: 'amber' },
-              { name: 'Deep Miner', role: 'Pattern hunter. Finds statistical anomalies in the data.', color: 'blue' },
-              { name: 'Discovery', role: 'Literature scout. Searches for datasets and published research.', color: 'teal' },
-              { name: 'Connection', role: 'Cross-domain analyst. Tests whether patterns generalize across fields.', color: 'indigo' },
-              { name: 'Mechanism', role: 'Explanation hunter. Proposes and tests causal hypotheses.', color: 'emerald' },
-              { name: 'Synthesis', role: 'Report writer. Produces research briefs from accumulated findings.', color: 'rose' },
-              { name: 'Flora', role: 'Plant intelligence researcher. (Coming soon)', color: 'green', comingSoon: true },
-            ].map((agent) => (
-              <div
-                key={agent.name}
-                className={`p-4 rounded-xl bg-dark-card border border-dark-border hover:border-${agent.color}-500/30 transition-all ${agent.comingSoon ? 'opacity-60' : ''}`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`w-2 h-2 rounded-full bg-${agent.color}-400`} />
-                  <h3 className="text-zinc-100 font-semibold">{agent.name}</h3>
-                </div>
-                <p className="text-zinc-400 text-sm">{agent.role}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Link
-              href="/agent"
-              className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 font-medium transition-colors"
-            >
-              View agent activity
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="section-divider max-w-4xl mx-auto" />
-
-      {/* ==================== THE 5 DOMAINS ==================== */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-[#0a0a0f] to-[#0d0d14]">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Research Domains</h2>
-            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Six Interconnected Fields</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-            {DOMAINS.map((domain) => (
-              <Link
-                key={domain.id}
-                href={`/investigations?type=${domain.id}`}
-                className="group p-6 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all hover:-translate-y-1"
-              >
-                <div
-                  className={`w-14 h-14 rounded-xl bg-gradient-to-br ${domain.gradient} bg-opacity-10 flex items-center justify-center mb-4 opacity-80 group-hover:opacity-100 transition-opacity`}
-                  style={{ background: `linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1))` }}
-                >
-                  <span className={`text-${domain.color}-400`}>{domain.icon}</span>
-                </div>
-                <h3 className="text-lg font-semibold text-zinc-100 mb-1">{domain.name}</h3>
-                <p className="text-sm text-zinc-500 mb-2">{domain.fullName}</p>
-                <p className="text-xs text-zinc-500 line-clamp-2">{domain.description}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ==================== RECENT AGENT ACTIVITY ==================== */}
-      {recentAgentTasks.length > 0 && (
-        <>
-          <div className="section-divider max-w-4xl mx-auto" />
-          <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
-            <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-12">
-                <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Agent Activity</h2>
-                <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Recently Completed Tasks</p>
-              </div>
-
-              <div className="space-y-4">
-                {recentAgentTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="p-4 rounded-xl bg-dark-card border border-dark-border hover:border-green-500/30 transition-all"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-zinc-200 font-medium">{task.title}</p>
-                          <p className="text-xs text-zinc-500">{getRelativeTime(task.updated_at)}</p>
-                        </div>
-                      </div>
-                      <span className="text-xs px-2 py-1 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20 capitalize">
-                        {task.assigned_to}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="text-center mt-8">
-                <Link
-                  href="/agent"
-                  className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 font-medium transition-colors"
-                >
-                  View all agent activity
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          </section>
-        </>
-      )}
 
       {/* ==================== CALL TO ACTION ==================== */}
       <section className="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">

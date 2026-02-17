@@ -84,9 +84,9 @@ export default function MethodologyPage() {
           <SectionHeading id="platform" number={1} title="What This Platform Does" />
           <div className="space-y-4 text-zinc-300 leading-relaxed">
             <p>
-              Project Aletheia aggregates existing anomaly research data across five
+              Project Aletheia aggregates existing anomaly research data across six
               domains&mdash;Ganzfeld telepathy, near-death experiences, crisis apparitions,
-              remote viewing, and geophysical correlations&mdash;into a standardized format.
+              remote viewing, geophysical correlations, and UFO/UAP&mdash;into a standardized format.
               AI agents run cross-domain pattern analysis. Humans can also submit new results.
             </p>
             <p>
@@ -260,7 +260,7 @@ export default function MethodologyPage() {
           <SectionHeading id="agents" number={6} title="AI Agent System" />
           <div className="space-y-4 text-zinc-300 leading-relaxed">
             <p>
-              20 autonomous agents analyze data across domains. Agents submit findings to a
+              25 autonomous agents analyze data across domains. Agents submit findings to a
               human review queue. Findings are approved or rejected manually. Agents learn
               from rejections through feedback loops.
             </p>

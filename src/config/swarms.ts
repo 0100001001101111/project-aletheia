@@ -142,7 +142,7 @@ export const SWARMS: Swarm[] = [
   {
     id: 'asclepius',
     name: 'ASCLEPIUS',
-    domain: 'Drug Repurposing',
+    domain: 'Medical Research',
     tagline: 'Old drugs, new cures',
     description: 'Finding unexpected therapeutic uses for existing medications. Pattern matching across clinical trials, case reports, and molecular targets.',
     icon: '⚕️',
@@ -156,7 +156,7 @@ export const SWARMS: Swarm[] = [
   {
     id: 'gaia',
     name: 'GAIA',
-    domain: 'Ecology & Climate',
+    domain: 'Earthquakes & Geology',
     tagline: 'Earth system patterns',
     description: 'Cross-correlating ecological datasets, climate anomalies, and biodiversity patterns. Finding signals in complex earth systems.',
     icon: '🌍',
@@ -186,7 +186,7 @@ export const SWARMS: Swarm[] = [
   {
     id: 'chronos',
     name: 'CHRONOS',
-    domain: 'Historical Analysis',
+    domain: 'Temporal Analysis',
     tagline: 'Patterns across time',
     description: 'Cross-referencing historical records, archaeological findings, and ancient texts. Finding patterns mainstream history missed.',
     icon: '⏳',
@@ -200,7 +200,7 @@ export const SWARMS: Swarm[] = [
   {
     id: 'daedalus',
     name: 'DAEDALUS',
-    domain: 'Aviation Mysteries',
+    domain: 'Dataset Acquisition',
     tagline: 'Sky anomalies decoded',
     description: 'Unexplained aviation incidents, radar anomalies, and aerospace mysteries. From MH370 to foo fighters.',
     icon: '✈️',
