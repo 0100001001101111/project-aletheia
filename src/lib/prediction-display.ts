@@ -16,16 +16,18 @@ export function generateDisplayTitle(hypothesis: string, domains: string[] = [])
   // predictions mention "NDE" in passing and would otherwise get caught
   // by the NDE catch-all matchers
   if (h.includes('plant') && (h.includes('bioelectric') || h.includes('backster') || h.includes('psi'))) {
-    if (h.includes('faraday') || h.includes('triple-blind') || h.includes('gloor')) {
-      return {
-        title: "Can human intention affect plants from a distance?",
-        subtitle: "Rigorous protocol to test plant bioelectric response to focused attention"
-      };
-    }
+    // "Five Testable Research Questions" check must come first — its text
+    // mentions "Faraday" in passing, which would otherwise match the protocol branch
     if (h.includes('research question') || h.includes('five testable')) {
       return {
         title: "What can we test about plant intelligence and psi?",
         subtitle: "Five testable research questions for plant bioelectric signaling"
+      };
+    }
+    if (h.includes('faraday') || h.includes('triple-blind') || h.includes('gloor')) {
+      return {
+        title: "Can human intention affect plants from a distance?",
+        subtitle: "Rigorous protocol to test plant bioelectric response to focused attention"
       };
     }
     return {
