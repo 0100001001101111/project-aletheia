@@ -541,7 +541,7 @@ export default async function LandingPage() {
                 Built for rigorous curiosity. Open science infrastructure for phenomena that deserve serious study.
               </p>
               <a
-                href="https://github.com/project-aletheia"
+                href="https://github.com/0100001001101111/project-aletheia"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-100 text-sm transition-colors"
