@@ -6,7 +6,9 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageWrapper } from '@/components/layout/PageWrapper';
+import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 
 interface AcquisitionRequest {
@@ -60,12 +62,21 @@ const GAP_TYPE_LABELS: Record<string, string> = {
 };
 
 export default function AcquisitionQueuePage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [requests, setRequests] = useState<AcquisitionRequest[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/agent');
+    }
+  }, [user, authLoading, router]);
 
   const fetchData = useCallback(async () => {
     try {

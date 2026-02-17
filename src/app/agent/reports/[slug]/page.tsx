@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import Link from 'next/link';
 import type { ReportVerdict, TestResult, ConfoundCheckResult, SearchSource, ResearchQuery, SuggestedContact } from '@/lib/agent/types';
@@ -81,6 +82,7 @@ function CollapsibleSection({ title, defaultOpen = false, children }: Collapsibl
 
 export default function ReportDetailPage({ params }: { params: { slug: string } }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -199,7 +201,7 @@ export default function ReportDetailPage({ params }: { params: { slug: string } 
             <span className={`px-3 py-1.5 text-sm font-medium rounded-full border ${verdict.bg} ${verdict.text} ${verdict.border}`}>
               {verdict.label}
             </span>
-            {report.status === 'draft' && (
+            {user && report.status === 'draft' && (
               <button
                 onClick={handlePublish}
                 disabled={isPublishing}
