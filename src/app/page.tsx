@@ -4,6 +4,7 @@
  */
 
 import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
 import { createClient as createServerClient } from '@/lib/supabase-server';
 import { Navigation } from '@/components/layout/Navigation';
 
@@ -60,16 +61,41 @@ async function getStats() {
       open: openCount.count || 0,
     };
 
+    // Get agent findings stats
+    const [totalFindings, approvedFindings, rejectedFindings, pendingFindings, agentCount] = await Promise.all([
+      supabase.from('aletheia_agent_findings').select('id', { count: 'exact', head: true }),
+      supabase.from('aletheia_agent_findings').select('id', { count: 'exact', head: true }).eq('review_status', 'approved'),
+      supabase.from('aletheia_agent_findings').select('id', { count: 'exact', head: true }).eq('review_status', 'rejected'),
+      supabase.from('aletheia_agent_findings').select('id', { count: 'exact', head: true }).eq('review_status', 'pending'),
+      supabase.from('aletheia_agent_findings').select('agent_id').limit(1000),
+    ]);
+
+    const uniqueAgents = new Set((agentCount.data || []).map((r: { agent_id: string }) => r.agent_id)).size;
+    const totalF = totalFindings.count || 0;
+    const rejectedF = rejectedFindings.count || 0;
+    const rejectionRate = totalF > 0 ? Math.round((rejectedF / totalF) * 100) : 0;
+
+    const findingsStats = {
+      total: totalF,
+      approved: approvedFindings.count || 0,
+      rejected: rejectedF,
+      pending: pendingFindings.count || 0,
+      agents: uniqueAgents,
+      rejectionRate,
+    };
+
     return {
       investigations: investigationCounts,
       patterns: patternCount || 0,
       predictions: predictionStats,
+      findings: findingsStats,
     };
   } catch {
     return {
       investigations: { nde: 0, ganzfeld: 0, crisis: 0, stargate: 0, geophysical: 0, research: 0, exploratory: 0, total: 0 },
       patterns: 0,
       predictions: { total: 0, confirmed: 0, refuted: 0, testing: 0, open: 0 },
+      findings: { total: 0, approved: 0, rejected: 0, pending: 0, agents: 0, rejectionRate: 0 },
     };
   }
 }
@@ -79,13 +105,6 @@ async function getRecentActivity() {
   try {
     const supabase = await createServerClient();
 
-    // Get recent patterns
-    const { data: recentPatterns } = await supabase
-      .from('aletheia_pattern_matches')
-      .select('id, pattern_description, confidence_score, created_at')
-      .order('created_at', { ascending: false })
-      .limit(3) as { data: Array<{ id: string; pattern_description: string; confidence_score: number; created_at: string }> | null };
-
     // Get recent predictions
     const { data: recentPredictions } = await supabase
       .from('aletheia_predictions')
@@ -93,12 +112,19 @@ async function getRecentActivity() {
       .order('created_at', { ascending: false })
       .limit(5) as { data: Array<{ id: string; hypothesis: string; status: string; resolved_at: string | null; created_at: string }> | null };
 
+    // Get recent agent findings for the live feed
+    const { data: recentFindings } = await supabase
+      .from('aletheia_agent_findings')
+      .select('id, agent_id, title, confidence, review_status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(8) as { data: Array<{ id: string; agent_id: string; title: string; confidence: number; review_status: string; created_at: string }> | null };
+
     return {
-      patterns: recentPatterns || [],
       predictions: recentPredictions || [],
+      findings: recentFindings || [],
     };
   } catch {
-    return { patterns: [], predictions: [] };
+    return { predictions: [], findings: [] };
   }
 }
 
@@ -132,12 +158,12 @@ export default async function LandingPage() {
 
           {/* Subhead */}
           <p className="text-xl sm:text-2xl text-zinc-300 font-light mb-4">
-            AI agents running 24/7, hunting for patterns humans miss
+            25 autonomous research agents. Adversarial verification. Open findings.
           </p>
 
           {/* Tagline */}
           <p className="text-lg text-brand-400 font-medium mb-12">
-            Six research domains. Continuous discovery. Rigorous methodology.
+            Falsifiable predictions. 37% rejection rate. A $50/month research lab on a Raspberry Pi.
           </p>
 
           {/* CTAs */}
@@ -238,79 +264,112 @@ export default async function LandingPage() {
       {/* Divider */}
       <div className="section-divider max-w-4xl mx-auto" />
 
-      {/* ==================== THE SOLUTION ==================== */}
+      {/* ==================== SELF-CORRECTING PIPELINE ==================== */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Adversarial Verification</h2>
+            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Agents that correct each other</p>
+            <p className="text-zinc-400 mt-4 max-w-2xl mx-auto">
+              Every finding passes through an adversarial pipeline. Skeptic audits independently, errors get caught, and corrections propagate automatically.
+            </p>
+          </div>
+
+          {/* Pipeline Steps */}
+          <div className="space-y-0">
+            {([
+              { agent: 'Deep Miner', action: 'Analyzes raw data, extracts statistical signals', dotClass: 'bg-brand-400 ring-brand-400/20', textClass: 'text-brand-400', step: '01' },
+              { agent: 'Skeptic', action: 'Audits independently — checks methodology, flags errors', dotClass: 'bg-red-400 ring-red-400/20', textClass: 'text-red-400', step: '02' },
+              { agent: 'System', action: 'Error caught, correction queued automatically', dotClass: 'bg-amber-400 ring-amber-400/20', textClass: 'text-amber-400', step: '03' },
+              { agent: 'Deep Miner', action: 'Reruns analysis with corrections applied', dotClass: 'bg-blue-400 ring-blue-400/20', textClass: 'text-blue-400', step: '04' },
+              { agent: 'Synthesis', action: 'Notes caveats, updates confidence score', dotClass: 'bg-green-400 ring-green-400/20', textClass: 'text-green-400', step: '05' },
+            ] as const).map((item, i) => (
+              <div key={i} className="flex items-stretch gap-4 sm:gap-6">
+                {/* Vertical line + dot */}
+                <div className="flex flex-col items-center w-8 flex-shrink-0">
+                  <div className={`w-3 h-3 rounded-full ${item.dotClass} ring-4 flex-shrink-0 mt-6`} />
+                  {i < 4 && <div className="w-px flex-1 bg-zinc-800" />}
+                </div>
+                {/* Content */}
+                <div className="pb-8 flex-1">
+                  <div className="p-4 sm:p-5 rounded-xl bg-dark-card border border-dark-border">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-xs font-mono text-zinc-600">{item.step}</span>
+                      <span className={`text-sm font-semibold ${item.textClass}`}>{item.agent}</span>
+                    </div>
+                    <p className="text-zinc-300 text-sm">{item.action}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Real stat callout */}
+          <div className="mt-4 p-4 rounded-xl bg-green-500/5 border border-green-500/20 text-center">
+            <p className="text-green-400 font-medium text-sm">
+              Full correction cycle completed in 24 minutes on the Tressoldi dataset
+            </p>
+            <p className="text-zinc-500 text-xs mt-1">Automatic error detection, correction, and re-analysis — no human intervention required</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="section-divider max-w-4xl mx-auto" />
+
+      {/* ==================== HOW IT ACTUALLY WORKS ==================== */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">The Solution</h2>
+            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">How It Actually Works</h2>
             <p className="text-3xl sm:text-4xl font-bold text-zinc-100">
-              <span className="gradient-text">GitHub</span> for Anomaly Research
+              A <span className="gradient-text">$50/month</span> autonomous research lab
+            </p>
+            <p className="text-zinc-400 mt-4 max-w-2xl mx-auto">
+              25 AI agents run on a Raspberry Pi 5, each with a distinct research domain and Greek mythology identity.
+              They work on cron schedules, not always-on — cost efficiency by design.
             </p>
           </div>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Feature 1 */}
             <div className="p-6 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all group">
-              <div className="w-12 h-12 rounded-lg bg-brand-500/10 flex items-center justify-center mb-4 group-hover:bg-brand-500/20 transition-colors">
-                <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
-                  />
+              <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
+                <svg className="w-6 h-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-zinc-100 mb-2">Standardized Schemas</h3>
-              <p className="text-zinc-400 text-sm">6 research domains, machine-readable formats, version controlled</p>
+              <h3 className="text-lg font-semibold text-zinc-100 mb-2">Raspberry Pi 5</h3>
+              <p className="text-zinc-400 text-sm">25 agents, $50/month total cost. 15-minute timeout per run prevents runaway spend.</p>
             </div>
 
-            {/* Feature 2 */}
             <div className="p-6 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all group">
-              <div className="w-12 h-12 rounded-lg bg-brand-500/10 flex items-center justify-center mb-4 group-hover:bg-brand-500/20 transition-colors">
-                <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
+              <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-zinc-100 mb-2">Cross-Domain Patterns</h3>
-              <p className="text-zinc-400 text-sm">AI finds connections humans miss across seemingly unrelated fields</p>
+              <h3 className="text-lg font-semibold text-zinc-100 mb-2">Brave Search</h3>
+              <p className="text-zinc-400 text-sm">Web research across academic databases, preprints, and open-access journals.</p>
             </div>
 
-            {/* Feature 3 */}
             <div className="p-6 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all group">
-              <div className="w-12 h-12 rounded-lg bg-brand-500/10 flex items-center justify-center mb-4 group-hover:bg-brand-500/20 transition-colors">
-                <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
+                <svg className="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-zinc-100 mb-2">Falsifiable Predictions</h3>
-              <p className="text-zinc-400 text-sm">Tracked publicly, updated live, scored by Brier method</p>
+              <h3 className="text-lg font-semibold text-zinc-100 mb-2">173K+ Records</h3>
+              <p className="text-zinc-400 text-sm">Local datasets across all domains. LanceDB vector memory so agents remember past work.</p>
             </div>
 
-            {/* Feature 4 */}
             <div className="p-6 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all group">
-              <div className="w-12 h-12 rounded-lg bg-brand-500/10 flex items-center justify-center mb-4 group-hover:bg-brand-500/20 transition-colors">
-                <svg className="w-6 h-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
-                  />
+              <div className="w-12 h-12 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4 group-hover:bg-amber-500/20 transition-colors">
+                <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-zinc-100 mb-2">Anonymous Options</h3>
-              <p className="text-zinc-400 text-sm">Contribute without career risk. Your data, your control.</p>
+              <h3 className="text-lg font-semibold text-zinc-100 mb-2">Adversarial Review</h3>
+              <p className="text-zinc-400 text-sm">Every finding gets skeptic audit. {stats.findings.rejectionRate}% rejection rate proves the bar is real.</p>
             </div>
           </div>
         </div>
@@ -324,67 +383,43 @@ export default async function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Live Data</h2>
-            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Current State of Research</p>
+            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Research Output</p>
           </div>
 
-          {/* Two-Tier Data Display */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            {/* Research Tier */}
-            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-blue-900/10 border border-blue-500/20">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">🔬</span>
-                <div>
-                  <div className="text-3xl font-bold text-blue-400">{stats.investigations.research.toLocaleString()}</div>
-                  <div className="text-zinc-300 font-medium">Research Investigations</div>
-                </div>
-              </div>
-              <p className="text-sm text-zinc-400 mb-3">
-                Structured research with quality scoring. Supports falsifiable predictions.
-              </p>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">NDE</span>
-                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">Ganzfeld</span>
-                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">Crisis Apparition</span>
-                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">STARGATE</span>
-                <span className="px-2 py-1 rounded bg-blue-500/10 text-blue-300">Geophysical</span>
-              </div>
+          {/* Primary Stats Row — Agent Findings */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-brand-900/10 border border-brand-500/20 text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-brand-400 mb-1">{stats.findings.total.toLocaleString()}</div>
+              <div className="text-zinc-400 font-medium text-sm">Findings</div>
+              <div className="text-xs text-zinc-500 mt-1">Total agent output</div>
             </div>
-
-            {/* Exploratory Tier */}
-            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-purple-900/10 border border-purple-500/20">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">👻</span>
-                <div>
-                  <div className="text-3xl font-bold text-purple-400">{stats.investigations.exploratory.toLocaleString()}</div>
-                  <div className="text-zinc-300 font-medium">Exploratory Records</div>
-                </div>
-              </div>
-              <p className="text-sm text-zinc-400 mb-3">
-                Bulk-imported sighting data for pattern analysis and window theory testing.
-              </p>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">UFO/UAP</span>
-                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">Bigfoot</span>
-                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">Haunting</span>
-                <span className="px-2 py-1 rounded bg-purple-500/10 text-purple-300">Experience Reports</span>
-              </div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-green-900/10 border border-green-500/20 text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-green-400 mb-1">{stats.findings.approved.toLocaleString()}</div>
+              <div className="text-zinc-400 font-medium text-sm">Approved</div>
+              <div className="text-xs text-zinc-500 mt-1">Passed human review</div>
+            </div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-red-900/10 border border-red-500/20 text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-red-400 mb-1">{stats.findings.rejectionRate}%</div>
+              <div className="text-zinc-400 font-medium text-sm">Rejection Rate</div>
+              <div className="text-xs text-zinc-500 mt-1">Rigor, not failure</div>
+            </div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-cyan-900/10 border border-cyan-500/20 text-center">
+              <div className="text-3xl sm:text-4xl font-bold text-cyan-400 mb-1">{stats.findings.agents}</div>
+              <div className="text-zinc-400 font-medium text-sm">Active Agents</div>
+              <div className="text-xs text-zinc-500 mt-1">Autonomous researchers</div>
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6">
-            {/* Patterns */}
+          {/* Secondary Stats Row */}
+          <div className="grid sm:grid-cols-3 gap-4 sm:gap-6">
             <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-amber-900/10 border border-amber-500/20 text-center">
-              <div className="text-4xl font-bold text-amber-400 mb-2">{stats.patterns}</div>
-              <div className="text-zinc-400 font-medium">Patterns Found</div>
+              <div className="text-3xl font-bold text-amber-400 mb-1">{stats.patterns}</div>
+              <div className="text-zinc-400 font-medium text-sm">Patterns Found</div>
               <div className="text-xs text-zinc-500 mt-1">Cross-domain correlations</div>
             </div>
-
-            {/* Predictions */}
             <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-green-900/10 border border-green-500/20 text-center">
-              <div className="text-4xl font-bold text-green-400 mb-2">
-                {stats.predictions.total}
-              </div>
-              <div className="text-zinc-400 font-medium">Predictions Under Active Testing</div>
+              <div className="text-3xl font-bold text-green-400 mb-1">{stats.predictions.total}</div>
+              <div className="text-zinc-400 font-medium text-sm">Predictions Tracked</div>
               <div className="text-xs text-zinc-500 mt-1">
                 {stats.predictions.confirmed > 0 && <span className="text-green-400">{stats.predictions.confirmed} confirmed</span>}
                 {stats.predictions.confirmed > 0 && (stats.predictions.testing > 0 || stats.predictions.open > 0) && ' · '}
@@ -394,12 +429,10 @@ export default async function LandingPage() {
                 {stats.predictions.total === 0 && 'Awaiting hypotheses'}
               </div>
             </div>
-
-            {/* Domains */}
-            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-cyan-900/10 border border-cyan-500/20 text-center">
-              <div className="text-4xl font-bold text-cyan-400 mb-2">6</div>
-              <div className="text-zinc-400 font-medium">Domains</div>
-              <div className="text-xs text-zinc-500 mt-1">Interconnected fields</div>
+            <div className="p-6 rounded-xl bg-gradient-to-br from-dark-card to-purple-900/10 border border-purple-500/20 text-center">
+              <div className="text-3xl font-bold text-purple-400 mb-1">{stats.investigations.total.toLocaleString()}</div>
+              <div className="text-zinc-400 font-medium text-sm">Investigations</div>
+              <div className="text-xs text-zinc-500 mt-1">{stats.investigations.research} research · {stats.investigations.exploratory.toLocaleString()} exploratory</div>
             </div>
           </div>
         </div>
@@ -408,90 +441,85 @@ export default async function LandingPage() {
       {/* Divider */}
       <div className="section-divider max-w-4xl mx-auto" />
 
-      {/* ==================== RECENT ACTIVITY ==================== */}
+      {/* ==================== LIVE AGENT FEED ==================== */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-[#0a0a0f]">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold mb-4">Recent Activity</h2>
-            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Latest Developments</p>
+            <div className="inline-flex items-center gap-2 mb-4">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <h2 className="text-sm uppercase tracking-wider text-brand-400 font-semibold">Live Agent Feed</h2>
+            </div>
+            <p className="text-3xl sm:text-4xl font-bold text-zinc-100">Latest Findings</p>
           </div>
 
-          <div className="space-y-4">
-            {activity.predictions.slice(0, 3).map((prediction) => (
-              <div
-                key={prediction.id}
-                className="flex items-start gap-4 p-4 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all"
-              >
+          <div className="space-y-3">
+            {activity.findings.map((finding) => {
+              const confidence = Number(finding.confidence) || 0;
+              const confidenceColor = confidence >= 0.7 ? 'bg-green-400' : confidence >= 0.4 ? 'bg-amber-400' : 'bg-red-400';
+              const statusColor = finding.review_status === 'approved'
+                ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                : finding.review_status === 'rejected'
+                  ? 'bg-red-500/10 text-red-400 border-red-500/30'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+
+              return (
                 <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    prediction.status === 'confirmed'
-                      ? 'bg-green-500/10'
-                      : prediction.status === 'refuted'
-                        ? 'bg-red-500/10'
-                        : prediction.status === 'testing'
-                          ? 'bg-amber-500/10'
-                          : 'bg-brand-500/10'
-                  }`}
+                  key={finding.id}
+                  className="flex items-start gap-4 p-5 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/30 transition-all"
                 >
-                  {prediction.status === 'confirmed' ? (
-                    <svg className="w-5 h-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : prediction.status === 'refuted' ? (
-                    <svg className="w-5 h-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  ) : prediction.status === 'testing' ? (
-                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
-                      />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-zinc-200 text-sm line-clamp-2">{prediction.hypothesis}</p>
-                  <div className="flex items-center gap-3 mt-2">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full border ${
-                        prediction.status === 'confirmed'
-                          ? 'status-confirmed'
-                          : prediction.status === 'refuted'
-                            ? 'status-refuted'
-                            : prediction.status === 'testing'
-                              ? 'status-testing'
-                              : 'status-open'
-                      }`}
-                    >
-                      {prediction.status}
-                    </span>
-                    <span className="text-xs text-zinc-500">
-                      {new Date(prediction.resolved_at || prediction.created_at).toLocaleDateString()}
-                    </span>
+                  {/* Agent avatar */}
+                  <div className="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-brand-400 font-bold text-sm uppercase">{finding.agent_id.slice(0, 2)}</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    {/* Agent name + timestamp */}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-brand-400 font-semibold text-sm capitalize">{finding.agent_id}</span>
+                      <span className="text-zinc-600 text-xs">
+                        {formatDistanceToNow(new Date(finding.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
+
+                    {/* Finding title */}
+                    <p className="text-zinc-200 text-sm line-clamp-1 mb-2">{finding.title}</p>
+
+                    {/* Confidence bar + status pill */}
+                    <div className="flex items-center gap-3">
+                      {/* Confidence */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-16 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                          <div className={`h-full rounded-full ${confidenceColor}`} style={{ width: `${confidence * 100}%` }} />
+                        </div>
+                        <span className="text-xs text-zinc-500">{(confidence * 100).toFixed(0)}%</span>
+                      </div>
+
+                      {/* Status pill */}
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${statusColor}`}>
+                        {finding.review_status}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          <div className="text-center mt-8">
+          <div className="flex justify-center gap-6 mt-8">
             <Link
-              href="/predictions"
+              href="/agent-review"
               className="inline-flex items-center gap-2 text-brand-400 hover:text-brand-300 font-medium transition-colors"
             >
-              View all predictions
+              View all findings
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+            <Link
+              href="/predictions"
+              className="inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-300 font-medium transition-colors"
+            >
+              Predictions
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
@@ -607,9 +635,22 @@ export default async function LandingPage() {
           </div>
 
           <div className="border-t border-dark-border mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-zinc-500 text-sm">
-              &copy; {new Date().getFullYear()} Project Aletheia. Built for rigorous curiosity.
-            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+              <p className="text-zinc-500 text-sm">
+                &copy; {new Date().getFullYear()} Project Aletheia. Built for rigorous curiosity.
+              </p>
+              <a
+                href="https://orcid.org/0009-0002-7449-5459"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-zinc-500 hover:text-zinc-300 text-xs transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 256 256" fill="currentColor">
+                  <path d="M128,0C57.3,0,0,57.3,0,128s57.3,128,128,128s128-57.3,128-128S198.7,0,128,0z M86.3,186.2H70.9V79.1h15.4V186.2z M78.6,70.6c-5.7,0-10.3-4.6-10.3-10.3s4.6-10.3,10.3-10.3c5.7,0,10.3,4.6,10.3,10.3S84.3,70.6,78.6,70.6z M185.1,186.2h-15.4 v-52c0-15.2-5.4-25.6-19.1-25.6c-10.4,0-16.6,7-19.3,13.8c-1,2.4-1.2,5.8-1.2,9.2v54.6h-15.4c0,0,0.2-88.6,0-97.8h15.4v13.8 c2-3.1,5.6-7.6,13.7-7.6c0,0,0,0,0,0c0,0,0,0,0,0c20,0,41.3,13.1,41.3,41.2V186.2z" />
+                </svg>
+                ORCID
+              </a>
+            </div>
             <p className="text-zinc-600 text-xs">
               &quot;ἀλήθεια&quot; — Greek for truth, unconcealment
             </p>

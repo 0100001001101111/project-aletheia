@@ -28,17 +28,15 @@ interface Finding {
 }
 
 function confidenceBarColor(c: number) {
-  const pct = c * 100;
-  if (pct >= 85) return 'bg-emerald-500';
-  if (pct >= 70) return 'bg-amber-500';
-  return 'bg-zinc-600';
+  if (c >= 0.7) return 'bg-green-500';
+  if (c >= 0.4) return 'bg-amber-500';
+  return 'bg-red-500';
 }
 
 function confidenceTextColor(c: number) {
-  const pct = c * 100;
-  if (pct >= 85) return 'text-emerald-400';
-  if (pct >= 70) return 'text-amber-400';
-  return 'text-zinc-500';
+  if (c >= 0.7) return 'text-green-400';
+  if (c >= 0.4) return 'text-amber-400';
+  return 'text-red-400';
 }
 
 export default function AgentReviewPage() {
@@ -242,13 +240,13 @@ export default function AgentReviewPage() {
                       <h3 className="text-base font-medium text-zinc-100 line-clamp-2">{finding.display_title}</h3>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <div className="w-20 h-2 bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="w-24 h-2.5 bg-zinc-800 rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${confidenceBarColor(conf)}`}
                           style={{ width: `${confPct}%` }}
                         />
                       </div>
-                      <span className={`text-xs font-medium ${confidenceTextColor(conf)}`}>{confPct}%</span>
+                      <span className={`text-sm font-semibold tabular-nums ${confidenceTextColor(conf)}`}>{confPct}%</span>
                     </div>
                   </div>
 
